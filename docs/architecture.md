@@ -1,5 +1,12 @@
 # beads-ui Architecture and Protocol (v1)
 
+Note
+
+- As of 2025-10-25, the UI and server move to a push‑only, breaking protocol for
+  issue updates. This document describes the legacy v1 request/response shapes
+  and remains for historical reference. For the current push protocol, see
+  `docs/protocol/issues-push-v2.md`.
+
 This document describes the high‑level architecture of beads‑ui and the v1
 WebSocket protocol used between the browser SPA and the local Node.js server.
 

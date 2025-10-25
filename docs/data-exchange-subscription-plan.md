@@ -195,8 +195,7 @@ Notes:
 
 ## Observability
 
-- Metrics per subscription type: runs, deltas sizes, errors, latency.
-- Log sample of large deltas; trace mutation windows.
+- Basic development logging only; no telemetry collection for message rates.
 
 ## Security
 
