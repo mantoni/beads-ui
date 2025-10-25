@@ -2,7 +2,7 @@
 
 ```
 Date: 2025-10-25
-Status: Proposed
+Status: Implemented
 Owner: agent
 ```
 
@@ -74,8 +74,24 @@ Notes:
 
 ### Special Case: Closed Issues Filtering
 
-- Apply filter (e.g., `closed_at >= since`, `epic_id`, etc.) before step 3.
+- Apply `since` filter (epoch milliseconds) before diffing to avoid spurious
+  updates when reloading older closed items. Only items with
+  `closed_at >= since` are included. Invalid or non-positive `since` values are
+  ignored.
 - Filters are part of subscription params to keep deterministic diffing.
+
+### Migration
+
+This change replaces ad-hoc polling with subscription-based incremental updates.
+Client migration steps:
+
+- Replace list fetch calls with `subscribe-list`/`unsubscribe-list` messages.
+- Maintain a per-subscription local store keyed by server `subscriptionKey`.
+- Apply deltas `{ added, updated, removed }` in order; re-render views from the
+  local store.
+- Remove any legacy polling timers; updates now arrive via server push.
+- For closed issue feeds, pass a `params.since` value (epoch ms) that reflects
+  the UI’s filter horizon to reduce payload sizes.
 
 ### Watcher Integration (DB Updates)
 
