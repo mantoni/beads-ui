@@ -5,14 +5,16 @@
  */
 import { WebSocketServer } from 'ws';
 import { runBd, runBdJson } from './bd.js';
+import { fetchListForSubscription } from './list-adapters.js';
 import { isRequest, makeError, makeOk } from './protocol.js';
-import { registry } from './subscriptions.js';
+import { keyOf, registry } from './subscriptions.js';
 
 /**
  * @typedef {{
  *   subscribed: boolean,
  *   list_filters?: { status?: 'open'|'in_progress'|'closed', ready?: boolean, blocked?: boolean, limit?: number },
- *   show_id?: string | null
+ *   show_id?: string | null,
+ *   list_subs?: Map<string, { key: string, spec: { type: string, params?: Record<string, string | number | boolean> } }>
  * }} ConnectionSubs
  */
 
@@ -30,7 +32,7 @@ let CURRENT_WSS = null;
 function getSubs(ws) {
   let s = SUBS.get(ws);
   if (!s) {
-    s = { subscribed: false, show_id: null };
+    s = { subscribed: false, show_id: null, list_subs: new Map() };
     SUBS.set(ws, s);
   }
   return s;
@@ -124,6 +126,56 @@ export function notifyIssuesChanged(payload, options = {}) {
 }
 
 /**
+ * Refresh a subscription spec: fetch via adapter, apply to registry and publish delta.
+ * Serialized per-key using registry.withKeyLock.
+ * @param {{ type: string, params?: Record<string, string|number|boolean> }} spec
+ */
+async function refreshAndPublish(spec) {
+  const key = keyOf(spec);
+  await registry.withKeyLock(key, async () => {
+    const res = await fetchListForSubscription(spec);
+    if (!res.ok) {
+      return;
+    }
+    const items = applyClosedIssuesFilter(spec, res.items);
+    const delta = registry.applyItems(key, items);
+    if (
+      delta.added.length > 0 ||
+      delta.updated.length > 0 ||
+      delta.removed.length > 0
+    ) {
+      registry.publishDelta(key, delta);
+    }
+  });
+}
+
+/**
+ * Apply pre-diff filtering for closed-issues lists based on spec.params.since (epoch ms).
+ * @param {{ type: string, params?: Record<string, string|number|boolean> }} spec
+ * @param {Array<{ id: string, updated_at: number, closed_at: number | null } & Record<string, unknown>>} items
+ */
+function applyClosedIssuesFilter(spec, items) {
+  if (String(spec.type) !== 'closed-issues') {
+    return items;
+  }
+  const p = spec.params || {};
+  /** @type {number} */
+  const since = typeof p.since === 'number' ? p.since : 0;
+  if (!Number.isFinite(since) || since <= 0) {
+    return items;
+  }
+  /** @type {typeof items} */
+  const out = [];
+  for (const it of items) {
+    const ca = it.closed_at;
+    if (typeof ca === 'number' && Number.isFinite(ca) && ca >= since) {
+      out.push(it);
+    }
+  }
+  return out;
+}
+
+/**
  * Attach a WebSocket server to an existing HTTP server.
  * @param {Server} http_server
  * @param {{ path?: string, heartbeat_ms?: number }} [options]
@@ -142,7 +194,7 @@ export function attachWsServer(http_server, options = {}) {
     ws.isAlive = true;
 
     // Initialize subscription state for this connection
-    getSubs(/** @type {any} */ (ws));
+    getSubs(ws);
 
     ws.on('pong', () => {
       // @ts-expect-error marker
@@ -155,7 +207,7 @@ export function attachWsServer(http_server, options = {}) {
 
     ws.on('close', () => {
       try {
-        registry.onDisconnect(/** @type {any} */ (ws));
+        registry.onDisconnect(ws);
       } catch {
         // ignore cleanup errors
       }
@@ -238,8 +290,94 @@ export async function handleMessage(ws, data) {
   const req = json;
 
   // Dispatch known types here as we implement them. For now, only a ping utility.
-  if (req.type === /** @type {any} */ ('ping')) {
+  if (req.type === /** @type {MessageType} */ ('ping')) {
     ws.send(JSON.stringify(makeOk(req, { ts: Date.now() })));
+    return;
+  }
+
+  // subscribe-list: payload { id: string, type: string, params?: object }
+  if (req.type === 'subscribe-list') {
+    const {
+      id: client_id,
+      type,
+      params
+    } = /** @type {any} */ (req.payload || {});
+    if (typeof client_id !== 'string' || client_id.length === 0) {
+      ws.send(
+        JSON.stringify(
+          makeError(req, 'bad_request', 'payload.id must be a non-empty string')
+        )
+      );
+      return;
+    }
+    if (typeof type !== 'string' || type.length === 0) {
+      ws.send(
+        JSON.stringify(
+          makeError(
+            req,
+            'bad_request',
+            'payload.type must be a non-empty string'
+          )
+        )
+      );
+      return;
+    }
+    /** @type {{ type: string, params?: Record<string, string|number|boolean> }} */
+    const spec = {
+      type,
+      params: params && typeof params === 'object' ? params : undefined
+    };
+    const s = getSubs(ws);
+    // Attach to registry
+    const { key } = registry.attach(spec, ws);
+    s.list_subs?.set(client_id, { key, spec });
+    // Kick an initial refresh + delta fanout
+    try {
+      await refreshAndPublish(spec);
+    } catch {
+      // ignore refresh errors
+    }
+    ws.send(
+      JSON.stringify(
+        makeOk(req, {
+          id: client_id,
+          key
+        })
+      )
+    );
+    return;
+  }
+
+  // unsubscribe-list: payload { id: string }
+  if (req.type === 'unsubscribe-list') {
+    const { id: client_id } = /** @type {any} */ (req.payload || {});
+    if (typeof client_id !== 'string' || client_id.length === 0) {
+      ws.send(
+        JSON.stringify(
+          makeError(req, 'bad_request', 'payload.id must be a non-empty string')
+        )
+      );
+      return;
+    }
+    const s = getSubs(ws);
+    const sub = s.list_subs?.get(client_id) || null;
+    let removed = false;
+    if (sub) {
+      try {
+        removed = registry.detach(sub.spec, ws);
+      } catch {
+        removed = false;
+      }
+      s.list_subs?.delete(client_id);
+    }
+    ws.send(
+      JSON.stringify(
+        makeOk(req, {
+          id: client_id,
+          unsubscribed: removed
+        })
+      )
+    );
     return;
   }
 
@@ -292,7 +430,6 @@ export async function handleMessage(ws, data) {
       return;
     }
 
-    /** @type {string[]} */
     const args = ['list', '--json'];
     if (filters && typeof filters === 'object') {
       if (typeof filters.status === 'string') {
@@ -317,9 +454,7 @@ export async function handleMessage(ws, data) {
       const s = getSubs(ws);
       /** @type {{ status?: any, limit?: any }} */
       const f = filters && typeof filters === 'object' ? filters : {};
-      /** @type {any} */
       const st = f.status;
-      /** @type {any} */
       const lim = f.limit;
       s.list_filters = {};
       if (st === 'open' || st === 'in_progress' || st === 'closed') {
@@ -336,7 +471,7 @@ export async function handleMessage(ws, data) {
   }
 
   // epic-status
-  if (req.type === /** @type {any} */ ('epic-status')) {
+  if (req.type === 'epic-status') {
     const res = await runBdJson(['epic', 'status', '--json']);
     if (res.code !== 0) {
       const err = makeError(req, 'bd_error', res.stderr || 'bd failed');
@@ -366,7 +501,6 @@ export async function handleMessage(ws, data) {
     }
     // bd show can return an array when it supports multiple ids;
     // normalize to a single object for the single-id API.
-    /** @type {any} */
     const out = Array.isArray(res.stdoutJson)
       ? res.stdoutJson[0]
       : res.stdoutJson;
@@ -388,7 +522,7 @@ export async function handleMessage(ws, data) {
   // type updates are not exposed via UI; no handler
 
   // update-assignee
-  if (req.type === /** @type {any} */ ('update-assignee')) {
+  if (req.type === 'update-assignee') {
     const { id, assignee } = /** @type {any} */ (req.payload || {});
     if (
       typeof id !== 'string' ||
@@ -578,7 +712,7 @@ export async function handleMessage(ws, data) {
   }
 
   // create-issue
-  if (req.type === /** @type {any} */ ('create-issue')) {
+  if (req.type === 'create-issue') {
     const { title, type, priority, description } = /** @type {any} */ (
       req.payload || {}
     );
@@ -594,7 +728,6 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    /** @type {string[]} */
     const args = ['create', title];
     if (
       typeof type === 'string' &&
@@ -625,7 +758,7 @@ export async function handleMessage(ws, data) {
   }
 
   // dep-add: payload { a: string, b: string, view_id?: string }
-  if (req.type === /** @type {any} */ ('dep-add')) {
+  if (req.type === 'dep-add') {
     const { a, b, view_id } = /** @type {any} */ (req.payload || {});
     if (
       typeof a !== 'string' ||
@@ -670,7 +803,7 @@ export async function handleMessage(ws, data) {
   }
 
   // dep-remove: payload { a: string, b: string, view_id?: string }
-  if (req.type === /** @type {any} */ ('dep-remove')) {
+  if (req.type === 'dep-remove') {
     const { a, b, view_id } = /** @type {any} */ (req.payload || {});
     if (
       typeof a !== 'string' ||
@@ -714,7 +847,7 @@ export async function handleMessage(ws, data) {
   }
 
   // label-add: payload { id: string, label: string }
-  if (req.type === /** @type {any} */ ('label-add')) {
+  if (req.type === 'label-add') {
     const { id, label } = /** @type {any} */ (req.payload || {});
     if (
       typeof id !== 'string' ||
@@ -757,7 +890,7 @@ export async function handleMessage(ws, data) {
   }
 
   // label-remove: payload { id: string, label: string }
-  if (req.type === /** @type {any} */ ('label-remove')) {
+  if (req.type === 'label-remove') {
     const { id, label } = /** @type {any} */ (req.payload || {});
     if (
       typeof id !== 'string' ||

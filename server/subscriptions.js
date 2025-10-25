@@ -36,17 +36,11 @@
  * @returns {Entry}
  */
 function createEntry() {
-  /** @type {() => void} */
-  let release = () => {};
-  /** @type {Promise<void>} */
-  const initial = new Promise((resolve) => {
-    release = resolve;
-  });
   return {
     itemsById: new Map(),
     subscribers: new Set(),
-    lock: initial,
-    lockTail: release
+    lock: Promise.resolve(),
+    lockTail: () => {}
   };
 }
 
