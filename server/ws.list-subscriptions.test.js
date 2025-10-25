@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from 'vitest';
+import { fetchListForSubscription } from './list-adapters.js';
 import { keyOf, registry } from './subscriptions.js';
 import { handleMessage } from './ws.js';
-import { fetchListForSubscription } from './list-adapters.js';
 
 // Mock adapters BEFORE importing ws.js to ensure the mock is applied
 vi.mock('./list-adapters.js', () => ({
@@ -112,7 +112,9 @@ describe('ws list subscriptions', () => {
   test('closed-issues pre-filter applies before diff', async () => {
     const now = Date.now();
     // Configure adapter mock for this test case
-    const mock = /** @type {import('vitest').Mock} */ (fetchListForSubscription);
+    const mock = /** @type {import('vitest').Mock} */ (
+      fetchListForSubscription
+    );
     mock.mockResolvedValueOnce({
       ok: true,
       items: [

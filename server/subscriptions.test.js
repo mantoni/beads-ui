@@ -29,6 +29,54 @@ describe('subscriptions registry', () => {
     expect(d.removed).toEqual(['UI-1']);
   });
 
+  test('computeDelta returns no changes for unchanged maps', () => {
+    const prev = toItemsMap([
+      { id: 'A', updated_at: 10, closed_at: null },
+      { id: 'B', updated_at: 20, closed_at: null }
+    ]);
+    const next = toItemsMap([
+      { id: 'A', updated_at: 10, closed_at: null },
+      { id: 'B', updated_at: 20, closed_at: null }
+    ]);
+    const d = computeDelta(prev, next);
+    expect(d.added).toEqual([]);
+    expect(d.updated).toEqual([]);
+    expect(d.removed).toEqual([]);
+  });
+
+  test('computeDelta handles empty sets', () => {
+    const empty = toItemsMap([]);
+    const some = toItemsMap([
+      { id: 'X', updated_at: 1, closed_at: null },
+      { id: 'Y', updated_at: 2, closed_at: null }
+    ]);
+
+    const d1 = computeDelta(empty, some);
+    expect(d1.added.sort()).toEqual(['X', 'Y']);
+    expect(d1.updated).toEqual([]);
+    expect(d1.removed).toEqual([]);
+
+    const d2 = computeDelta(some, empty);
+    expect(d2.added).toEqual([]);
+    expect(d2.updated).toEqual([]);
+    expect(d2.removed.sort()).toEqual(['X', 'Y']);
+  });
+
+  test('computeDelta returns only updates when ids unchanged', () => {
+    const prev = toItemsMap([
+      { id: 'A', updated_at: 1, closed_at: null },
+      { id: 'B', updated_at: 2, closed_at: null }
+    ]);
+    const next = toItemsMap([
+      { id: 'A', updated_at: 3, closed_at: null },
+      { id: 'B', updated_at: 5, closed_at: null }
+    ]);
+    const d = computeDelta(prev, next);
+    expect(d.added).toEqual([]);
+    expect(d.removed).toEqual([]);
+    expect(d.updated.sort()).toEqual(['A', 'B']);
+  });
+
   test('attach/detach and disconnect-driven eviction', () => {
     const reg = new SubscriptionRegistry();
     /** @type {any} */

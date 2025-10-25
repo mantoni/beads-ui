@@ -10,6 +10,78 @@ import { isRequest, makeError, makeOk } from './protocol.js';
 import { keyOf, registry } from './subscriptions.js';
 
 /**
+ * Debounced refresh scheduling for active list subscriptions.
+ * A trailing window coalesces rapid change bursts into a single refresh run.
+ */
+/** @type {ReturnType<typeof setTimeout> | null} */
+let REFRESH_TIMER = null;
+/** @type {number} */
+let REFRESH_DEBOUNCE_MS = 75;
+
+/**
+ * Collect unique active list subscription specs across all connected clients.
+ * @returns {Array<{ type: string, params?: Record<string,string|number|boolean> }>}
+ */
+function collectActiveListSpecs() {
+  /** @type {Array<{ type: string, params?: Record<string,string|number|boolean> }>} */
+  const specs = [];
+  /** @type {Set<string>} */
+  const seen = new Set();
+  const wss = CURRENT_WSS;
+  if (!wss) {
+    return specs;
+  }
+  for (const ws of wss.clients) {
+    if (ws.readyState !== ws.OPEN) {
+      continue;
+    }
+    const s = getSubs(/** @type {any} */ (ws));
+    if (!s.list_subs) {
+      continue;
+    }
+    for (const { key, spec } of s.list_subs.values()) {
+      if (!seen.has(key)) {
+        seen.add(key);
+        specs.push(spec);
+      }
+    }
+  }
+  return specs;
+}
+
+/**
+ * Run refresh for all active list subscription specs and publish deltas.
+ */
+async function refreshAllActiveListSubscriptions() {
+  const specs = collectActiveListSpecs();
+  // Run refreshes concurrently; locking is handled per key in the registry
+  await Promise.all(
+    specs.map(async (spec) => {
+      try {
+        await refreshAndPublish(spec);
+      } catch {
+        // ignore refresh errors per spec
+      }
+    })
+  );
+}
+
+/**
+ * Schedule a coalesced refresh of all active list subscriptions.
+ */
+export function scheduleListRefresh() {
+  if (REFRESH_TIMER) {
+    clearTimeout(REFRESH_TIMER);
+  }
+  REFRESH_TIMER = setTimeout(() => {
+    REFRESH_TIMER = null;
+    // Fire and forget; callers don't await scheduling
+    void refreshAllActiveListSubscriptions();
+  }, REFRESH_DEBOUNCE_MS);
+  REFRESH_TIMER.unref?.();
+}
+
+/**
  * @typedef {{
  *   subscribed: boolean,
  *   list_filters?: { status?: 'open'|'in_progress'|'closed', ready?: boolean, blocked?: boolean, limit?: number },
@@ -178,12 +250,18 @@ function applyClosedIssuesFilter(spec, items) {
 /**
  * Attach a WebSocket server to an existing HTTP server.
  * @param {Server} http_server
- * @param {{ path?: string, heartbeat_ms?: number }} [options]
- * @returns {{ wss: WebSocketServer, broadcast: (type: MessageType, payload?: unknown) => void, notifyIssuesChanged: (payload: { ts?: number, hint?: { ids?: string[] } }) => void }}
+ * @param {{ path?: string, heartbeat_ms?: number, refresh_debounce_ms?: number }} [options]
+ * @returns {{ wss: WebSocketServer, broadcast: (type: MessageType, payload?: unknown) => void, notifyIssuesChanged: (payload: { ts?: number, hint?: { ids?: string[] } }) => void, scheduleListRefresh: () => void }}
  */
 export function attachWsServer(http_server, options = {}) {
   const path = options.path || '/ws';
   const heartbeat_ms = options.heartbeat_ms ?? 30000;
+  if (typeof options.refresh_debounce_ms === 'number') {
+    const n = options.refresh_debounce_ms;
+    if (Number.isFinite(n) && n >= 0) {
+      REFRESH_DEBOUNCE_MS = n;
+    }
+  }
 
   const wss = new WebSocketServer({ server: http_server, path });
   CURRENT_WSS = wss;
@@ -252,7 +330,12 @@ export function attachWsServer(http_server, options = {}) {
     }
   }
 
-  return { wss, broadcast, notifyIssuesChanged: (p) => notifyIssuesChanged(p) };
+  return {
+    wss,
+    broadcast,
+    notifyIssuesChanged: (p) => notifyIssuesChanged(p),
+    scheduleListRefresh
+  };
 }
 
 /**
