@@ -151,4 +151,90 @@ describe('ws list subscriptions', () => {
     const ids = entry ? Array.from(entry.itemsById.keys()).sort() : [];
     expect(ids).toEqual(['recent']);
   });
+
+  test('subscribe-list rejects unknown subscription type', async () => {
+    const sock = {
+      sent: /** @type {string[]} */ ([]),
+      readyState: 1,
+      OPEN: 1,
+      /** @param {string} msg */
+      send(msg) {
+        this.sent.push(String(msg));
+      }
+    };
+
+    await handleMessage(
+      /** @type {any} */ (sock),
+      Buffer.from(
+        JSON.stringify({
+          id: 'bad-sub',
+          type: /** @type {any} */ ('subscribe-list'),
+          payload: { id: 'c-bad', type: 'not-supported' }
+        })
+      )
+    );
+
+    const last = sock.sent[sock.sent.length - 1];
+    const reply = JSON.parse(last);
+    expect(reply && reply.ok).toBe(false);
+    expect(reply && reply.error && reply.error.code).toBe('bad_request');
+  });
+
+  test('subscribe-list issues-for-epic enforces epic_id', async () => {
+    const sock = {
+      sent: /** @type {string[]} */ ([]),
+      readyState: 1,
+      OPEN: 1,
+      /** @param {string} msg */
+      send(msg) {
+        this.sent.push(String(msg));
+      }
+    };
+
+    await handleMessage(
+      /** @type {any} */ (sock),
+      Buffer.from(
+        JSON.stringify({
+          id: 'bad-epic',
+          type: /** @type {any} */ ('subscribe-list'),
+          payload: { id: 'c-epic', type: 'issues-for-epic' }
+        })
+      )
+    );
+    const last = sock.sent[sock.sent.length - 1];
+    const reply = JSON.parse(last);
+    expect(reply && reply.ok).toBe(false);
+    expect(reply && reply.error && reply.error.code).toBe('bad_request');
+  });
+
+  test('subscribe-list closed-issues validates since param', async () => {
+    const sock = {
+      sent: /** @type {string[]} */ ([]),
+      readyState: 1,
+      OPEN: 1,
+      /** @param {string} msg */
+      send(msg) {
+        this.sent.push(String(msg));
+      }
+    };
+
+    await handleMessage(
+      /** @type {any} */ (sock),
+      Buffer.from(
+        JSON.stringify({
+          id: 'bad-since',
+          type: /** @type {any} */ ('subscribe-list'),
+          payload: {
+            id: 'c-closed',
+            type: 'closed-issues',
+            params: { since: 'yesterday' }
+          }
+        })
+      )
+    );
+    const last = sock.sent[sock.sent.length - 1];
+    const reply = JSON.parse(last);
+    expect(reply && reply.ok).toBe(false);
+    expect(reply && reply.error && reply.error.code).toBe('bad_request');
+  });
 });

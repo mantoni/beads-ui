@@ -85,6 +85,22 @@ describe('ws mutation handlers', () => {
     expect(obj.payload.priority).toBe(1);
   });
 
+  test('update-priority invalid payload yields bad_request', async () => {
+    const ws = makeStubSocket();
+    const req = {
+      id: 'r3bad',
+      type: 'update-priority',
+      payload: { id: 'UI-7', priority: 9 }
+    };
+    await handleMessage(
+      /** @type {any} */ (ws),
+      Buffer.from(JSON.stringify(req))
+    );
+    const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
+    expect(obj.ok).toBe(false);
+    expect(obj.error && obj.error.code).toBe('bad_request');
+  });
+
   test('edit-text title success', async () => {
     const mRun = /** @type {import('vitest').Mock} */ (runBd);
     const mJson = /** @type {import('vitest').Mock} */ (runBdJson);

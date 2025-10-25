@@ -8,6 +8,7 @@ import { runBd, runBdJson } from './bd.js';
 import { fetchListForSubscription } from './list-adapters.js';
 import { isRequest, makeError, makeOk } from './protocol.js';
 import { keyOf, registry } from './subscriptions.js';
+import { validateSubscribeListPayload } from './validators.js';
 
 /**
  * Debounced refresh scheduling for active list subscriptions.
@@ -464,36 +465,17 @@ export async function handleMessage(ws, data) {
 
   // subscribe-list: payload { id: string, type: string, params?: object }
   if (req.type === 'subscribe-list') {
-    const {
-      id: client_id,
-      type,
-      params
-    } = /** @type {any} */ (req.payload || {});
-    if (typeof client_id !== 'string' || client_id.length === 0) {
+    const validation = validateSubscribeListPayload(
+      /** @type {any} */ (req.payload || {})
+    );
+    if (!validation.ok) {
       ws.send(
-        JSON.stringify(
-          makeError(req, 'bad_request', 'payload.id must be a non-empty string')
-        )
+        JSON.stringify(makeError(req, validation.code, validation.message))
       );
       return;
     }
-    if (typeof type !== 'string' || type.length === 0) {
-      ws.send(
-        JSON.stringify(
-          makeError(
-            req,
-            'bad_request',
-            'payload.type must be a non-empty string'
-          )
-        )
-      );
-      return;
-    }
-    /** @type {{ type: string, params?: Record<string, string|number|boolean> }} */
-    const spec = {
-      type,
-      params: params && typeof params === 'object' ? params : undefined
-    };
+    const client_id = validation.id;
+    const spec = validation.spec;
     const s = getSubs(ws);
     // Attach to registry
     const { key } = registry.attach(spec, ws);
@@ -504,14 +486,7 @@ export async function handleMessage(ws, data) {
     } catch {
       // ignore refresh errors
     }
-    ws.send(
-      JSON.stringify(
-        makeOk(req, {
-          id: client_id,
-          key
-        })
-      )
-    );
+    ws.send(JSON.stringify(makeOk(req, { id: client_id, key })));
     return;
   }
 
