@@ -16,7 +16,7 @@
 /** @constant {string} */
 export const PROTOCOL_VERSION = '1.0.0';
 
-/** @typedef {'list-issues'|'show-issue'|'update-status'|'edit-text'|'update-priority'|'create-issue'|'list-ready'|'subscribe-updates'|'issues-changed'|'dep-add'|'dep-remove'|'epic-status'|'update-assignee'|'label-add'|'label-remove'|'subscribe-list'|'unsubscribe-list'|'list-delta'} MessageType */
+/** @typedef {'list-issues'|'show-issue'|'update-status'|'edit-text'|'update-priority'|'create-issue'|'list-ready'|'subscribe-updates'|'issues-changed'|'dep-add'|'dep-remove'|'epic-status'|'update-assignee'|'label-add'|'label-remove'|'subscribe-list'|'unsubscribe-list'|'list-delta'|'subscribe-issues'|'issues'} MessageType */
 
 /**
  * @typedef {Object} RequestEnvelope
@@ -52,6 +52,8 @@ export const MESSAGE_TYPES = /** @type {const} */ ([
   'list-ready',
   'subscribe-updates',
   'issues-changed',
+  'subscribe-issues',
+  'issues',
   'dep-add',
   'dep-remove',
   'epic-status',

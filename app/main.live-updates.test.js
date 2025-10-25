@@ -67,17 +67,17 @@ describe('live updates: issues-changed handling', () => {
     await Promise.resolve();
 
     const callsAfter = CLIENT.send.mock.calls.length;
-    // One additional list-issues request, no detail fetch
+    // Push-only path: no network fetch for list view
     const newCalls = CLIENT.send.mock.calls.slice(callsBefore);
     const types = newCalls.map(/** @param {any} c */ (c) => c[0]);
-    expect(types).toEqual(['list-issues']);
+    expect(types).toEqual([]);
 
     // Scroll should remain
     const listRootAfter = /** @type {HTMLElement} */ (
       document.getElementById('list-root')
     );
     expect(listRootAfter.scrollTop).toBe(120);
-    expect(callsAfter).toBe(callsBefore + 1);
+    expect(callsAfter).toBe(callsBefore);
   });
 
   test('refreshes detail only when detail is visible and id matches hint', async () => {

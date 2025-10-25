@@ -2,6 +2,7 @@
  * @import { MessageType } from './protocol.js'
  */
 import { html, render } from 'lit-html';
+import { createIssuesStore } from './data/issues-store.js';
 import { createDataLayer } from './data/providers.js';
 import { createSubscriptionStore } from './data/subscriptions-store.js';
 import { createHashRouter, parseHash } from './router.js';
@@ -53,6 +54,9 @@ export function bootstrap(root_element) {
     );
     // Bind through wrapper to preserve `this` semantics in tests/mocks
     subscriptions.wireEvents((type, handler) => client.on(type, handler));
+    // Issues push-only store
+    const issuesStore = createIssuesStore();
+    issuesStore.wireEvents((type, handler) => client.on(type, handler));
     // Show toasts for WebSocket connectivity changes
     /** @type {boolean} */
     let had_disconnect = false;
@@ -181,9 +185,27 @@ export function bootstrap(root_element) {
       // ignore missing header
     }
 
+    // Local transport shim: for list-issues, serve from subscriptions + issuesStore;
+    // otherwise forward to ws transport for mutations/show.
+    /**
+     * @param {import('./protocol.js').MessageType} type
+     * @param {unknown} payload
+     */
+    const listTransport = async (type, payload) => {
+      if (type === 'list-issues') {
+        try {
+          const ids = subscriptions.selectors.getIds('tab:issues');
+          return issuesStore.getMany(ids);
+        } catch {
+          return [];
+        }
+      }
+      return transport(/** @type {MessageType} */ (type), payload);
+    };
+
     const issues_view = createListView(
       list_mount,
-      transport,
+      /** @type {any} */ (listTransport),
       (hash) => {
         const id = parseHash(hash);
         if (id) {
@@ -327,6 +349,11 @@ export function bootstrap(root_element) {
     // Register list-delta first so tests that keep a single handler slot
     // end up with issues-changed as the last bound handler.
     client.on('list-delta', () => onPushLike({}));
+    // Trigger lightweight re-render on issues envelopes as well
+    client.on('issues', () => {
+      // Avoid heavy refetch; our list transport reads from local store
+      void issues_view.load();
+    });
     client.on('issues-changed', onPushLike);
 
     // Toggle route shells on view/detail change and persist

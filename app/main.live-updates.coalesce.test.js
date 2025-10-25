@@ -57,11 +57,11 @@ describe('live updates coalescing (UI-114)', () => {
     CLIENT.trigger('issues-changed', { ts: Date.now() });
     await Promise.resolve();
 
-    // Only one list load should happen
+    // Push-only path: list view does not fetch
     const calls = CLIENT.send.mock.calls.map(/** @param {any} c */ (c) => c[0]);
     expect(
       calls.filter(/** @param {any} t */ (t) => t === 'list-issues').length
-    ).toBe(1);
+    ).toBe(0);
   });
 
   test('suppresses trailing full refresh after targeted update (detail view)', async () => {
