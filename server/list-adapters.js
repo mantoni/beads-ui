@@ -25,12 +25,10 @@ export function mapSubscriptionToBdArgs(spec) {
       return ['list', '--json', '--epic', epic_id];
     }
     case 'blocked-issues': {
-      // Use dedicated subcommand when available for accuracy
       return ['blocked', '--json'];
     }
-    case 'pending-issues': {
-      // Map to open status as a practical approximation for "pending"
-      return ['list', '--json', '--status', 'open'];
+    case 'ready-issues': {
+      return ['ready', '--status', 'open', '--limit', '1000', '--json'];
     }
     case 'in-progress-issues': {
       return ['list', '--json', '--status', 'in_progress'];

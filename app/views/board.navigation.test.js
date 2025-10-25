@@ -6,11 +6,8 @@ describe('views/board keyboard navigation', () => {
     document.body.innerHTML = '<div id="m"></div>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
 
-    /** @type {{ getOpen: () => Promise<any[]>, getReady: () => Promise<any[]>, getInProgress: () => Promise<any[]>, getClosed: () => Promise<any[]> }} */
+    /** @type {{ getReady: () => Promise<any[]>, getInProgress: () => Promise<any[]>, getClosed: () => Promise<any[]> }} */
     const data = {
-      async getOpen() {
-        return [];
-      },
       async getReady() {
         return [];
       },
@@ -53,14 +50,14 @@ describe('views/board keyboard navigation', () => {
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
 
     const data = {
-      async getOpen() {
-        return [
-          { id: 'O-1', title: 'o1', updated_at: '2025-10-23T10:00:00.000Z' }
-        ];
-      },
       async getReady() {
         // Empty column should be skipped on ArrowRight
         return [];
+      },
+      async getBlocked() {
+        return [
+          { id: 'B-1', title: 'b1', updated_at: '2025-10-23T10:00:00.000Z' }
+        ];
       },
       async getInProgress() {
         return [
@@ -81,7 +78,7 @@ describe('views/board keyboard navigation', () => {
     await view.load();
 
     const open_first = /** @type {HTMLElement} */ (
-      mount.querySelector('#open-col .board-card')
+      mount.querySelector('#blocked-col .board-card')
     );
     const prog_first = /** @type {HTMLElement} */ (
       mount.querySelector('#in-progress-col .board-card')

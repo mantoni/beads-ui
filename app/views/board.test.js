@@ -2,25 +2,27 @@ import { describe, expect, test } from 'vitest';
 import { createBoardView } from './board.js';
 
 describe('views/board', () => {
-  test('renders four columns with sorted cards and navigates on click', async () => {
+  test('renders four columns (Blocked, Ready, In Progress, Closed) with sorted cards and navigates on click', async () => {
     document.body.innerHTML = '<div id="m"></div>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
 
-    /** @type {{ getOpen: () => Promise<any[]>, getReady: () => Promise<any[]>, getInProgress: () => Promise<any[]>, getClosed: () => Promise<any[]> }} */
+    /** @type {{ getBlocked: () => Promise<any[]>, getReady: () => Promise<any[]>, getInProgress: () => Promise<any[]>, getClosed: () => Promise<any[]> }} */
     const data = {
-      async getOpen() {
+      async getBlocked() {
         return [
           {
-            id: 'O-1',
-            title: 'o1',
-            updated_at: '2025-10-23T07:00:00.000Z',
+            id: 'B-2',
+            title: 'b2',
+            priority: 1,
+            updated_at: '2025-10-22T07:00:00.000Z',
             issue_type: 'task'
           },
           {
-            id: 'R-2', // also present in Ready, should be filtered from Open
-            title: 'dup-ready',
-            updated_at: '2025-10-22T07:00:00.000Z',
-            issue_type: 'task'
+            id: 'B-1',
+            title: 'b1',
+            priority: 0,
+            updated_at: '2025-10-21T07:00:00.000Z',
+            issue_type: 'bug'
           }
         ];
       },
@@ -96,11 +98,11 @@ describe('views/board', () => {
 
     await view.load();
 
-    // Open: updated_at desc; excludes items present in Ready
-    const open_ids = Array.from(
-      mount.querySelectorAll('#open-col .board-card .mono')
+    // Blocked: priority asc, then updated_at desc for equal priority
+    const blocked_ids = Array.from(
+      mount.querySelectorAll('#blocked-col .board-card .mono')
     ).map((el) => el.textContent?.trim());
-    expect(open_ids).toEqual(['#1']);
+    expect(blocked_ids).toEqual(['#1', '#2']);
 
     // Ready: priority asc, then updated_at desc for equal priority
     const ready_ids = Array.from(
@@ -132,11 +134,8 @@ describe('views/board', () => {
     document.body.innerHTML = '<div id="m"></div>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
 
-    /** @type {{ getOpen: () => Promise<any[]>, getReady: () => Promise<any[]>, getInProgress: () => Promise<any[]>, getClosed: () => Promise<any[]> }} */
+    /** @type {{ getReady: () => Promise<any[]>, getInProgress: () => Promise<any[]>, getClosed: () => Promise<any[]> }} */
     const data = {
-      async getOpen() {
-        return [];
-      },
       async getReady() {
         return [
           {

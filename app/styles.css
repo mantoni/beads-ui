@@ -940,15 +940,6 @@ input.inline-edit:focus {
   gap: var(--space-8);
   padding: var(--space-6);
 }
-
-/* UI-121: stack two board columns vertically in a single grid cell */
-.board-stack-2 {
-  display: grid;
-  grid-template-rows: 1fr 1fr;
-  gap: var(--space-8);
-  min-width: 380px;
-  min-height: 0;
-}
 .board-column {
   display: flex;
   flex-direction: column;

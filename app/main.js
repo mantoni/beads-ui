@@ -353,7 +353,7 @@ export function bootstrap(root_element) {
     /** @type {null | (() => Promise<void>)} */
     let unsub_epics_tab = null;
     /** @type {null | (() => Promise<void>)} */
-    let unsub_board_pending = null;
+    let unsub_board_ready = null;
     /** @type {null | (() => Promise<void>)} */
     let unsub_board_in_progress = null;
     /** @type {null | (() => Promise<void>)} */
@@ -369,7 +369,7 @@ export function bootstrap(root_element) {
     function computeIssuesSpec(filters) {
       const st = String(filters?.status || 'all');
       if (st === 'ready') {
-        return { type: 'pending-issues' };
+        return { type: 'ready-issues' };
       }
       if (st === 'in_progress') {
         return { type: 'in-progress-issues' };
@@ -417,10 +417,10 @@ export function bootstrap(root_element) {
 
       // Board tab subscribes to lists used by columns
       if (s.view === 'board') {
-        if (!unsub_board_pending) {
+        if (!unsub_board_ready) {
           void subscriptions
-            .subscribeList('tab:board:pending', { type: 'pending-issues' })
-            .then((u) => (unsub_board_pending = u))
+            .subscribeList('tab:board:ready', { type: 'ready-issues' })
+            .then((u) => (unsub_board_ready = u))
             .catch(() => {});
         }
         if (!unsub_board_in_progress) {
@@ -445,9 +445,9 @@ export function bootstrap(root_element) {
         }
       } else {
         // Unsubscribe all board lists when leaving the board view
-        if (unsub_board_pending) {
-          void unsub_board_pending().catch(() => {});
-          unsub_board_pending = null;
+        if (unsub_board_ready) {
+          void unsub_board_ready().catch(() => {});
+          unsub_board_ready = null;
         }
         if (unsub_board_in_progress) {
           void unsub_board_in_progress().catch(() => {});

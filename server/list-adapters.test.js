@@ -36,10 +36,16 @@ describe('list adapters for subscription types', () => {
     expect(args).toEqual(['blocked', '--json']);
   });
 
-  test('mapSubscriptionToBdArgs returns args for pending-issues', () => {
-    const args = mapSubscriptionToBdArgs({ type: 'pending-issues' });
-    // Map to open issues as a proxy for pending
-    expect(args).toEqual(['list', '--json', '--status', 'open']);
+  test('mapSubscriptionToBdArgs returns args for ready-issues', () => {
+    const args = mapSubscriptionToBdArgs({ type: 'ready-issues' });
+    expect(args).toEqual([
+      'ready',
+      '--status',
+      'open',
+      '--limit',
+      '1000',
+      '--json'
+    ]);
   });
 
   test('mapSubscriptionToBdArgs returns args for in-progress-issues', () => {

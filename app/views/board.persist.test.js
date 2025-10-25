@@ -10,9 +10,6 @@ describe('views/board persisted closed filter via store', () => {
     const oneDay = 24 * 60 * 60 * 1000;
 
     const data = {
-      async getOpen() {
-        return [];
-      },
       async getReady() {
         return [];
       },

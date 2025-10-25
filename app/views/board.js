@@ -16,23 +16,20 @@ import { createTypeBadge } from '../utils/type-badge.js';
  */
 
 /**
- * Create the Board view with Open + Blocked stacked, then Ready, In progress, Closed.
+ * Create the Board view with Blocked, Ready, In progress, Closed.
  * Data providers are expected to return raw arrays; this view applies sorting.
  *
  * Sorting rules:
- * - Open: priority asc, then updated_at desc when present
- * - Ready: priority asc, then updated_at desc when present
+ * - Ready/Blocked: priority asc, then updated_at desc when present
  * - In progress: updated_at desc
  * - Closed: closed_at desc (fallback to updated_at)
  * @param {HTMLElement} mount_element
- * @param {{ getOpen: () => Promise<any[]>, getReady: () => Promise<any[]>, getBlocked?: () => Promise<any[]>, getInProgress: () => Promise<any[]>, getClosed: (limit?: number) => Promise<any[]> }} data
+ * @param {{ getReady: () => Promise<any[]>, getBlocked?: () => Promise<any[]>, getInProgress: () => Promise<any[]>, getClosed: (limit?: number) => Promise<any[]> }} data
  * @param {(id: string) => void} gotoIssue - Navigate to issue detail.
  * @param {{ getState: () => any, setState: (patch: any) => void, subscribe?: (fn: (s:any)=>void)=>()=>void }} [store]
  * @returns {{ load: () => Promise<void>, clear: () => void }}
  */
 export function createBoardView(mount_element, data, gotoIssue, store) {
-  /** @type {IssueLite[]} */
-  let list_open = [];
   /** @type {IssueLite[]} */
   let list_ready = [];
   /** @type {IssueLite[]} */
@@ -67,10 +64,7 @@ export function createBoardView(mount_element, data, gotoIssue, store) {
   function template() {
     return html`
       <div class="panel__body board-root">
-        <div class="board-stack-2">
-          ${columnTemplate('Open', 'open-col', list_open)}
-          ${columnTemplate('Blocked', 'blocked-col', list_blocked)}
-        </div>
+        ${columnTemplate('Blocked', 'blocked-col', list_blocked)}
         ${columnTemplate('Ready', 'ready-col', list_ready)}
         ${columnTemplate('In Progress', 'in-progress-col', list_in_progress)}
         ${columnTemplate('Closed', 'closed-col', list_closed)}
@@ -428,8 +422,6 @@ export function createBoardView(mount_element, data, gotoIssue, store) {
   return {
     async load() {
       /** @type {IssueLite[]} */
-      let o = [];
-      /** @type {IssueLite[]} */
       let r = [];
       /** @type {IssueLite[]} */
       let b = [];
@@ -437,11 +429,6 @@ export function createBoardView(mount_element, data, gotoIssue, store) {
       let p = [];
       /** @type {IssueLite[]} */
       let c = [];
-      try {
-        o = /** @type {any} */ (await data.getOpen());
-      } catch {
-        o = [];
-      }
       try {
         r = /** @type {any} */ (await data.getReady());
       } catch {
@@ -465,20 +452,6 @@ export function createBoardView(mount_element, data, gotoIssue, store) {
         c = [];
       }
 
-      // Remove items from Open that are already in Ready by id
-      if (o.length > 0 && r.length > 0) {
-        /** @type {Set<string>} */
-        const ready_ids = new Set(r.map((it) => it.id));
-        o = o.filter((it) => !ready_ids.has(it.id));
-      }
-
-      // Remove items from Open that are blocked (UI-121)
-      if (o.length > 0 && b.length > 0) {
-        /** @type {Set<string>} */
-        const blocked_ids = new Set(b.map((it) => it.id));
-        o = o.filter((it) => !blocked_ids.has(it.id));
-      }
-
       // Remove items from Ready that are already In Progress by id
       if (r.length > 0 && p.length > 0) {
         /** @type {Set<string>} */
@@ -486,14 +459,12 @@ export function createBoardView(mount_element, data, gotoIssue, store) {
         r = r.filter((it) => !in_progress_ids.has(it.id));
       }
 
-      // UI-119: Open sorted like Ready (priority asc, then updated desc)
-      sortReady(o);
+      // Sort lists for display
       sortReady(r);
       sortReady(b);
       sortByUpdatedDesc(p);
       // Closed handled separately to use closed_at and filtering
 
-      list_open = o;
       list_ready = r;
       list_blocked = b;
       list_in_progress = p;
@@ -503,7 +474,6 @@ export function createBoardView(mount_element, data, gotoIssue, store) {
     },
     clear() {
       mount_element.replaceChildren();
-      list_open = [];
       list_ready = [];
       list_blocked = [];
       list_in_progress = [];

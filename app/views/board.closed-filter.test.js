@@ -9,11 +9,8 @@ describe('views/board closed filter', () => {
     const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
 
-    /** @type {{ getOpen: () => Promise<any[]>, getReady: () => Promise<any[]>, getInProgress: () => Promise<any[]>, getClosed: () => Promise<any[]> }} */
+    /** @type {{ getReady: () => Promise<any[]>, getInProgress: () => Promise<any[]>, getClosed: () => Promise<any[]> }} */
     const data = {
-      async getOpen() {
-        return [];
-      },
       async getReady() {
         return [];
       },
