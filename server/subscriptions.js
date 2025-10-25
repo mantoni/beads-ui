@@ -277,11 +277,10 @@ export class SubscriptionRegistry {
     if (!entry || entry.subscribers.size === 0) {
       return;
     }
-    /** @type {string} */
     const msg = JSON.stringify({
       id: `evt-${Date.now()}`,
       ok: true,
-      type: /** @type {any} */ ('list-delta'),
+      type: 'list-delta',
       payload: { key, delta }
     });
     for (const ws of entry.subscribers) {

@@ -111,7 +111,7 @@ function collectActiveListSpecs() {
     if (ws.readyState !== ws.OPEN) {
       continue;
     }
-    const s = getSubs(/** @type {any} */ (ws));
+    const s = ensureSubs(/** @type {any} */ (ws));
     if (!s.list_subs) {
       continue;
     }
@@ -168,7 +168,6 @@ export function scheduleListRefresh() {
 
 /**
  * @typedef {{
- *   subscribed: boolean,
  *   list_filters?: { status?: 'open'|'in_progress'|'closed', ready?: boolean, blocked?: boolean, limit?: number },
  *   show_id?: string | null,
  *   list_subs?: Map<string, { key: string, spec: { type: string, params?: Record<string, string | number | boolean> } }>
@@ -186,10 +185,10 @@ let CURRENT_WSS = null;
  * @param {WebSocket} ws
  * @returns {ConnectionSubs}
  */
-function getSubs(ws) {
+function ensureSubs(ws) {
   let s = SUBS.get(ws);
   if (!s) {
-    s = { subscribed: false, show_id: null, list_subs: new Map() };
+    s = { show_id: null, list_subs: new Map() };
     SUBS.set(ws, s);
   }
   return s;
@@ -221,10 +220,7 @@ export function notifyIssuesChanged(payload, options = {}) {
       if (ws.readyState !== ws.OPEN) {
         continue;
       }
-      const s = getSubs(ws);
-      if (!s.subscribed) {
-        continue;
-      }
+      const s = ensureSubs(ws);
       if (s.show_id && s.show_id === issue.id) {
         recipients.add(ws);
         continue;
@@ -250,10 +246,7 @@ export function notifyIssuesChanged(payload, options = {}) {
       if (ws.readyState !== ws.OPEN) {
         continue;
       }
-      const s = getSubs(ws);
-      if (!s.subscribed) {
-        continue;
-      }
+      const s = ensureSubs(ws);
       if (s.show_id && hint_ids.includes(s.show_id)) {
         recipients.add(ws);
       }
@@ -357,7 +350,7 @@ export function attachWsServer(http_server, options = {}) {
     ws.isAlive = true;
 
     // Initialize subscription state for this connection
-    getSubs(ws);
+    ensureSubs(ws);
 
     ws.on('pong', () => {
       // @ts-expect-error marker
@@ -476,7 +469,7 @@ export async function handleMessage(ws, data) {
     }
     const client_id = validation.id;
     const spec = validation.spec;
-    const s = getSubs(ws);
+    const s = ensureSubs(ws);
     // Attach to registry
     const { key } = registry.attach(spec, ws);
     s.list_subs?.set(client_id, { key, spec });
@@ -501,7 +494,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const s = getSubs(ws);
+    const s = ensureSubs(ws);
     const sub = s.list_subs?.get(client_id) || null;
     let removed = false;
     if (sub) {
@@ -525,8 +518,7 @@ export async function handleMessage(ws, data) {
 
   // subscribe-updates: mark this connection as event subscriber
   if (req.type === 'subscribe-updates') {
-    const s = getSubs(ws);
-    s.subscribed = true;
+    ensureSubs(ws);
     ws.send(JSON.stringify(makeOk(req, { subscribed: true })));
     return;
   }
@@ -544,7 +536,7 @@ export async function handleMessage(ws, data) {
       }
       // Remember subscription scope for this connection
       try {
-        const s = getSubs(ws);
+        const s = ensureSubs(ws);
         s.list_filters = { ready: true };
       } catch {
         // ignore tracking errors
@@ -563,7 +555,7 @@ export async function handleMessage(ws, data) {
       }
       // Remember subscription scope for this connection
       try {
-        const s = getSubs(ws);
+        const s = ensureSubs(ws);
         s.list_filters = { blocked: true };
       } catch {
         // ignore tracking errors
@@ -593,7 +585,7 @@ export async function handleMessage(ws, data) {
     }
     // Remember last non-ready list filter
     try {
-      const s = getSubs(ws);
+      const s = ensureSubs(ws);
       /** @type {{ status?: any, limit?: any }} */
       const f = filters && typeof filters === 'object' ? filters : {};
       const st = f.status;
@@ -652,7 +644,7 @@ export async function handleMessage(ws, data) {
     }
     // Track current detail subscription for this connection
     try {
-      const s = getSubs(ws);
+      const s = ensureSubs(ws);
       s.show_id = String(id);
     } catch {
       // ignore
