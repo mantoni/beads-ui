@@ -14,7 +14,18 @@ import { createIssueRowRenderer } from './issue-row.js';
  * @param {{ getEpicStatus: () => Promise<any[]>, getIssue: (id: string) => Promise<any>, updateIssue: (input: any) => Promise<any> }} data
  * @param {(id: string) => void} goto_issue - Navigate to issue detail.
  */
-export function createEpicsView(mount_element, data, goto_issue) {
+/**
+ * @param {HTMLElement} mount_element
+ * @param {{ getEpicStatus: () => Promise<any[]>, getIssue: (id: string) => Promise<any>, updateIssue: (input: any) => Promise<any> }} data
+ * @param {(id: string) => void} goto_issue
+ * @param {{ subscribeList?: (client_id: string, spec: { type: string, params?: Record<string, string|number|boolean> }) => Promise<() => Promise<void>> }} [subscriptions]
+ */
+export function createEpicsView(
+  mount_element,
+  data,
+  goto_issue,
+  subscriptions
+) {
   /** @type {any[]} */
   let groups = [];
   /** @type {Set<string>} */
@@ -23,6 +34,8 @@ export function createEpicsView(mount_element, data, goto_issue) {
   const children = new Map();
   /** @type {Set<string>} */
   const loading = new Set();
+  /** @type {Map<string, () => Promise<void>>} */
+  const epic_unsubs = new Map();
 
   // Shared row renderer used for children rows
   const renderRow = createIssueRowRenderer({
@@ -155,6 +168,21 @@ export function createEpicsView(mount_element, data, goto_issue) {
       if (!children.has(epic_id)) {
         loading.add(epic_id);
         doRender();
+        // Subscribe to issues-for-epic deltas for this epic (best-effort)
+        if (
+          subscriptions &&
+          typeof subscriptions.subscribeList === 'function'
+        ) {
+          try {
+            const u = await subscriptions.subscribeList(`epic:${epic_id}`, {
+              type: 'issues-for-epic',
+              params: { epic: epic_id }
+            });
+            epic_unsubs.set(epic_id, u);
+          } catch {
+            // ignore subscription failures
+          }
+        }
         try {
           const epic = await data.getIssue(epic_id);
           // Children for the Epics view come from dependents: issues that list
@@ -202,6 +230,18 @@ export function createEpicsView(mount_element, data, goto_issue) {
       }
     } else {
       expanded.delete(epic_id);
+      // Unsubscribe when collapsing
+      if (epic_unsubs.has(epic_id)) {
+        try {
+          const u = epic_unsubs.get(epic_id);
+          if (u) {
+            await u();
+          }
+        } catch {
+          // ignore
+        }
+        epic_unsubs.delete(epic_id);
+      }
     }
     doRender();
   }

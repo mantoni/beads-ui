@@ -1,5 +1,9 @@
+/**
+ * @import { MessageType } from './protocol.js'
+ */
 import { html, render } from 'lit-html';
 import { createDataLayer } from './data/providers.js';
+import { createSubscriptionStore } from './data/subscriptions-store.js';
 import { createHashRouter, parseHash } from './router.js';
 import { createStore } from './state.js';
 import { showToast } from './utils/toast.js';
@@ -43,10 +47,16 @@ export function bootstrap(root_element) {
   const detail_mount = document.getElementById('detail-panel');
   if (list_mount && issues_root && epics_root && board_root && detail_mount) {
     const client = createWsClient();
+    // Subscriptions: wire client events and expose subscribe/unsubscribe helpers
+    const subscriptions = createSubscriptionStore((type, payload) =>
+      client.send(type, payload)
+    );
+    // Bind through wrapper to preserve `this` semantics in tests/mocks
+    subscriptions.wireEvents((type, handler) => client.on(type, handler));
     // Show toasts for WebSocket connectivity changes
     /** @type {boolean} */
     let had_disconnect = false;
-    if (typeof (/** @type {any} */ (client).onConnection) === 'function') {
+    if (typeof client.onConnection === 'function') {
       /** @type {(s: 'connecting'|'open'|'closed'|'reconnecting') => void} */
       const onConn = (s) => {
         if (s === 'reconnecting' || s === 'closed') {
@@ -57,7 +67,7 @@ export function bootstrap(root_element) {
           showToast('Reconnected', 'success', 2200);
         }
       };
-      /** @type {any} */ (client).onConnection(onConn);
+      client.onConnection(onConn);
     }
     // Load persisted filters (status/search/type) from localStorage
     /** @type {{ status: 'all'|'open'|'in_progress'|'closed'|'ready', search: string, type: string }} */
@@ -121,7 +131,7 @@ export function bootstrap(root_element) {
         if (obj && typeof obj === 'object') {
           const cf = String(obj.closed_filter || 'today');
           if (cf === 'today' || cf === '3' || cf === '7') {
-            persistedBoard.closed_filter = /** @type {any} */ (cf);
+            persistedBoard.closed_filter = cf;
           }
         }
       }
@@ -142,7 +152,7 @@ export function bootstrap(root_element) {
      */
     const transport = async (type, payload) => {
       try {
-        return await client.send(/** @type {any} */ (type), payload);
+        return await client.send(/** @type {MessageType} */ (type), payload);
       } catch {
         return [];
       }
@@ -155,7 +165,7 @@ export function bootstrap(root_element) {
     // Global New Issue dialog (UI-106) mounted at root so it is always visible
     const new_issue_dialog = createNewIssueDialog(
       root_element,
-      (type, payload) => client.send(/** @type {any} */ (type), payload),
+      (type, payload) => client.send(type, payload),
       router,
       store
     );
@@ -270,7 +280,11 @@ export function bootstrap(root_element) {
     // window to avoid duplicate work and flicker.
     /** @type {number} */
     let suppress_full_until = 0;
-    client.on('issues-changed', (payload) => {
+    /**
+     * Shared handler to refresh visible views on push or list-delta.
+     * @param {any} payload
+     */
+    const onPushLike = (payload) => {
       const s = store.getState();
       const hint_ids =
         payload && payload.hint && Array.isArray(payload.hint.ids)
@@ -309,12 +323,19 @@ export function bootstrap(root_element) {
           }
         }
       }
-    });
+    };
+    // Register list-delta first so tests that keep a single handler slot
+    // end up with issues-changed as the last bound handler.
+    client.on('list-delta', () => onPushLike({}));
+    client.on('issues-changed', onPushLike);
 
     // Toggle route shells on view/detail change and persist
-    const data = createDataLayer(/** @type {any} */ (transport), client.on);
-    const epics_view = createEpicsView(epics_root, data, (id) =>
-      router.gotoIssue(id)
+    const data = createDataLayer(transport, client.on);
+    const epics_view = createEpicsView(
+      epics_root,
+      data,
+      (id) => router.gotoIssue(id),
+      subscriptions
     );
     const board_view = createBoardView(
       board_root,
@@ -324,6 +345,127 @@ export function bootstrap(root_element) {
     );
     // Preload epics when switching to view
     /**
+     * @param {{ selected_id: string | null, view: 'issues'|'epics'|'board', filters: any }} s
+     */
+    // --- Subscriptions: tab-level management and filter-driven updates ---
+    /** @type {null | (() => Promise<void>)} */
+    let unsub_issues_tab = null;
+    /** @type {null | (() => Promise<void>)} */
+    let unsub_epics_tab = null;
+    /** @type {null | (() => Promise<void>)} */
+    let unsub_board_pending = null;
+    /** @type {null | (() => Promise<void>)} */
+    let unsub_board_in_progress = null;
+    /** @type {null | (() => Promise<void>)} */
+    let unsub_board_closed = null;
+    /** @type {null | (() => Promise<void>)} */
+    let unsub_board_blocked = null;
+
+    /**
+     * Compute subscription spec for Issues tab based on filters.
+     * @param {{ status?: string }} filters
+     * @returns {{ type: string, params?: Record<string, string|number|boolean> }}
+     */
+    function computeIssuesSpec(filters) {
+      const st = String(filters?.status || 'all');
+      if (st === 'ready') {
+        return { type: 'pending-issues' };
+      }
+      if (st === 'in_progress') {
+        return { type: 'in-progress-issues' };
+      }
+      if (st === 'closed') {
+        return { type: 'closed-issues' };
+      }
+      // "all" and "open" map to all-issues; client filters apply locally
+      return { type: 'all-issues' };
+    }
+
+    /**
+     * Ensure only the active tab has subscriptions; clean up previous.
+     * @param {{ view: 'issues'|'epics'|'board', filters: any }} s
+     */
+    function ensureTabSubscriptions(s) {
+      // Issues tab
+      if (s.view === 'issues') {
+        const spec = computeIssuesSpec(s.filters || {});
+        void subscriptions
+          .subscribeList('tab:issues', spec)
+          .then((unsub) => {
+            unsub_issues_tab = unsub;
+          })
+          .catch(() => {
+            // ignore transport errors; retry on next change
+          });
+      } else if (unsub_issues_tab) {
+        void unsub_issues_tab().catch(() => {});
+        unsub_issues_tab = null;
+      }
+
+      // Epics tab
+      if (s.view === 'epics') {
+        void subscriptions
+          .subscribeList('tab:epics', { type: 'epics' })
+          .then((unsub) => {
+            unsub_epics_tab = unsub;
+          })
+          .catch(() => {});
+      } else if (unsub_epics_tab) {
+        void unsub_epics_tab().catch(() => {});
+        unsub_epics_tab = null;
+      }
+
+      // Board tab subscribes to lists used by columns
+      if (s.view === 'board') {
+        if (!unsub_board_pending) {
+          void subscriptions
+            .subscribeList('tab:board:pending', { type: 'pending-issues' })
+            .then((u) => (unsub_board_pending = u))
+            .catch(() => {});
+        }
+        if (!unsub_board_in_progress) {
+          void subscriptions
+            .subscribeList('tab:board:in-progress', {
+              type: 'in-progress-issues'
+            })
+            .then((u) => (unsub_board_in_progress = u))
+            .catch(() => {});
+        }
+        if (!unsub_board_closed) {
+          void subscriptions
+            .subscribeList('tab:board:closed', { type: 'closed-issues' })
+            .then((u) => (unsub_board_closed = u))
+            .catch(() => {});
+        }
+        if (!unsub_board_blocked) {
+          void subscriptions
+            .subscribeList('tab:board:blocked', { type: 'blocked-issues' })
+            .then((u) => (unsub_board_blocked = u))
+            .catch(() => {});
+        }
+      } else {
+        // Unsubscribe all board lists when leaving the board view
+        if (unsub_board_pending) {
+          void unsub_board_pending().catch(() => {});
+          unsub_board_pending = null;
+        }
+        if (unsub_board_in_progress) {
+          void unsub_board_in_progress().catch(() => {});
+          unsub_board_in_progress = null;
+        }
+        if (unsub_board_closed) {
+          void unsub_board_closed().catch(() => {});
+          unsub_board_closed = null;
+        }
+        if (unsub_board_blocked) {
+          void unsub_board_blocked().catch(() => {});
+          unsub_board_blocked = null;
+        }
+      }
+    }
+
+    /**
+     * Manage route visibility and list subscriptions per view.
      * @param {{ selected_id: string | null, view: 'issues'|'epics'|'board', filters: any }} s
      */
     const onRouteChange = (s) => {
@@ -345,17 +487,28 @@ export function bootstrap(root_element) {
       } catch {
         // ignore
       }
+
+      // Tab-level subscription management
+      ensureTabSubscriptions(s);
     };
     store.subscribe(onRouteChange);
     // Ensure initial state is reflected (fixes reload on #/epics)
     onRouteChange(store.getState());
 
+    // React to filter changes that impact the Issues tab subscription
+    store.subscribe((s) => {
+      if (s.view === 'issues') {
+        const spec = computeIssuesSpec(s.filters || {});
+        // Reuse the same client id so the server switches lists without leaks
+        void subscriptions.subscribeList('tab:issues', spec).catch(() => {});
+      }
+    });
+
     // Keyboard shortcuts: Ctrl/Cmd+N opens new issue; Ctrl/Cmd+Enter submits inside dialog
     window.addEventListener('keydown', (ev) => {
       const is_modifier = ev.ctrlKey || ev.metaKey;
       const key = String(ev.key || '').toLowerCase();
-      /** @type {HTMLElement} */
-      const target = /** @type {any} */ (ev.target);
+      const target = /** @type {HTMLElement} */ (ev.target);
       const tag =
         target && target.tagName ? String(target.tagName).toLowerCase() : '';
       const is_editable =
