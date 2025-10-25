@@ -18,10 +18,22 @@ export function renderMarkdown(src) {
   /** @type {string[]} */
   let code_acc = [];
 
-  /** @type {HTMLElement|null} */
-  let list_el = null;
-  /** @type {string} */
-  let list_type = '';
+  /**
+   * Stack of open list contexts for nested lists.
+   * Each entry keeps the element, type and indentation level in spaces.
+   * @type {{ el: HTMLOListElement|HTMLUListElement, type: 'ol'|'ul', indent: number, last_li: HTMLLIElement|null }[]}
+   */
+  const list_stack = [];
+
+  /**
+   * Flush the current open list structure to the fragment.
+   */
+  function flushLists() {
+    if (list_stack.length > 0) {
+      frag.appendChild(list_stack[0].el);
+      list_stack.length = 0;
+    }
+  }
 
   /**
    * Flush current paragraph buffer to <p> if any.
@@ -69,11 +81,7 @@ export function renderMarkdown(src) {
     // blank line -> paragraph / list break
     if (/^\s*$/.test(line)) {
       flushParagraph(para);
-      if (list_el !== null) {
-        frag.appendChild(list_el);
-        list_el = null;
-        list_type = '';
-      }
+      flushLists();
       continue;
     }
 
@@ -81,11 +89,7 @@ export function renderMarkdown(src) {
     const hx = /^(#{1,6})\s+(.*)$/.exec(line);
     if (hx) {
       flushParagraph(para);
-      if (list_el !== null) {
-        frag.appendChild(list_el);
-        list_el = null;
-        list_type = '';
-      }
+      flushLists();
       const level = Math.min(6, hx[1].length);
       const h = /** @type {HTMLHeadingElement} */ (
         document.createElement('h' + String(level))
@@ -95,35 +99,37 @@ export function renderMarkdown(src) {
       continue;
     }
 
-    // list item
-    let m = /^\s*[-*]\s+(.*)$/.exec(line);
+    // list item (supports nested via indentation and both "." and ")" markers for ordered)
+    /** @type {any} */
+    let m = /^(\s*)[-*]\s+(.*)$/.exec(line);
     if (m) {
-      if (list_el === null || list_type !== 'ul') {
-        flushParagraph(para);
-        if (list_el !== null) {
-          frag.appendChild(list_el);
-        }
-        list_el = document.createElement('ul');
-        list_type = 'ul';
-      }
+      const indent = m[1].length;
+      const type = /** @type {'ul'} */ ('ul');
+      const text = m[2];
+      flushParagraph(para);
+      // adjust stack based on indentation
+      adjustListStack(indent, type);
+      // ensure a list at the current level exists
+      ensureListAt(indent, type);
       const li = document.createElement('li');
-      appendInline(li, m[1]);
-      list_el.appendChild(li);
+      appendInline(li, text);
+      list_stack[list_stack.length - 1].el.appendChild(li);
+      list_stack[list_stack.length - 1].last_li = li;
       continue;
     }
-    m = /^\s*(\d+)\.\s+(.*)$/.exec(line);
+    // ordered: allow 1. and 1)
+    m = /^(\s*)(\d+)[.).]\s+(.*)$/.exec(line);
     if (m) {
-      if (list_el === null || list_type !== 'ol') {
-        flushParagraph(para);
-        if (list_el !== null) {
-          frag.appendChild(list_el);
-        }
-        list_el = document.createElement('ol');
-        list_type = 'ol';
-      }
+      const indent = m[1].length;
+      const type = /** @type {'ol'} */ ('ol');
+      const text = m[3];
+      flushParagraph(para);
+      adjustListStack(indent, type);
+      ensureListAt(indent, type);
       const li = document.createElement('li');
-      appendInline(li, m[2]);
-      list_el.appendChild(li);
+      appendInline(li, text);
+      list_stack[list_stack.length - 1].el.appendChild(li);
+      list_stack[list_stack.length - 1].last_li = li;
       continue;
     }
 
@@ -140,9 +146,7 @@ export function renderMarkdown(src) {
     frag.appendChild(pre);
   }
   flushParagraph(para);
-  if (list_el !== null) {
-    frag.appendChild(list_el);
-  }
+  flushLists();
 
   return frag;
 
@@ -196,6 +200,51 @@ export function renderMarkdown(src) {
     }
     if (last < text.length) {
       el.appendChild(document.createTextNode(text.slice(last)));
+    }
+  }
+
+  /**
+   * Ensure there is a list at the desired indentation and type.
+   * Creates a new list if the stack top differs or is missing.
+   * @param {number} indent
+   * @param {'ol'|'ul'} type
+   */
+  function ensureListAt(indent, type) {
+    const top = list_stack[list_stack.length - 1];
+    if (!top || top.indent !== indent || top.type !== type) {
+      const el = /** @type {HTMLOListElement|HTMLUListElement} */ (
+        document.createElement(type)
+      );
+      if (top) {
+        // must attach to the last list item's children if possible, else to the list itself
+        const parent_li = top.last_li;
+        if (parent_li) {
+          parent_li.appendChild(el);
+        } else {
+          top.el.appendChild(el);
+        }
+      }
+      list_stack.push({ el, type, indent, last_li: null });
+    }
+  }
+
+  /**
+   * Adjust the list stack by popping contexts deeper than the current indent.
+   * @param {number} indent
+   * @param {'ol'|'ul'} type
+   */
+  function adjustListStack(indent, type) {
+    // pop while stack is deeper than current indent
+    while (
+      list_stack.length > 0 &&
+      list_stack[list_stack.length - 1].indent > indent
+    ) {
+      list_stack.pop();
+    }
+    // if same indent but different type, pop to parent at lower indent (or empty)
+    const top = list_stack[list_stack.length - 1];
+    if (top && top.indent === indent && top.type !== type) {
+      list_stack.pop();
     }
   }
 }

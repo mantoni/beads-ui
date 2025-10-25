@@ -56,6 +56,57 @@ describe('utils/markdown', () => {
     expect(items[1].textContent).toBe('b');
   });
 
+  test('renders ordered list items with right parenthesis', () => {
+    const frag = renderMarkdown('1) a\n2) b');
+    const host = document.createElement('div');
+
+    host.appendChild(frag);
+
+    const items = host.querySelectorAll('ol li');
+    expect(items.length).toBe(2);
+    expect(items[0].textContent).toBe('a');
+    expect(items[1].textContent).toBe('b');
+  });
+
+  test('auto-numbers when using repeated 1) markers', () => {
+    const frag = renderMarkdown('1) One\n1) Two\n1) Three');
+    const host = document.createElement('div');
+
+    host.appendChild(frag);
+
+    const items = host.querySelectorAll('ol li');
+    expect(items.length).toBe(3);
+    // The DOM will number them; we just assert text content and count
+    expect(Array.from(items).map((li) => li.textContent)).toEqual([
+      'One',
+      'Two',
+      'Three'
+    ]);
+  });
+
+  test('does not start a list for inline 1) text', () => {
+    const frag = renderMarkdown('Not a list 1) example');
+    const host = document.createElement('div');
+
+    host.appendChild(frag);
+
+    const items = host.querySelectorAll('ol li, ul li');
+    expect(items.length).toBe(0);
+    const p = /** @type {HTMLParagraphElement} */ (host.querySelector('p'));
+    expect(p.textContent).toBe('Not a list 1) example');
+  });
+
+  test('renders nested ordered lists using ) markers', () => {
+    const frag = renderMarkdown('1) Outer\n   1) Inner');
+    const host = document.createElement('div');
+
+    host.appendChild(frag);
+
+    const nested = host.querySelector('ol > li > ol > li');
+    expect(nested).toBeTruthy();
+    expect(nested && nested.textContent).toBe('Inner');
+  });
+
   test('renders fenced code block', () => {
     const frag = renderMarkdown('```\nline1\nline2\n```');
     const host = document.createElement('div');
