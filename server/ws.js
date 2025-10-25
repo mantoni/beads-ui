@@ -6,6 +6,7 @@
 import { WebSocketServer } from 'ws';
 import { runBd, runBdJson } from './bd.js';
 import { isRequest, makeError, makeOk } from './protocol.js';
+import { registry } from './subscriptions.js';
 
 /**
  * @typedef {{
@@ -150,6 +151,14 @@ export function attachWsServer(http_server, options = {}) {
 
     ws.on('message', (data) => {
       handleMessage(ws, data);
+    });
+
+    ws.on('close', () => {
+      try {
+        registry.onDisconnect(/** @type {any} */ (ws));
+      } catch {
+        // ignore cleanup errors
+      }
     });
   });
 
