@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
-import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
-import { attachWsServer, handleMessage, scheduleListRefresh } from './ws.js';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { fetchListForSubscription } from './list-adapters.js';
+import { attachWsServer, handleMessage, scheduleListRefresh } from './ws.js';
 
 vi.mock('./list-adapters.js', () => ({
   fetchListForSubscription: vi.fn(async () => {
@@ -78,7 +78,9 @@ describe('ws list refresh coalescing', () => {
     );
 
     // Clear initial refresh calls from subscribe-list
-    const mock = /** @type {import('vitest').Mock} */ (fetchListForSubscription);
+    const mock = /** @type {import('vitest').Mock} */ (
+      fetchListForSubscription
+    );
     mock.mockClear();
 
     // Simulate a burst of DB change events

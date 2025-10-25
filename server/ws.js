@@ -19,6 +19,81 @@ let REFRESH_TIMER = null;
 let REFRESH_DEBOUNCE_MS = 75;
 
 /**
+ * Mutation refresh window gate. When active, watcher-driven list refresh
+ * scheduling is suppressed. The gate resolves either when a watcher event
+ * arrives (via scheduleListRefresh) or when a timeout elapses, at which
+ * point a single refresh pass over all active list subscriptions is run.
+ */
+/**
+ * @typedef {Object} MutationGate
+ * @property {boolean} resolved
+ * @property {(reason: 'watcher'|'timeout') => void} resolve
+ * @property {ReturnType<typeof setTimeout>} timer
+ */
+/** @type {MutationGate | null} */
+let MUTATION_GATE = null;
+
+/**
+ * Start a mutation window gate if not already active. The gate resolves on the
+ * next watcher event or after `timeout_ms`, then triggers a single refresh run
+ * across all active list subscriptions. Watcher-driven refresh scheduling is
+ * suppressed during the window.
+ *
+ * Fire-and-forget; callers should not await this.
+ * @param {number} [timeout_ms]
+ */
+function triggerMutationRefreshOnce(timeout_ms = 500) {
+  if (MUTATION_GATE) {
+    return;
+  }
+  /** @type {(r: 'watcher'|'timeout') => void} */
+  let do_resolve = () => {};
+  const p = new Promise((resolve) => {
+    do_resolve = /** @type {(r: 'watcher'|'timeout') => void} */ (resolve);
+  });
+  MUTATION_GATE = {
+    resolved: false,
+    resolve: (reason) => {
+      if (!MUTATION_GATE || MUTATION_GATE.resolved) {
+        return;
+      }
+      MUTATION_GATE.resolved = true;
+      try {
+        do_resolve(reason);
+      } catch {
+        // ignore resolve errors
+      }
+    },
+    timer: setTimeout(() => {
+      try {
+        MUTATION_GATE?.resolve('timeout');
+      } catch {
+        // ignore
+      }
+    }, timeout_ms)
+  };
+  MUTATION_GATE.timer.unref?.();
+
+  // After resolution, run a single refresh across active subs and clear gate
+  void p.then(async () => {
+    try {
+      await refreshAllActiveListSubscriptions();
+    } catch {
+      // ignore refresh errors
+    } finally {
+      try {
+        if (MUTATION_GATE?.timer) {
+          clearTimeout(MUTATION_GATE.timer);
+        }
+      } catch {
+        // ignore
+      }
+      MUTATION_GATE = null;
+    }
+  });
+}
+
+/**
  * Collect unique active list subscription specs across all connected clients.
  * @returns {Array<{ type: string, params?: Record<string,string|number|boolean> }>}
  */
@@ -70,6 +145,15 @@ async function refreshAllActiveListSubscriptions() {
  * Schedule a coalesced refresh of all active list subscriptions.
  */
 export function scheduleListRefresh() {
+  // Suppress watcher-driven refreshes during an active mutation gate; resolve gate once
+  if (MUTATION_GATE) {
+    try {
+      MUTATION_GATE.resolve('watcher');
+    } catch {
+      // ignore
+    }
+    return;
+  }
   if (REFRESH_TIMER) {
     clearTimeout(REFRESH_TIMER);
   }
@@ -639,6 +723,11 @@ export async function handleMessage(ws, data) {
       return;
     }
     ws.send(JSON.stringify(makeOk(req, shown.stdoutJson)));
+    try {
+      triggerMutationRefreshOnce();
+    } catch {
+      // ignore
+    }
     return;
   }
 
@@ -684,6 +773,12 @@ export async function handleMessage(ws, data) {
     } catch {
       // ignore fanout errors
     }
+    // After mutation, refresh active subscriptions once (watcher or timeout)
+    try {
+      triggerMutationRefreshOnce();
+    } catch {
+      // ignore
+    }
     return;
   }
 
@@ -727,6 +822,11 @@ export async function handleMessage(ws, data) {
       notifyIssuesChanged({ hint: { ids: [id] } }, { issue: shown.stdoutJson });
     } catch {
       // ignore fanout errors
+    }
+    try {
+      triggerMutationRefreshOnce();
+    } catch {
+      // ignore
     }
     return;
   }
@@ -791,6 +891,11 @@ export async function handleMessage(ws, data) {
     } catch {
       // ignore fanout errors
     }
+    try {
+      triggerMutationRefreshOnce();
+    } catch {
+      // ignore
+    }
     return;
   }
 
@@ -835,8 +940,14 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    // Rely on watcher to refresh clients; reply with a minimal ack
+    // Reply with a minimal ack
     ws.send(JSON.stringify(makeOk(req, { created: true })));
+    // Refresh active subscriptions once (watcher or timeout)
+    try {
+      triggerMutationRefreshOnce();
+    } catch {
+      // ignore
+    }
     return;
   }
 
@@ -882,6 +993,11 @@ export async function handleMessage(ws, data) {
     } catch {
       // ignore fanout errors
     }
+    try {
+      triggerMutationRefreshOnce();
+    } catch {
+      // ignore
+    }
     return;
   }
 
@@ -926,6 +1042,11 @@ export async function handleMessage(ws, data) {
     } catch {
       // ignore fanout errors
     }
+    try {
+      triggerMutationRefreshOnce();
+    } catch {
+      // ignore
+    }
     return;
   }
 
@@ -969,6 +1090,11 @@ export async function handleMessage(ws, data) {
     } catch {
       // ignore
     }
+    try {
+      triggerMutationRefreshOnce();
+    } catch {
+      // ignore
+    }
     return;
   }
 
@@ -1009,6 +1135,11 @@ export async function handleMessage(ws, data) {
     ws.send(JSON.stringify(makeOk(req, shown.stdoutJson)));
     try {
       notifyIssuesChanged({ hint: { ids: [id] } }, { issue: shown.stdoutJson });
+    } catch {
+      // ignore
+    }
+    try {
+      triggerMutationRefreshOnce();
     } catch {
       // ignore
     }
