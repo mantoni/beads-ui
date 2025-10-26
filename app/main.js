@@ -5,6 +5,7 @@ import { html, render } from 'lit-html';
 import { createIssuesStore } from './data/issues-store.js';
 import { createListSelectors } from './data/list-selectors.js';
 import { createDataLayer } from './data/providers.js';
+import { createSubscriptionIssueStores } from './data/subscription-issue-stores.js';
 import { createSubscriptionStore } from './data/subscriptions-store.js';
 import { createHashRouter, parseHash } from './router.js';
 import { createStore } from './state.js';
@@ -55,11 +56,20 @@ export function bootstrap(root_element) {
     );
     // Bind through wrapper to preserve `this` semantics in tests/mocks
     subscriptions.wireEvents((type, handler) => client.on(type, handler));
-    // Issues push-only store
-    const issuesStore = createIssuesStore();
-    issuesStore.wireEvents((type, handler) => client.on(type, handler));
-    // Derived list selectors (membership + entities + sort)
-    const listSelectors = createListSelectors(subscriptions, issuesStore);
+    // Issues push-only store (entity cache)
+    const issues_store = createIssuesStore();
+    issues_store.wireEvents((type, handler) => client.on(type, handler));
+    // Per-subscription stores derived from membership + entities
+    const sub_issue_stores = createSubscriptionIssueStores(
+      subscriptions,
+      issues_store
+    );
+    // Derived list selectors: prefer per-subscription snapshots
+    const listSelectors = createListSelectors(
+      subscriptions,
+      issues_store,
+      sub_issue_stores
+    );
     // Show toasts for WebSocket connectivity changes
     /** @type {boolean} */
     let had_disconnect = false;
@@ -78,7 +88,7 @@ export function bootstrap(root_element) {
     }
     // Load persisted filters (status/search/type) from localStorage
     /** @type {{ status: 'all'|'open'|'in_progress'|'closed'|'ready', search: string, type: string }} */
-    let persistedFilters = { status: 'all', search: '', type: '' };
+    let persisted_filters = { status: 'all', search: '', type: '' };
     try {
       const raw = window.localStorage.getItem('beads-ui.filters');
       if (raw) {
@@ -99,7 +109,7 @@ export function bootstrap(root_element) {
             }
             parsed_type = first_valid;
           }
-          persistedFilters = {
+          persisted_filters = {
             status: ['all', 'open', 'in_progress', 'closed', 'ready'].includes(
               obj.status
             )
@@ -147,7 +157,7 @@ export function bootstrap(root_element) {
     }
 
     const store = createStore({
-      filters: persistedFilters,
+      filters: persisted_filters,
       view: last_view,
       board: persistedBoard
     });
@@ -191,7 +201,7 @@ export function bootstrap(root_element) {
     // Local transport shim: for list-issues, serve from subscriptions + issuesStore;
     // otherwise forward to ws transport for mutations/show.
     /**
-     * @param {import('./protocol.js').MessageType} type
+     * @param {MessageType} type
      * @param {unknown} payload
      */
     const listTransport = async (type, payload) => {
@@ -202,7 +212,7 @@ export function bootstrap(root_element) {
           return [];
         }
       }
-      return transport(/** @type {MessageType} */ (type), payload);
+      return transport(type, payload);
     };
 
     const issues_view = createListView(
@@ -215,7 +225,7 @@ export function bootstrap(root_element) {
         }
       },
       store,
-      issuesStore,
+      issues_store,
       subscriptions
     );
     // Persist filter changes to localStorage
@@ -304,7 +314,6 @@ export function bootstrap(root_element) {
     // UI-114: Coalesce near-simultaneous events. When an ID-scoped update
     // arrives, suppress a trailing watcher-only full refresh for a short
     // window to avoid duplicate work and flicker.
-    /** @type {number} */
     let suppress_full_until = 0;
     /**
      * Shared handler to refresh visible views on push or list-delta.
@@ -356,9 +365,24 @@ export function bootstrap(root_element) {
     };
     // Register list-delta first so tests that keep a single handler slot
     // end up with issues-changed as the last bound handler.
-    client.on('list-delta', () => onPushLike({}));
+    client.on('list-delta', (payload) => {
+      try {
+        const key =
+          payload && typeof payload.key === 'string' ? payload.key : '';
+        if (key) {
+          sub_issue_stores.recomputeByKey(key);
+        } else {
+          sub_issue_stores.recomputeAll();
+        }
+      } catch {
+        // ignore malformed payloads
+      }
+      onPushLike({});
+    });
     // Trigger lightweight re-render on issues envelopes as well
     client.on('issues', () => {
+      // Recompute per-subscription snapshots after entity updates
+      sub_issue_stores.recomputeAll();
       // Avoid heavy refetch; our list transport reads from local store
       void issues_view.load();
     });
@@ -370,16 +394,18 @@ export function bootstrap(root_element) {
       epics_root,
       data,
       (id) => router.gotoIssue(id),
-      issuesStore,
-      subscriptions
+      issues_store,
+      subscriptions,
+      sub_issue_stores
     );
     const board_view = createBoardView(
       board_root,
       data,
       (id) => router.gotoIssue(id),
       store,
-      issuesStore,
-      subscriptions
+      issues_store,
+      subscriptions,
+      sub_issue_stores
     );
     // Preload epics when switching to view
     /**
@@ -435,9 +461,19 @@ export function bootstrap(root_element) {
           .catch(() => {
             // ignore transport errors; retry on next change
           });
+        try {
+          sub_issue_stores.register('tab:issues', spec);
+        } catch {
+          // ignore
+        }
       } else if (unsub_issues_tab) {
         void unsub_issues_tab().catch(() => {});
         unsub_issues_tab = null;
+        try {
+          sub_issue_stores.unregister('tab:issues');
+        } catch {
+          // ignore
+        }
       }
 
       // Epics tab
@@ -448,9 +484,19 @@ export function bootstrap(root_element) {
             unsub_epics_tab = unsub;
           })
           .catch(() => {});
+        try {
+          sub_issue_stores.register('tab:epics', { type: 'epics' });
+        } catch {
+          // ignore
+        }
       } else if (unsub_epics_tab) {
         void unsub_epics_tab().catch(() => {});
         unsub_epics_tab = null;
+        try {
+          sub_issue_stores.unregister('tab:epics');
+        } catch {
+          // ignore
+        }
       }
 
       // Board tab subscribes to lists used by columns
@@ -460,6 +506,13 @@ export function bootstrap(root_element) {
             .subscribeList('tab:board:ready', { type: 'ready-issues' })
             .then((u) => (unsub_board_ready = u))
             .catch(() => {});
+          try {
+            sub_issue_stores.register('tab:board:ready', {
+              type: 'ready-issues'
+            });
+          } catch {
+            // ignore
+          }
         }
         if (!unsub_board_in_progress) {
           void subscriptions
@@ -468,36 +521,77 @@ export function bootstrap(root_element) {
             })
             .then((u) => (unsub_board_in_progress = u))
             .catch(() => {});
+          try {
+            sub_issue_stores.register('tab:board:in-progress', {
+              type: 'in-progress-issues'
+            });
+          } catch {
+            // ignore
+          }
         }
         if (!unsub_board_closed) {
           void subscriptions
             .subscribeList('tab:board:closed', { type: 'closed-issues' })
             .then((u) => (unsub_board_closed = u))
             .catch(() => {});
+          try {
+            sub_issue_stores.register('tab:board:closed', {
+              type: 'closed-issues'
+            });
+          } catch {
+            // ignore
+          }
         }
         if (!unsub_board_blocked) {
           void subscriptions
             .subscribeList('tab:board:blocked', { type: 'blocked-issues' })
             .then((u) => (unsub_board_blocked = u))
             .catch(() => {});
+          try {
+            sub_issue_stores.register('tab:board:blocked', {
+              type: 'blocked-issues'
+            });
+          } catch {
+            // ignore
+          }
         }
       } else {
         // Unsubscribe all board lists when leaving the board view
         if (unsub_board_ready) {
           void unsub_board_ready().catch(() => {});
           unsub_board_ready = null;
+          try {
+            sub_issue_stores.unregister('tab:board:ready');
+          } catch {
+            // ignore
+          }
         }
         if (unsub_board_in_progress) {
           void unsub_board_in_progress().catch(() => {});
           unsub_board_in_progress = null;
+          try {
+            sub_issue_stores.unregister('tab:board:in-progress');
+          } catch {
+            // ignore
+          }
         }
         if (unsub_board_closed) {
           void unsub_board_closed().catch(() => {});
           unsub_board_closed = null;
+          try {
+            sub_issue_stores.unregister('tab:board:closed');
+          } catch {
+            // ignore
+          }
         }
         if (unsub_board_blocked) {
           void unsub_board_blocked().catch(() => {});
           unsub_board_blocked = null;
+          try {
+            sub_issue_stores.unregister('tab:board:blocked');
+          } catch {
+            // ignore
+          }
         }
       }
     }
@@ -539,6 +633,12 @@ export function bootstrap(root_element) {
         const spec = computeIssuesSpec(s.filters || {});
         // Reuse the same client id so the server switches lists without leaks
         void subscriptions.subscribeList('tab:issues', spec).catch(() => {});
+        // Keep per-subscription store mapping in sync and recompute
+        try {
+          sub_issue_stores.register('tab:issues', spec);
+        } catch {
+          // ignore
+        }
       }
     });
 

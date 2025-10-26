@@ -16,15 +16,17 @@ import { createIssueRowRenderer } from './issue-row.js';
  * @param {HTMLElement} mount_element
  * @param {{ getIssue: (id: string) => Promise<any>, updateIssue: (input: any) => Promise<any> }} data
  * @param {(id: string) => void} goto_issue - Navigate to issue detail.
- * @param {{ subscribe: (fn: () => void) => () => void, getMany: (ids: string[]) => any[], getAll: () => any[], getById: (id: string) => any|null }} [issuesStore]
- * @param {{ subscribeList?: (client_id: string, spec: { type: string, params?: Record<string, string|number|boolean> }) => Promise<() => Promise<void>>, selectors?: { getIds: (client_id: string) => string[], count?: (client_id: string) => number } }} [subscriptions]
+ * @param {{ subscribe: (fn: () => void) => () => void, getMany: (ids: string[]) => any[], getAll: () => any[], getById: (id: string) => any|null }} [issues_store]
+ * @param {{ subscribeList: (client_id: string, spec: { type: string, params?: Record<string, string|number|boolean> }) => Promise<() => Promise<void>>, selectors: { getIds: (client_id: string) => string[], count?: (client_id: string) => number } }} [subscriptions]
+ * @param {{ snapshotFor?: (client_id: string) => IssueLite[], subscribe?: (fn: () => void) => () => void }} [issue_stores]
  */
 export function createEpicsView(
   mount_element,
   data,
   goto_issue,
-  issuesStore = undefined,
-  subscriptions = undefined
+  issues_store = undefined,
+  subscriptions = undefined,
+  issue_stores = undefined
 ) {
   /** @type {any[]} */
   let groups = [];
@@ -36,21 +38,16 @@ export function createEpicsView(
   const epic_unsubs = new Map();
   // Centralized selection helpers
   const selectors =
-    subscriptions && issuesStore
-      ? createListSelectors(
-          /** @type {{ selectors: { getIds: (client_id: string) => string[] } }} */ (
-            subscriptions
-          ),
-          issuesStore
-        )
+    subscriptions && issues_store
+      ? createListSelectors(subscriptions, issues_store, issue_stores)
       : null;
   // Live re-render on pushes
   if (selectors) {
     selectors.subscribe(() => {
       doRender();
     });
-  } else if (issuesStore && typeof issuesStore.subscribe === 'function') {
-    issuesStore.subscribe(() => {
+  } else if (issues_store && typeof issues_store.subscribe === 'function') {
+    issues_store.subscribe(() => {
       doRender();
     });
   }
@@ -178,6 +175,17 @@ export function createEpicsView(
             params: { epic_id: epic_id }
           });
           epic_unsubs.set(epic_id, u);
+          // Register mapping for per-subscription store snapshots if available
+          try {
+            if (issue_stores && /** @type {any} */ (issue_stores).register) {
+              /** @type {any} */ (issue_stores).register(`epic:${epic_id}`, {
+                type: 'issues-for-epic',
+                params: { epic_id: epic_id }
+              });
+            }
+          } catch {
+            // ignore
+          }
         } catch {
           // ignore subscription failures
         }
@@ -197,6 +205,13 @@ export function createEpicsView(
           // ignore
         }
         epic_unsubs.delete(epic_id);
+        try {
+          if (issue_stores && /** @type {any} */ (issue_stores).unregister) {
+            /** @type {any} */ (issue_stores).unregister(`epic:${epic_id}`);
+          }
+        } catch {
+          // ignore
+        }
       }
     }
     doRender();
@@ -218,21 +233,20 @@ export function createEpicsView(
           epic_ids = [];
         }
       }
-      if (epic_ids.length === 0 && issuesStore) {
+      if (epic_ids.length === 0 && issues_store) {
         // Test-friendly fallback: derive epics from all issues when no
         // membership is available yet.
-        const all = issuesStore.getAll();
+        const all = issues_store.getAll();
         epic_ids = all
           .filter((it) => String(it.issue_type || '') === 'epic')
           .map((it) => String(it.id || ''))
           .filter((id) => !!id);
       }
 
-      /** @type {any[]} */
       const next_groups = [];
-      if (issuesStore) {
+      if (issues_store) {
         for (const id of epic_ids) {
-          const epic = issuesStore.getById(id) || { id };
+          const epic = issues_store.getById(id) || { id };
           const dependents = Array.isArray(epic.dependents)
             ? epic.dependents
             : [];

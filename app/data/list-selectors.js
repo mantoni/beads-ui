@@ -11,9 +11,14 @@
 /**
  * Factory for list selectors.
  * @param {{ selectors: { getIds: (client_id: string) => string[] } }} subscriptions
- * @param {{ getMany: (ids: string[]) => IssueLite[], subscribe: (fn: () => void) => () => void }} issuesStore
+ * @param {{ getMany: (ids: string[]) => IssueLite[], subscribe: (fn: () => void) => () => void }} issues_store
+ * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void }} [issue_stores]
  */
-export function createListSelectors(subscriptions, issuesStore) {
+export function createListSelectors(
+  subscriptions,
+  issues_store,
+  issue_stores = undefined
+) {
   /**
    * Compare by priority asc, then updated_at desc, then id asc.
    * @param {IssueLite} a
@@ -71,11 +76,13 @@ export function createListSelectors(subscriptions, issuesStore) {
    * @returns {IssueLite[]}
    */
   function selectIssuesFor(client_id) {
-    /** @type {string[]} */
+    if (issue_stores && typeof issue_stores.snapshotFor === 'function') {
+      // Prefer per-subscription snapshot when available; return a copy
+      return issue_stores.snapshotFor(client_id).slice();
+    }
+    // Fallback to legacy composition path
     const ids = subscriptions.selectors.getIds(client_id) || [];
-    /** @type {IssueLite[]} */
-    const items = issuesStore.getMany(ids) || [];
-    // Sort on a copy to avoid mutating caller arrays
+    const items = issues_store.getMany(ids) || [];
     return [...items].sort(cmpPriorityThenUpdated);
   }
 
@@ -86,11 +93,12 @@ export function createListSelectors(subscriptions, issuesStore) {
    * @returns {IssueLite[]}
    */
   function selectBoardColumn(client_id, mode) {
-    /** @type {string[]} */
-    const ids = subscriptions.selectors.getIds(client_id) || [];
-    /** @type {IssueLite[]} */
-    const items = issuesStore.getMany(ids) || [];
-    const arr = [...items];
+    const arr =
+      issue_stores && issue_stores.snapshotFor
+        ? issue_stores.snapshotFor(client_id).slice()
+        : issues_store
+            .getMany(subscriptions.selectors.getIds(client_id) || [])
+            .slice();
     if (mode === 'in_progress') {
       arr.sort(cmpUpdatedDesc);
     } else if (mode === 'closed') {
@@ -119,7 +127,10 @@ export function createListSelectors(subscriptions, issuesStore) {
    * @returns {() => void}
    */
   function subscribe(fn) {
-    return issuesStore.subscribe(fn);
+    if (issue_stores && typeof issue_stores.subscribe === 'function') {
+      return issue_stores.subscribe(fn);
+    }
+    return issues_store.subscribe(fn);
   }
 
   return {

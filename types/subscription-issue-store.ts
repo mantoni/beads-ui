@@ -2,7 +2,7 @@
  * SubscriptionIssueStore interface definitions.
  * File is .ts by design: interfaces only.
  */
-import type { DeltaMessage, Issue } from './subscriptions';
+import type { Issue } from './subscriptions.js';
 
 /** Stable comparator used by stores for deterministic ordering. */
 export type IssueComparator = (a: Issue, b: Issue) => number;
@@ -23,17 +23,17 @@ export interface SubscriptionIssueStore {
   readonly id: string;
 
   /**
-   * Subscribe to store changes. Listener is invoked after each applied delta
-   * exactly once, regardless of how many items changed.
-   * Returns an unsubscribe function.
+   * Subscribe to store changes. Listener is invoked after each applied message
+   * exactly once, regardless of how many items changed. Returns an unsubscribe
+   * function.
    */
   subscribe(listener: () => void): () => void;
 
   /**
-   * Apply an initial snapshot (all items in added) or a subsequent delta.
-   * The store must be idempotent and ignore stale updates using updated_at.
+   * Apply a push message (snapshot, upsert, delete). The store must be
+   * idempotent and ignore stale updates using `revision` and `updated_at`.
    */
-  applyDelta(delta: DeltaMessage): void;
+  applyPush(msg: SnapshotMsg | UpsertMsg | DeleteMsg): void;
 
   /** Stable, read-only snapshot of issues for rendering. */
   snapshot(): readonly Issue[];
@@ -50,3 +50,24 @@ export interface SubscriptionIssueStore {
 export interface CreateSubscriptionIssueStore {
   (id: string, options?: SubscriptionIssueStoreOptions): SubscriptionIssueStore;
 }
+
+export type SnapshotMsg = {
+  type: 'snapshot';
+  id: string;
+  revision: number;
+  issues: Issue[];
+};
+
+export type UpsertMsg = {
+  type: 'upsert';
+  id: string;
+  revision: number;
+  issue: Issue;
+};
+
+export type DeleteMsg = {
+  type: 'delete';
+  id: string;
+  revision: number;
+  issue_id: string;
+};

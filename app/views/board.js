@@ -30,6 +30,7 @@ import { createTypeBadge } from '../utils/type-badge.js';
  * @param {{ getState: () => any, setState: (patch: any) => void, subscribe?: (fn: (s:any)=>void)=>()=>void }} [store]
  * @param {{ subscribe: (fn: () => void) => () => void, getMany: (ids: string[]) => any[] }} [issuesStore]
  * @param {{ selectors: { getIds: (client_id: string) => string[], count?: (client_id: string) => number } }} [subscriptions]
+ * @param {{ snapshotFor?: (client_id: string) => IssueLite[], subscribe?: (fn: () => void) => () => void }} [issueStores]
  * @returns {{ load: () => Promise<void>, clear: () => void }}
  */
 export function createBoardView(
@@ -38,7 +39,8 @@ export function createBoardView(
   gotoIssue,
   store,
   issuesStore = undefined,
-  subscriptions = undefined
+  subscriptions = undefined,
+  issueStores = undefined
 ) {
   /** @type {IssueLite[]} */
   let list_ready = [];
@@ -53,7 +55,7 @@ export function createBoardView(
   // Centralized selection helpers
   const selectors =
     subscriptions && issuesStore
-      ? createListSelectors(subscriptions, issuesStore)
+      ? createListSelectors(subscriptions, issuesStore, issueStores)
       : null;
 
   /**

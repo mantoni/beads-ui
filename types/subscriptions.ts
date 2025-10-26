@@ -14,6 +14,10 @@ export interface Issue extends IssueRef {
   title?: string;
   status?: string;
   epic_id?: string | null;
+  priority?: number;
+  issue_type?: string;
+  assignee?: string | null;
+  labels?: string[];
 }
 
 export type SubscriptionType =

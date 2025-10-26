@@ -1,0 +1,174 @@
+/**
+ * @import { SubscriptionIssueStore, SubscriptionIssueStoreOptions } from '../../types/subscription-issue-store.js'
+ */
+/**
+ * Per-subscription issue store. Holds full Issue objects and exposes a
+ * deterministic, read-only snapshot for rendering. Applies snapshot/upsert/
+ * delete messages in revision order and preserves object identity per id.
+ */
+
+/**
+ * Compare by priority asc, then updated_at desc, then id asc.
+ * @param {any} a
+ * @param {any} b
+ */
+function cmpPriorityThenUpdated(a, b) {
+  const pa = Number.isFinite(a?.priority)
+    ? /** @type {number} */ (a.priority)
+    : 2;
+  const pb = Number.isFinite(b?.priority)
+    ? /** @type {number} */ (b.priority)
+    : 2;
+  if (pa !== pb) {
+    return pa - pb;
+  }
+  const ua = String(a?.updated_at || '');
+  const ub = String(b?.updated_at || '');
+  if (ua !== ub) {
+    return ua < ub ? 1 : -1;
+  }
+  const ida = String(a?.id || '');
+  const idb = String(b?.id || '');
+  return ida < idb ? -1 : ida > idb ? 1 : 0;
+}
+
+/**
+ * Create a SubscriptionIssueStore for a given subscription id.
+ * @param {string} id
+ * @param {SubscriptionIssueStoreOptions} [options]
+ * @returns {SubscriptionIssueStore}
+ */
+export function createSubscriptionIssueStore(id, options = {}) {
+  /** @type {Map<string, any>} */
+  const items_by_id = new Map();
+  /** @type {any[]} */
+  let ordered = [];
+  /** @type {number} */
+  let last_revision = 0;
+  /** @type {Set<() => void>} */
+  const listeners = new Set();
+  /** @type {boolean} */
+  let is_disposed = false;
+  /** @type {(a:any,b:any)=>number} */
+  const sort = options.sort || cmpPriorityThenUpdated;
+
+  function emit() {
+    for (const fn of Array.from(listeners)) {
+      try {
+        fn();
+      } catch {
+        // ignore listener errors
+      }
+    }
+  }
+
+  function rebuildOrdered() {
+    ordered = Array.from(items_by_id.values()).sort(sort);
+  }
+
+  /**
+   * Apply snapshot/upsert/delete in revision order. Snapshots reset state.
+   * - Ignore messages with revision <= last_revision (except snapshot which resets first).
+   * - Preserve object identity when updating an existing item by mutating
+   *   fields in place rather than replacing the object reference.
+   * @param {{ type: 'snapshot'|'upsert'|'delete', id: string, revision: number, issues?: any[], issue?: any, issue_id?: string }} msg
+   */
+  function applyPush(msg) {
+    if (is_disposed) {
+      return;
+    }
+    if (!msg || msg.id !== id) {
+      return;
+    }
+    const rev = Number(msg.revision) || 0;
+    if (msg.type === 'snapshot') {
+      items_by_id.clear();
+      const items = Array.isArray(msg.issues) ? msg.issues : [];
+      for (const it of items) {
+        if (it && typeof it.id === 'string' && it.id.length > 0) {
+          items_by_id.set(it.id, it);
+        }
+      }
+      rebuildOrdered();
+      last_revision = rev;
+      emit();
+      return;
+    }
+    if (rev <= last_revision) {
+      return; // stale or duplicate
+    }
+    if (msg.type === 'upsert') {
+      const it = msg.issue;
+      if (it && typeof it.id === 'string' && it.id.length > 0) {
+        const existing = items_by_id.get(it.id);
+        if (!existing) {
+          items_by_id.set(it.id, it);
+        } else {
+          // Guard with updated_at; prefer newer
+          const prev_ts = String(existing.updated_at || '');
+          const next_ts = String(it.updated_at || '');
+          if (!prev_ts || prev_ts <= next_ts) {
+            // Mutate existing object to preserve reference
+            for (const k of Object.keys(existing)) {
+              if (!(k in it)) {
+                // remove keys that disappeared to avoid stale fields
+                delete existing[k];
+              }
+            }
+            for (const [k, v] of Object.entries(it)) {
+              // @ts-ignore - dynamic assignment
+              existing[k] = v;
+            }
+          } else {
+            // stale by timestamp; ignore
+          }
+        }
+        rebuildOrdered();
+      }
+      last_revision = rev;
+      emit();
+    } else if (msg.type === 'delete') {
+      const rid = String(msg.issue_id || '');
+      if (rid) {
+        items_by_id.delete(rid);
+        rebuildOrdered();
+      }
+      last_revision = rev;
+      emit();
+    }
+  }
+
+  return {
+    id,
+    /**
+     * @param {() => void} fn
+     */
+    subscribe(fn) {
+      listeners.add(fn);
+      return () => {
+        listeners.delete(fn);
+      };
+    },
+    applyPush,
+    snapshot() {
+      // Return as read-only view; callers must not mutate
+      return /** @type {any[]} */ (ordered);
+    },
+    size() {
+      return items_by_id.size;
+    },
+    /**
+     * @param {string} xid
+     */
+    getById(xid) {
+      return items_by_id.get(xid);
+    },
+    dispose() {
+      is_disposed = true;
+      items_by_id.clear();
+      ordered = [];
+      listeners.clear();
+      last_revision = 0;
+    }
+  };
+}
