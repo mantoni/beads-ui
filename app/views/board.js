@@ -18,7 +18,7 @@ import { createTypeBadge } from '../utils/type-badge.js';
 
 /**
  * Create the Board view with Blocked, Ready, In progress, Closed.
- * Push-only: derives items from subscriptions membership and issues store.
+ * Push-only: derives items from per-subscription stores.
  *
  * Sorting rules:
  * - Ready/Blocked: priority asc, then updated_at desc when present
@@ -28,7 +28,6 @@ import { createTypeBadge } from '../utils/type-badge.js';
  * @param {unknown} _data - Unused (legacy param retained for call-compat)
  * @param {(id: string) => void} gotoIssue - Navigate to issue detail.
  * @param {{ getState: () => any, setState: (patch: any) => void, subscribe?: (fn: (s:any)=>void)=>()=>void }} [store]
- * @param {{ subscribe: (fn: () => void) => () => void, getMany: (ids: string[]) => any[] }} [issuesStore]
  * @param {{ selectors: { getIds: (client_id: string) => string[], count?: (client_id: string) => number } }} [subscriptions]
  * @param {{ snapshotFor?: (client_id: string) => IssueLite[], subscribe?: (fn: () => void) => () => void }} [issueStores]
  * @returns {{ load: () => Promise<void>, clear: () => void }}
@@ -38,7 +37,6 @@ export function createBoardView(
   _data,
   gotoIssue,
   store,
-  issuesStore = undefined,
   subscriptions = undefined,
   issueStores = undefined
 ) {
@@ -53,10 +51,7 @@ export function createBoardView(
   /** @type {IssueLite[]} */
   let list_closed_raw = [];
   // Centralized selection helpers
-  const selectors =
-    subscriptions && issuesStore
-      ? createListSelectors(subscriptions, issuesStore, issueStores)
-      : null;
+  const selectors = issueStores ? createListSelectors(issueStores) : null;
 
   /**
    * Closed column filter mode.
@@ -468,49 +463,6 @@ export function createBoardView(
         list_blocked = blocked;
         list_in_progress = in_progress;
         list_closed_raw = closed;
-      } else {
-        const ids_ready =
-          subscriptions && subscriptions.selectors
-            ? subscriptions.selectors.getIds('tab:board:ready')
-            : [];
-        const ids_blocked =
-          subscriptions && subscriptions.selectors
-            ? subscriptions.selectors.getIds('tab:board:blocked')
-            : [];
-        const ids_in_progress =
-          subscriptions && subscriptions.selectors
-            ? subscriptions.selectors.getIds('tab:board:in-progress')
-            : [];
-        const ids_closed =
-          subscriptions && subscriptions.selectors
-            ? subscriptions.selectors.getIds('tab:board:closed')
-            : [];
-
-        const r = issuesStore ? issuesStore.getMany(ids_ready) : [];
-        const b = issuesStore ? issuesStore.getMany(ids_blocked) : [];
-        const p = issuesStore ? issuesStore.getMany(ids_in_progress) : [];
-        const c = issuesStore ? issuesStore.getMany(ids_closed) : [];
-
-        // Remove items from Ready that are already In Progress by id
-        /** @type {IssueLite[]} */
-        let ready = Array.isArray(r) ? [...r] : [];
-        /** @type {Set<string>} */
-        const in_progress_ids = new Set(
-          Array.isArray(p) ? p.map((it) => it.id) : []
-        );
-        if (ready.length > 0 && in_progress_ids.size > 0) {
-          ready = ready.filter((it) => !in_progress_ids.has(it.id));
-        }
-
-        // Sort lists for display
-        sortReady(ready);
-        sortReady(b);
-        sortByUpdatedDesc(p);
-
-        list_ready = ready;
-        list_blocked = Array.isArray(b) ? b : [];
-        list_in_progress = Array.isArray(p) ? p : [];
-        list_closed_raw = Array.isArray(c) ? c : [];
       }
       applyClosedFilter();
       doRender();
@@ -523,17 +475,9 @@ export function createBoardView(
     }
   }
 
-  // Live updates: recompose on issues envelopes
+  // Live updates: recompose on issue store envelopes
   if (selectors) {
     selectors.subscribe(() => {
-      try {
-        refreshFromStores();
-      } catch {
-        // ignore
-      }
-    });
-  } else if (issuesStore && typeof issuesStore.subscribe === 'function') {
-    issuesStore.subscribe(() => {
       try {
         refreshFromStores();
       } catch {

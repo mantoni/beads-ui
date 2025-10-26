@@ -18,8 +18,7 @@ import { createIssueRowRenderer } from './issue-row.js';
  * @param {(type: string, payload?: unknown) => Promise<unknown>} sendFn - RPC transport.
  * @param {(hash: string) => void} [navigate_fn] - Navigation function (defaults to setting location.hash).
  * @param {{ getState: () => any, setState: (patch: any) => void, subscribe: (fn: (s:any)=>void)=>()=>void }} [store] - Optional state store.
- * @param {{ subscribe: (fn: () => void) => () => void, getMany: (ids: string[]) => any[] }} [issuesStore]
- * @param {{ selectors: { getIds: (client_id: string) => string[] } }} [subscriptions]
+ * @param {{ selectors: { getIds: (client_id: string) => string[] } }} [_subscriptions]
  * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void }} [issueStores]
  * @returns {{ load: () => Promise<void>, destroy: () => void }} View API.
  */
@@ -29,8 +28,7 @@ import { createIssueRowRenderer } from './issue-row.js';
  * @param {(type: string, payload?: unknown) => Promise<unknown>} sendFn
  * @param {(hash: string) => void} [navigateFn]
  * @param {{ getState: () => any, setState: (patch: any) => void, subscribe: (fn: (s:any)=>void)=>()=>void }} [store]
- * @param {{ subscribe: (fn: () => void) => () => void, getMany: (ids: string[]) => any[] }} [issues_store]
- * @param {{ selectors: { getIds: (client_id: string) => string[] } }} [subscriptions]
+ * @param {{ selectors: { getIds: (client_id: string) => string[] } }} [_subscriptions]
  * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void }} [issue_stores]
  * @returns {{ load: () => Promise<void>, destroy: () => void }}
  */
@@ -39,10 +37,11 @@ export function createListView(
   sendFn,
   navigateFn,
   store,
-  issues_store = undefined,
-  subscriptions = undefined,
+  _subscriptions = undefined,
   issue_stores = undefined
 ) {
+  // Touch unused param to satisfy lint rules without impacting behavior
+  /** @type {any} */ (void _subscriptions);
   /** @type {string} */
   let status_filter = 'all';
   /** @type {string} */
@@ -127,10 +126,7 @@ export function createListView(
   }
   // Initial values are reflected via bound `.value` in the template
   // Compose helpers: centralize membership + entity selection + sorting
-  const selectors =
-    subscriptions && issues_store
-      ? createListSelectors(subscriptions, issues_store, issue_stores)
-      : null;
+  const selectors = issue_stores ? createListSelectors(issue_stores) : null;
 
   /**
    * Build lit-html template for the list view.
@@ -461,7 +457,7 @@ export function createListView(
     });
   }
 
-  // Live updates: recompose and re-render when issues store changes
+  // Live updates: recompose and re-render when issue stores change
   if (selectors) {
     selectors.subscribe(() => {
       try {

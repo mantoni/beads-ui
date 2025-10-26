@@ -2,22 +2,25 @@
 
 ```
 Date: 2025-10-26
-Status: Accepted
+Status: Accepted (data‑flow details superseded by ADR 002)
 Owner: agent
 ```
 
 ## Context
 
 The UI currently mixes push updates with read RPCs like `list-issues` and
-`epic-status`. We introduced two push channels:
+`epic-status`. This ADR establishes the push‑only direction for list data and
+removing read RPCs in list views. It predated ADR 002 which later simplified the
+data flow further (per‑subscription stores + full‑issue payloads).
 
-- Issues stream: see `docs/protocol/issues-push-v2.md` (single `issues` envelope
-  carrying `added`/`updated`/`removed`).
-- List membership stream: server emits `list-delta` per subscription key.
+- Push streams provide everything lists need to render. See
+  `docs/protocol/issues-push-v2.md` and ADR 002. Earlier iterations used a
+  central `issues` entity cache plus `list-delta` membership; this has been
+  replaced by per‑subscription stores receiving full issue payloads.
 
 We want every list‑shaped view (Issues, Board, Epics → children) to render
-exclusively from local stores fed by these push channels. Reads remain only for
-mutations that return a single updated entity, e.g. detail view refresh.
+exclusively from local push data. Reads remain only for mutations that return a
+single updated entity (e.g. detail view refresh).
 
 Related docs:
 
@@ -32,26 +35,20 @@ Related docs:
   - Epics list: `tab:epics` (for epic entities); children subscribe on expand as
     `epic:{id}` with `{ type: 'issues-for-epic', params: { epic_id: id } }`
 - Rendering reads from two local stores only:
-  - `issuesStore`: normalized entity cache updated by `issues` envelopes.
-  - `subscriptions`: list membership updated by `list-delta` per key.
-- Introduce a small selectors utility (see API) to compose
-  `subscriptions.selectors.getIds(id)` with `issuesStore.getMany(ids)`, applying
-  view‑specific sort rules.
+  - `per‑subscription stores`: one store per active client subscription id.
+    Stores receive versioned `snapshot`/`upsert`/`delete` push envelopes with
+    full issue payloads and expose deterministic, sorted snapshots for the
+    owning view.
+  - `subscriptions`: manages subscription lifecycle and keys. Rendering reads
+    from per‑subscription stores, not from membership ids.
+- Introduce a small selectors utility to apply view‑specific sort rules on store
+  snapshots (no composition from a central cache).
 - Remove read RPCs used for lists: `list-issues`, `epic-status`. Keep mutation
   RPCs and `show-issue` until detail view also reads from push cache.
 - Tests drive views with push envelopes and `list-delta`; no RPC stubs for
   reads.
 
 ## API Shape (Client)
-
-Issues store (already implemented):
-
-```js
-// app/data/issues-store.js
-createIssuesStore() -> {
-  wireEvents(on), subscribe(fn), getById(id), getMany(ids), getAll()
-}
-```
 
 Subscriptions store (already implemented):
 
@@ -63,21 +60,19 @@ createSubscriptionStore(send) -> {
 }
 ```
 
-Selectors utility (to add in UI-156):
+Selectors utility (implemented):
 
 ```js
 // app/data/list-selectors.js
-/** Compose ids -> entities and apply stable sort. */
-export function selectIssuesFor(client_id, { subscriptions, issuesStore }) {}
-
-/** Board helpers applying column-specific sort rules. */
-export function selectBoardColumn(client_id, { subscriptions, issuesStore }) {}
-
-/** Derive children for an epic already subscribed as `epic:${id}`. */
-export function selectEpicChildren(epic_id, { subscriptions, issuesStore }) {}
-
-/** Re-render once per issues envelope. */
-export function subscribeOncePerEnvelope(issuesStore, fn) {}
+/** Compose from per‑subscription store snapshots and apply stable sort. */
+export function createListSelectors(issueStores) {
+  return {
+    selectIssuesFor(client_id) {},
+    selectBoardColumn(client_id, mode) {},
+    selectEpicChildren(epic_id) {},
+    subscribe(fn) {}
+  };
+}
 ```
 
 Sorting rules:
@@ -106,28 +101,28 @@ Cons / Risks:
 
 Views
 
-- [x] Issues view renders from `subscriptions + issuesStore`; no `list-issues`.
-- [x] Board renders from `subscriptions + issuesStore`; no `get*` list reads.
-- [x] Epics list/children derive from `issuesStore`; children use
+- [x] Issues view renders from per‑subscription stores; no `list-issues`.
+- [x] Board renders from per‑subscription stores; no `get*` list reads.
+- [x] Epics list/children render from per‑subscription stores; children use
       `issues-for-epic` with `epic_id` param; no `epic-status` reads.
 
 Client Data Layer
 
-- [ ] Add `app/data/list-selectors.js` with helpers listed above (UI-156).
-- [ ] Remove list read functions from `app/data/providers.js` (UI-159).
+- [x] Add `app/data/list-selectors.js` with helpers listed above (UI-156).
+- [x] Remove list read functions from `app/data/providers.js` (UI-159).
 - [ ] Keep `getIssue` and all mutation helpers until detail view push migration
       happens (follow‑up).
 
 Tests
 
-- [x] Update list/board/epics tests to use push envelopes and `list-delta`
+- [x] Update list/board/epics tests to use per‑subscription push envelopes
       (UI-158).
 - [x] Remove RPC read stubs from tests.
 
 Docs
 
-- [ ] This ADR committed (UI-152).
-- [ ] Update protocol and architecture docs for push‑only model (UI-160).
+- [x] This ADR committed (UI-152).
+- [x] Update protocol and architecture docs for push‑only model (UI-160).
 
 ## Notes
 
@@ -135,4 +130,5 @@ Docs
   - `tab:issues` for the Issues view
   - `tab:board:ready|in-progress|closed|blocked` for Board columns
   - `tab:epics` for the Epics tab; `epic:${id}` for expanded children
-- See `app/main.js` for current subscription wiring and filter → spec mapping.
+- See `app/main.js` for current subscription wiring, filter → spec mapping, and
+  per‑subscription push routing.

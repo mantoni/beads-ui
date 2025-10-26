@@ -1,7 +1,48 @@
 import { describe, expect, test } from 'vitest';
-import { createIssuesStore } from '../data/issues-store.js';
-import { createSubscriptionStore } from '../data/subscriptions-store.js';
+import { createSubscriptionIssueStore } from '../data/subscription-issue-store.js';
 import { createListView } from './list.js';
+
+function createTestIssueStores() {
+  /** @type {Map<string, any>} */
+  const stores = new Map();
+  /** @type {Set<() => void>} */
+  const listeners = new Set();
+
+  /**
+   * @param {string} id
+   * @returns {any}
+   */
+  function getStore(id) {
+    let s = stores.get(id);
+    if (!s) {
+      s = createSubscriptionIssueStore(id);
+      stores.set(id, s);
+      s.subscribe(() => {
+        for (const fn of Array.from(listeners)) {
+          try {
+            fn();
+          } catch {
+            /* ignore */
+          }
+        }
+      });
+    }
+    return s;
+  }
+
+  return {
+    getStore,
+    /** @param {string} id */
+    snapshotFor(id) {
+      return getStore(id).snapshot().slice();
+    },
+    /** @param {() => void} fn */
+    subscribe(fn) {
+      listeners.add(fn);
+      return () => listeners.delete(fn);
+    }
+  };
+}
 
 describe('views/list', () => {
   test('renders issues from push stores and navigates on row click', async () => {
@@ -23,23 +64,12 @@ describe('views/list', () => {
         issue_type: 'bug'
       }
     ];
-    const issuesStore = createIssuesStore();
-    const subscriptions = createSubscriptionStore(async () => {});
-    // subscribe tab:issues → all-issues
-    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
-    // push membership and entities
-    subscriptions._applyDelta('all-issues', {
-      added: issues.map((i) => i.id),
-      updated: [],
-      removed: []
-    });
-    issuesStore._applyEnvelope({
-      topic: 'issues',
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
       revision: 1,
-      snapshot: true,
-      added: issues,
-      updated: [],
-      removed: []
+      issues
     });
 
     const view = createListView(
@@ -49,8 +79,8 @@ describe('views/list', () => {
         window.location.hash = hash;
       },
       undefined,
-      issuesStore,
-      subscriptions
+      undefined,
+      issueStores
     );
     await view.load();
     const rows = mount.querySelectorAll('tr.issue-row');
@@ -73,29 +103,20 @@ describe('views/list', () => {
       { id: 'UI-2', title: 'Beta', status: 'in_progress', priority: 2 },
       { id: 'UI-3', title: 'Gamma', status: 'closed', priority: 3 }
     ];
-    const issuesStore = createIssuesStore();
-    const subscriptions = createSubscriptionStore(async () => {});
-    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
-    subscriptions._applyDelta('all-issues', {
-      added: issues.map((i) => i.id),
-      updated: [],
-      removed: []
-    });
-    issuesStore._applyEnvelope({
-      topic: 'issues',
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
       revision: 1,
-      snapshot: true,
-      added: issues,
-      updated: [],
-      removed: []
+      issues
     });
     const view = createListView(
       mount,
       async () => [],
       undefined,
       undefined,
-      issuesStore,
-      subscriptions
+      undefined,
+      issueStores
     );
     await view.load();
     const select = /** @type {HTMLSelectElement} */ (
@@ -160,29 +181,20 @@ describe('views/list', () => {
         issue_type: 'task'
       }
     ];
-    const issuesStore = createIssuesStore();
-    const subscriptions = createSubscriptionStore(async () => {});
-    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
-    subscriptions._applyDelta('all-issues', {
-      added: issues.map((i) => i.id),
-      updated: [],
-      removed: []
-    });
-    issuesStore._applyEnvelope({
-      topic: 'issues',
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
       revision: 1,
-      snapshot: true,
-      added: issues,
-      updated: [],
-      removed: []
+      issues
     });
     const view = createListView(
       mount,
       async () => [],
       undefined,
       undefined,
-      issuesStore,
-      subscriptions
+      undefined,
+      issueStores
     );
     await view.load();
 
@@ -269,30 +281,20 @@ describe('views/list', () => {
       }
     ];
 
-    const issuesStore = createIssuesStore();
-    const subscriptions = createSubscriptionStore(async () => {});
-    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
-    // initial: all issues
-    subscriptions._applyDelta('all-issues', {
-      added: allIssues.map((i) => i.id),
-      updated: [],
-      removed: []
-    });
-    issuesStore._applyEnvelope({
-      topic: 'issues',
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
       revision: 1,
-      snapshot: true,
-      added: allIssues,
-      updated: [],
-      removed: []
+      issues: allIssues
     });
     const view = createListView(
       mount,
       async () => [],
       undefined,
       undefined,
-      issuesStore,
-      subscriptions
+      undefined,
+      issueStores
     );
     await view.load();
     const statusSelect = /** @type {HTMLSelectElement} */ (
@@ -301,11 +303,11 @@ describe('views/list', () => {
     statusSelect.value = 'ready';
     statusSelect.dispatchEvent(new Event('change'));
     // switch subscription key and apply ready membership
-    await subscriptions.subscribeList('tab:issues', { type: 'ready-issues' });
-    subscriptions._applyDelta('ready-issues', {
-      added: readyIssues.map((i) => i.id),
-      updated: [],
-      removed: []
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 2,
+      issues: readyIssues
     });
     await view.load();
 
@@ -381,29 +383,20 @@ describe('views/list', () => {
       }
     };
 
-    const issuesStore = createIssuesStore();
-    const subscriptions = createSubscriptionStore(async () => {});
-    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
-    subscriptions._applyDelta('all-issues', {
-      added: issues.map((i) => i.id),
-      updated: [],
-      removed: []
-    });
-    issuesStore._applyEnvelope({
-      topic: 'issues',
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
       revision: 1,
-      snapshot: true,
-      added: issues,
-      updated: [],
-      removed: []
+      issues
     });
     const view = createListView(
       mount,
       async () => [],
       undefined,
       store,
-      issuesStore,
-      subscriptions
+      undefined,
+      issueStores
     );
     await view.load();
 
@@ -431,29 +424,20 @@ describe('views/list', () => {
       { id: 'UI-2', title: 'Two', status: 'open', priority: 2 }
     ];
 
-    const issuesStore = createIssuesStore();
-    const subscriptions = createSubscriptionStore(async () => {});
-    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
-    subscriptions._applyDelta('all-issues', {
-      added: allIssues.map((i) => i.id),
-      updated: [],
-      removed: []
-    });
-    issuesStore._applyEnvelope({
-      topic: 'issues',
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
       revision: 1,
-      snapshot: true,
-      added: allIssues,
-      updated: [],
-      removed: []
+      issues: allIssues
     });
     const view = createListView(
       mount,
       async () => [],
       undefined,
       undefined,
-      issuesStore,
-      subscriptions
+      undefined,
+      issueStores
     );
     await view.load();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(2);
@@ -463,11 +447,11 @@ describe('views/list', () => {
     );
     select.value = 'ready';
     select.dispatchEvent(new Event('change'));
-    await subscriptions.subscribeList('tab:issues', { type: 'ready-issues' });
-    subscriptions._applyDelta('ready-issues', {
-      added: readyIssues.map((i) => i.id),
-      updated: [],
-      removed: []
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 2,
+      issues: readyIssues
     });
     await view.load();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(1);
@@ -487,29 +471,20 @@ describe('views/list', () => {
 
     // No RPC calls are made in push-only mode
 
-    const issuesStore = createIssuesStore();
-    const subscriptions = createSubscriptionStore(async () => {});
-    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
-    subscriptions._applyDelta('all-issues', {
-      added: allIssues.map((i) => i.id),
-      updated: [],
-      removed: []
-    });
-    issuesStore._applyEnvelope({
-      topic: 'issues',
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
       revision: 1,
-      snapshot: true,
-      added: allIssues,
-      updated: [],
-      removed: []
+      issues: allIssues
     });
     const view = createListView(
       mount,
       async () => [],
       undefined,
       undefined,
-      issuesStore,
-      subscriptions
+      undefined,
+      issueStores
     );
     await view.load();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(2);
@@ -521,11 +496,11 @@ describe('views/list', () => {
     // Switch to ready (subscription now maps to ready-issues)
     select.value = 'ready';
     select.dispatchEvent(new Event('change'));
-    await subscriptions.subscribeList('tab:issues', { type: 'ready-issues' });
-    subscriptions._applyDelta('ready-issues', {
-      added: readyIssues.map((i) => i.id),
-      updated: [],
-      removed: []
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 2,
+      issues: readyIssues
     });
     await view.load();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(1);
@@ -533,11 +508,11 @@ describe('views/list', () => {
     // Switch back to all; view should compose from all-issues membership
     select.value = 'all';
     select.dispatchEvent(new Event('change'));
-    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
-    subscriptions._applyDelta('all-issues', {
-      added: allIssues.map((i) => i.id),
-      updated: [],
-      removed: []
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 3,
+      issues: allIssues
     });
     await view.load();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(2);
@@ -580,29 +555,20 @@ describe('views/list', () => {
       }
     };
 
-    const issuesStore = createIssuesStore();
-    const subscriptions = createSubscriptionStore(async () => {});
-    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
-    subscriptions._applyDelta('all-issues', {
-      added: issues.map((i) => i.id),
-      updated: [],
-      removed: []
-    });
-    issuesStore._applyEnvelope({
-      topic: 'issues',
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
       revision: 1,
-      snapshot: true,
-      added: issues,
-      updated: [],
-      removed: []
+      issues
     });
     const view = createListView(
       mount,
       async () => [],
       undefined,
       store,
-      issuesStore,
-      subscriptions
+      undefined,
+      issueStores
     );
     await view.load();
 

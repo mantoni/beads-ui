@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { createIssuesStore } from '../data/issues-store.js';
+import { createSubscriptionIssueStore } from '../data/subscription-issue-store.js';
 import {
   createSubscriptionStore,
   subKeyOf
@@ -14,20 +14,80 @@ describe('views/epics', () => {
       updateIssue: vi.fn(),
       getIssue: vi.fn(async (id) => ({ id }))
     };
-    const issuesStore = createIssuesStore();
+    /** test issue stores */
+    const stores = new Map();
+    const listeners = new Set();
+    /** @param {string} id */
+    const getStore = (id) => {
+      let s = stores.get(id);
+      if (!s) {
+        s = createSubscriptionIssueStore(id);
+        stores.set(id, s);
+        s.subscribe(() => {
+          for (const fn of Array.from(listeners)) {
+            try {
+              fn();
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      }
+      return s;
+    };
+    const issueStores = {
+      getStore,
+      /** @param {string} id */
+      snapshotFor(id) {
+        return getStore(id).snapshot().slice();
+      },
+      /** @param {() => void} fn */
+      subscribe(fn) {
+        listeners.add(fn);
+        return () => listeners.delete(fn);
+      }
+    };
     const subscriptions = createSubscriptionStore(async () => {});
-    // Seed issues snapshot: epic + children entities
-    issuesStore._applyEnvelope({
-      topic: 'issues',
+    // Seed epics list snapshot
+    issueStores.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
       revision: 1,
-      snapshot: true,
-      added: [
+      issues: [
         {
           id: 'UI-1',
           title: 'Epic One',
           issue_type: 'epic',
           dependents: [{ id: 'UI-2' }, { id: 'UI-3' }]
-        },
+        }
+      ]
+    });
+    /** @type {string[]} */
+    const navCalls = [];
+    const view = createEpicsView(
+      mount,
+      /** @type {any} */ (data),
+      (id) => navCalls.push(id),
+      subscriptions,
+      /** @type {any} */ (issueStores)
+    );
+    await view.load();
+    // Simulate server sending children membership for epic UI-1
+    const key = subKeyOf({
+      type: 'issues-for-epic',
+      params: { epic_id: 'UI-1' }
+    });
+    subscriptions._applyDelta(key, {
+      added: ['UI-2', 'UI-3'],
+      updated: [],
+      removed: []
+    });
+    // Push children snapshot to per-subscription store
+    issueStores.getStore('epic:UI-1').applyPush({
+      type: 'snapshot',
+      id: 'epic:UI-1',
+      revision: 1,
+      issues: [
         {
           id: 'UI-2',
           title: 'Alpha',
@@ -42,29 +102,7 @@ describe('views/epics', () => {
           priority: 2,
           issue_type: 'task'
         }
-      ],
-      updated: [],
-      removed: []
-    });
-    /** @type {string[]} */
-    const navCalls = [];
-    const view = createEpicsView(
-      mount,
-      /** @type {any} */ (data),
-      (id) => navCalls.push(id),
-      issuesStore,
-      subscriptions
-    );
-    await view.load();
-    // Simulate server sending children membership for epic UI-1
-    const key = subKeyOf({
-      type: 'issues-for-epic',
-      params: { epic_id: 'UI-1' }
-    });
-    subscriptions._applyDelta(key, {
-      added: ['UI-2', 'UI-3'],
-      updated: [],
-      removed: []
+      ]
     });
     await view.load();
     const header = mount.querySelector('.epic-header');
@@ -83,19 +121,76 @@ describe('views/epics', () => {
       updateIssue: vi.fn(),
       getIssue: vi.fn(async (id) => ({ id }))
     };
-    const issuesStore = createIssuesStore();
+    const stores2 = new Map();
+    const listeners2 = new Set();
+    /** @param {string} id */
+    const getStore2 = (id) => {
+      let s = stores2.get(id);
+      if (!s) {
+        s = createSubscriptionIssueStore(id);
+        stores2.set(id, s);
+        s.subscribe(() => {
+          for (const fn of Array.from(listeners2)) {
+            try {
+              fn();
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      }
+      return s;
+    };
+    const issueStores2 = {
+      getStore: getStore2,
+      /** @param {string} id */
+      snapshotFor(id) {
+        return getStore2(id).snapshot().slice();
+      },
+      /** @param {() => void} fn */
+      subscribe(fn) {
+        listeners2.add(fn);
+        return () => listeners2.delete(fn);
+      }
+    };
     const subscriptions = createSubscriptionStore(async () => {});
-    issuesStore._applyEnvelope({
-      topic: 'issues',
+    // seed epics snapshot
+    issueStores2.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
       revision: 1,
-      snapshot: true,
-      added: [
+      issues: [
         {
           id: 'UI-10',
           title: 'Epic Sort',
           issue_type: 'epic',
           dependents: [{ id: 'UI-11' }, { id: 'UI-12' }, { id: 'UI-13' }]
-        },
+        }
+      ]
+    });
+    const view = createEpicsView(
+      mount,
+      /** @type {any} */ (data),
+      () => {},
+      subscriptions,
+      /** @type {any} */ (issueStores2)
+    );
+    await view.load();
+    const key = subKeyOf({
+      type: 'issues-for-epic',
+      params: { epic_id: 'UI-10' }
+    });
+    subscriptions._applyDelta(key, {
+      added: ['UI-11', 'UI-12', 'UI-13'],
+      updated: [],
+      removed: []
+    });
+    // Seed children snapshot for epic UI-10
+    issueStores2.getStore('epic:UI-10').applyPush({
+      type: 'snapshot',
+      id: 'epic:UI-10',
+      revision: 1,
+      issues: [
         {
           id: 'UI-11',
           title: 'Low priority, newest within p1',
@@ -120,26 +215,7 @@ describe('views/epics', () => {
           issue_type: 'task',
           updated_at: '2025-10-23T10:00:00.000Z'
         }
-      ],
-      updated: [],
-      removed: []
-    });
-    const view = createEpicsView(
-      mount,
-      /** @type {any} */ (data),
-      () => {},
-      issuesStore,
-      subscriptions
-    );
-    await view.load();
-    const key = subKeyOf({
-      type: 'issues-for-epic',
-      params: { epic_id: 'UI-10' }
-    });
-    subscriptions._applyDelta(key, {
-      added: ['UI-11', 'UI-12', 'UI-13'],
-      updated: [],
-      removed: []
+      ]
     });
     await view.load();
     const rows = Array.from(mount.querySelectorAll('tr.epic-row'));
@@ -158,30 +234,51 @@ describe('views/epics', () => {
       updateIssue: vi.fn(),
       getIssue: vi.fn(async (id) => ({ id }))
     };
-    const issuesStore = createIssuesStore();
+    const stores3 = new Map();
+    const listeners3 = new Set();
+    /** @param {string} id */
+    const getStore3 = (id) => {
+      let s = stores3.get(id);
+      if (!s) {
+        s = createSubscriptionIssueStore(id);
+        stores3.set(id, s);
+        s.subscribe(() => {
+          for (const fn of Array.from(listeners3)) {
+            try {
+              fn();
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      }
+      return s;
+    };
+    const issueStores3 = {
+      getStore: getStore3,
+      /** @param {string} id */
+      snapshotFor(id) {
+        return getStore3(id).snapshot().slice();
+      },
+      /** @param {() => void} fn */
+      subscribe(fn) {
+        listeners3.add(fn);
+        return () => listeners3.delete(fn);
+      }
+    };
     const subscriptions = createSubscriptionStore(async () => {});
-    issuesStore._applyEnvelope({
-      topic: 'issues',
+    issueStores3.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
       revision: 1,
-      snapshot: true,
-      added: [
+      issues: [
         {
           id: 'UI-20',
           title: 'Epic Click Guard',
           issue_type: 'epic',
           dependents: [{ id: 'UI-21' }]
-        },
-        {
-          id: 'UI-21',
-          title: 'Editable',
-          status: 'open',
-          priority: 2,
-          issue_type: 'task',
-          updated_at: '2025-10-21T10:00:00.000Z'
         }
-      ],
-      updated: [],
-      removed: []
+      ]
     });
     /** @type {string[]} */
     const navCalls = [];
@@ -189,8 +286,8 @@ describe('views/epics', () => {
       mount,
       /** @type {any} */ (data),
       (id) => navCalls.push(id),
-      issuesStore,
-      subscriptions
+      subscriptions,
+      /** @type {any} */ (issueStores3)
     );
     await view.load();
     // Membership for epic
@@ -219,13 +316,44 @@ describe('views/epics', () => {
       updateIssue: vi.fn(),
       getIssue: vi.fn(async (id) => ({ id }))
     };
-    const issuesStore = createIssuesStore();
+    const stores4 = new Map();
+    const listeners4 = new Set();
+    /** @param {string} id */
+    const getStore4 = (id) => {
+      let s = stores4.get(id);
+      if (!s) {
+        s = createSubscriptionIssueStore(id);
+        stores4.set(id, s);
+        s.subscribe(() => {
+          for (const fn of Array.from(listeners4)) {
+            try {
+              fn();
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      }
+      return s;
+    };
+    const issueStores4 = {
+      getStore: getStore4,
+      /** @param {string} id */
+      snapshotFor(id) {
+        return getStore4(id).snapshot().slice();
+      },
+      /** @param {() => void} fn */
+      subscribe(fn) {
+        listeners4.add(fn);
+        return () => listeners4.delete(fn);
+      }
+    };
     const subscriptions = createSubscriptionStore(async () => {});
-    issuesStore._applyEnvelope({
-      topic: 'issues',
+    issueStores4.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
       revision: 1,
-      snapshot: true,
-      added: [
+      issues: [
         {
           id: 'UI-40',
           title: 'Auto Expanded',
@@ -237,24 +365,15 @@ describe('views/epics', () => {
           title: 'Manual Expand',
           issue_type: 'epic',
           dependents: [{ id: 'UI-42' }]
-        },
-        {
-          id: 'UI-42',
-          title: 'Child',
-          status: 'open',
-          priority: 2,
-          issue_type: 'task'
         }
-      ],
-      updated: [],
-      removed: []
+      ]
     });
     const view = createEpicsView(
       mount,
       /** @type {any} */ (data),
       () => {},
-      issuesStore,
-      subscriptions
+      subscriptions,
+      /** @type {any} */ (issueStores4)
     );
     await view.load();
     // Expand the second group manually
@@ -280,8 +399,25 @@ describe('views/epics', () => {
       updated: [],
       removed: []
     });
-    // Verify mapping, leave rendering verification to push fixtures (UI-158)
-    expect(subscriptions.selectors.getIds('epic:UI-41')).toEqual(['UI-42']);
+    // Push children snapshot to store (no rendering assertion here)
+    issueStores4.getStore('epic:UI-41').applyPush({
+      type: 'snapshot',
+      id: 'epic:UI-41',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-42',
+          title: 'Child',
+          status: 'open',
+          priority: 2,
+          issue_type: 'task'
+        }
+      ]
+    });
+    // Verify mapping via store presence
+    expect(
+      issueStores4.snapshotFor('epic:UI-41').map((/** @type {any} */ x) => x.id)
+    ).toEqual(['UI-42']);
   });
 
   test('clicking the editable title does not navigate and enters edit mode', async () => {
@@ -291,29 +427,51 @@ describe('views/epics', () => {
       updateIssue: vi.fn(),
       getIssue: vi.fn(async (id) => ({ id }))
     };
-    const issuesStore = createIssuesStore();
-    const subscriptions = createSubscriptionStore(async () => {});
-    issuesStore._applyEnvelope({
-      topic: 'issues',
+    const stores5 = new Map();
+    const listeners5 = new Set();
+    /** @param {string} id */
+    const getStore5 = (id) => {
+      let s = stores5.get(id);
+      if (!s) {
+        s = createSubscriptionIssueStore(id);
+        stores5.set(id, s);
+        s.subscribe(() => {
+          for (const fn of Array.from(listeners5)) {
+            try {
+              fn();
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      }
+      return s;
+    };
+    const issueStores5 = {
+      getStore: getStore5,
+      /** @param {string} id */
+      snapshotFor(id) {
+        return getStore5(id).snapshot().slice();
+      },
+      /** @param {() => void} fn */
+      subscribe(fn) {
+        listeners5.add(fn);
+        return () => listeners5.delete(fn);
+      }
+    };
+    const subscriptions2 = createSubscriptionStore(async () => {});
+    issueStores5.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
       revision: 1,
-      snapshot: true,
-      added: [
+      issues: [
         {
           id: 'UI-30',
           title: 'Epic Title Click',
           issue_type: 'epic',
           dependents: [{ id: 'UI-31' }]
-        },
-        {
-          id: 'UI-31',
-          title: 'Clickable Title',
-          status: 'open',
-          priority: 2,
-          issue_type: 'task'
         }
-      ],
-      updated: [],
-      removed: []
+      ]
     });
     /** @type {string[]} */
     const navCalls = [];
@@ -321,18 +479,32 @@ describe('views/epics', () => {
       mount,
       /** @type {any} */ (data),
       (id) => navCalls.push(id),
-      issuesStore,
-      subscriptions
+      subscriptions2,
+      /** @type {any} */ (issueStores5)
     );
     await view.load();
     const key = subKeyOf({
       type: 'issues-for-epic',
       params: { epic_id: 'UI-30' }
     });
-    subscriptions._applyDelta(key, {
+    subscriptions2._applyDelta(key, {
       added: ['UI-31'],
       updated: [],
       removed: []
+    });
+    issueStores5.getStore('epic:UI-30').applyPush({
+      type: 'snapshot',
+      id: 'epic:UI-30',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-31',
+          title: 'Clickable Title',
+          status: 'open',
+          priority: 2,
+          issue_type: 'task'
+        }
+      ]
     });
     await view.load();
     const titleSpan = /** @type {HTMLElement|null} */ (

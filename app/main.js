@@ -2,7 +2,6 @@
  * @import { MessageType } from './protocol.js'
  */
 import { html, render } from 'lit-html';
-import { createIssuesStore } from './data/issues-store.js';
 import { createListSelectors } from './data/list-selectors.js';
 import { createDataLayer } from './data/providers.js';
 import { createSubscriptionIssueStores } from './data/subscription-issue-stores.js';
@@ -56,20 +55,47 @@ export function bootstrap(root_element) {
     );
     // Bind through wrapper to preserve `this` semantics in tests/mocks
     subscriptions.wireEvents((type, handler) => client.on(type, handler));
-    // Issues push-only store (entity cache)
-    const issues_store = createIssuesStore();
-    issues_store.wireEvents((type, handler) => client.on(type, handler));
-    // Per-subscription stores derived from membership + entities
-    const sub_issue_stores = createSubscriptionIssueStores(
-      subscriptions,
-      issues_store
-    );
-    // Derived list selectors: prefer per-subscription snapshots
-    const listSelectors = createListSelectors(
-      subscriptions,
-      issues_store,
-      sub_issue_stores
-    );
+    // Per-subscription stores (source of truth)
+    const sub_issue_stores = createSubscriptionIssueStores();
+    // Route per-subscription push envelopes to the owning store
+    client.on(/** @type {any} */ ('snapshot'), (payload) => {
+      const p = /** @type {any} */ (payload);
+      const id = p && typeof p.id === 'string' ? p.id : '';
+      const store = id ? sub_issue_stores.getStore(id) : null;
+      if (store && p && p.type === 'snapshot') {
+        try {
+          store.applyPush(p);
+        } catch {
+          // ignore
+        }
+      }
+    });
+    client.on(/** @type {any} */ ('upsert'), (payload) => {
+      const p = /** @type {any} */ (payload);
+      const id = p && typeof p.id === 'string' ? p.id : '';
+      const store = id ? sub_issue_stores.getStore(id) : null;
+      if (store && p && p.type === 'upsert') {
+        try {
+          store.applyPush(p);
+        } catch {
+          // ignore
+        }
+      }
+    });
+    client.on(/** @type {any} */ ('delete'), (payload) => {
+      const p = /** @type {any} */ (payload);
+      const id = p && typeof p.id === 'string' ? p.id : '';
+      const store = id ? sub_issue_stores.getStore(id) : null;
+      if (store && p && p.type === 'delete') {
+        try {
+          store.applyPush(p);
+        } catch {
+          // ignore
+        }
+      }
+    });
+    // Derived list selectors: render from per-subscription snapshots
+    const listSelectors = createListSelectors(sub_issue_stores);
     // Show toasts for WebSocket connectivity changes
     /** @type {boolean} */
     let had_disconnect = false;
@@ -198,7 +224,7 @@ export function bootstrap(root_element) {
       // ignore missing header
     }
 
-    // Local transport shim: for list-issues, serve from subscriptions + issuesStore;
+    // Local transport shim: for list-issues, serve from local listSelectors;
     // otherwise forward to ws transport for mutations/show.
     /**
      * @param {MessageType} type
@@ -225,7 +251,6 @@ export function bootstrap(root_element) {
         }
       },
       store,
-      issues_store,
       subscriptions,
       sub_issue_stores
     );
@@ -366,24 +391,12 @@ export function bootstrap(root_element) {
     };
     // Register list-delta first so tests that keep a single handler slot
     // end up with issues-changed as the last bound handler.
-    client.on('list-delta', (payload) => {
-      try {
-        const key =
-          payload && typeof payload.key === 'string' ? payload.key : '';
-        if (key) {
-          sub_issue_stores.recomputeByKey(key);
-        } else {
-          sub_issue_stores.recomputeAll();
-        }
-      } catch {
-        // ignore malformed payloads
-      }
+    client.on('list-delta', () => {
+      // Legacy membership events are ignored by vNext stores; just coalesce a refresh
       onPushLike({});
     });
-    // Trigger lightweight re-render on issues envelopes as well
+    // Trigger lightweight re-render on legacy issues envelopes as well
     client.on('issues', () => {
-      // Recompute per-subscription snapshots after entity updates
-      sub_issue_stores.recomputeAll();
       // Avoid heavy refetch; our list transport reads from local store
       void issues_view.load();
     });
@@ -395,7 +408,6 @@ export function bootstrap(root_element) {
       epics_root,
       data,
       (id) => router.gotoIssue(id),
-      issues_store,
       subscriptions,
       sub_issue_stores
     );
@@ -404,7 +416,6 @@ export function bootstrap(root_element) {
       data,
       (id) => router.gotoIssue(id),
       store,
-      issues_store,
       subscriptions,
       sub_issue_stores
     );

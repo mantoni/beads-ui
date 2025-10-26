@@ -1,7 +1,46 @@
 import { describe, expect, test, vi } from 'vitest';
-import { createIssuesStore } from '../data/issues-store.js';
-import { createSubscriptionStore } from '../data/subscriptions-store.js';
+import { createSubscriptionIssueStore } from '../data/subscription-issue-store.js';
 import { createListView } from './list.js';
+
+function createTestIssueStores() {
+  /** @type {Map<string, any>} */
+  const stores = new Map();
+  /** @type {Set<() => void>} */
+  const listeners = new Set();
+  /**
+   * @param {string} id
+   * @returns {any}
+   */
+  function getStore(id) {
+    let s = stores.get(id);
+    if (!s) {
+      s = createSubscriptionIssueStore(id);
+      stores.set(id, s);
+      s.subscribe(() => {
+        for (const fn of Array.from(listeners)) {
+          try {
+            fn();
+          } catch {
+            /* ignore */
+          }
+        }
+      });
+    }
+    return s;
+  }
+  return {
+    getStore,
+    /** @param {string} id */
+    snapshotFor(id) {
+      return getStore(id).snapshot().slice();
+    },
+    /** @param {() => void} fn */
+    subscribe(fn) {
+      listeners.add(fn);
+      return () => listeners.delete(fn);
+    }
+  };
+}
 
 describe('views/list inline edits', () => {
   test('priority select dispatches update and refreshes row', async () => {
@@ -51,21 +90,12 @@ describe('views/list inline edits', () => {
       }
       throw new Error('Unexpected');
     });
-    const issuesStore = createIssuesStore();
-    const subscriptions = createSubscriptionStore(async () => {});
-    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
-    subscriptions._applyDelta('all-issues', {
-      added: current.map((i) => i.id),
-      updated: [],
-      removed: []
-    });
-    issuesStore._applyEnvelope({
-      topic: 'issues',
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
       revision: 1,
-      snapshot: true,
-      added: current,
-      updated: [],
-      removed: []
+      issues: current
     });
 
     const view = createListView(
@@ -73,8 +103,8 @@ describe('views/list inline edits', () => {
       send,
       undefined,
       undefined,
-      issuesStore,
-      subscriptions
+      undefined,
+      issueStores
     );
     await view.load();
 

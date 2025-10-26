@@ -6,30 +6,22 @@ import { createSubscriptionIssueStore } from './subscription-issue-store.js';
 import { subKeyOf } from './subscriptions-store.js';
 
 /**
- * Registry managing per-subscription issue stores and recomputing snapshots
- * from membership (subscriptions store) and the central issues entity store.
- *
- * This enables list views to render from local stores while wiring remains
- * compatible with the current push pipeline.
+ * Registry managing per-subscription issue stores. Stores receive full-issue
+ * push envelopes (snapshot/upsert/delete) per subscription id and expose
+ * read-only snapshots for rendering.
  */
 
 /**
- * @param {{ selectors: { getIds: (client_id: string) => string[] } }} subscriptions
- * @param {{ subscribe: (fn: () => void) => () => void, getMany: (ids: string[]) => any[] }} issuesStore
  */
-export function createSubscriptionIssueStores(subscriptions, issuesStore) {
+export function createSubscriptionIssueStores() {
   /** @type {Map<string, ReturnType<typeof createSubscriptionIssueStore>>} */
   const stores_by_id = new Map();
   /** @type {Map<string, string>} */
   const key_by_id = new Map();
-  /** @type {Map<string, Set<string>>} */
-  const ids_by_key = new Map();
-  /** @type {Map<string, number>} */
-  const revision_by_id = new Map();
   /** @type {Set<() => void>} */
   const listeners = new Set();
-  /** @type {null | (() => void)} */
-  let unsubscribe_issues = null;
+  /** @type {Map<string, () => void>} */
+  const store_unsubs = new Map();
 
   function emit() {
     for (const fn of Array.from(listeners)) {
@@ -42,47 +34,21 @@ export function createSubscriptionIssueStores(subscriptions, issuesStore) {
   }
 
   /**
-   * Ensure a store exists for client_id.
+   * Ensure a store exists for client_id and attach a listener that fans out
+   * store-level updates to global listeners.
    * @param {string} client_id
-   * @param {{ type: string, params?: Record<string, string|number|boolean> }} spec
-   * @param {SubscriptionIssueStoreOptions} [options]
-   */
-  /**
-   * @param {string} client_id
-   * @param {{ type: string, params?: Record<string, string|number|boolean> }} spec
+   * @param {{ type: string, params?: Record<string, string|number|boolean> }} [spec]
    * @param {SubscriptionIssueStoreOptions} [options]
    */
   function register(client_id, spec, options) {
-    const key = subKeyOf(spec);
-    // Update key mappings when client re-registers with a different spec
-    const prev_key = key_by_id.get(client_id);
-    if (prev_key && prev_key !== key) {
-      const prev_set = ids_by_key.get(prev_key);
-      prev_set?.delete(client_id);
-      if (prev_set && prev_set.size === 0) {
-        ids_by_key.delete(prev_key);
-      }
-    }
-    key_by_id.set(client_id, key);
-    if (!ids_by_key.has(key)) {
-      ids_by_key.set(key, new Set());
-    }
-    ids_by_key.get(key)?.add(client_id);
+    key_by_id.set(client_id, spec ? subKeyOf(spec) : '');
     if (!stores_by_id.has(client_id)) {
-      stores_by_id.set(
-        client_id,
-        createSubscriptionIssueStore(client_id, options)
-      );
+      const store = createSubscriptionIssueStore(client_id, options);
+      stores_by_id.set(client_id, store);
+      // Fan out per-store events to global subscribers
+      const off = store.subscribe(() => emit());
+      store_unsubs.set(client_id, off);
     }
-    // Start issues subscription lazily on first register
-    if (!unsubscribe_issues) {
-      unsubscribe_issues = issuesStore.subscribe(() => {
-        // Recompute snapshots for all registered stores on issues updates
-        recomputeAll();
-      });
-    }
-    // Initial compute
-    recompute(client_id);
     return () => unregister(client_id);
   }
 
@@ -90,76 +56,20 @@ export function createSubscriptionIssueStores(subscriptions, issuesStore) {
    * @param {string} client_id
    */
   function unregister(client_id) {
-    const key = key_by_id.get(client_id);
-    if (key) {
-      const set = ids_by_key.get(key);
-      set?.delete(client_id);
-      if (set && set.size === 0) {
-        ids_by_key.delete(key);
-      }
-    }
     key_by_id.delete(client_id);
     const store = stores_by_id.get(client_id);
     if (store) {
       store.dispose();
       stores_by_id.delete(client_id);
     }
-    if (stores_by_id.size === 0 && unsubscribe_issues) {
-      // No stores left; stop listening to issues store
-      unsubscribe_issues();
-      unsubscribe_issues = null;
-    }
-  }
-
-  /**
-   * @param {string} client_id
-   */
-  function nextRevision(client_id) {
-    const prev = revision_by_id.get(client_id) || 0;
-    const next = prev + 1;
-    revision_by_id.set(client_id, next);
-    return next;
-  }
-
-  /**
-   * @param {string} client_id
-   */
-  function recompute(client_id) {
-    const store = stores_by_id.get(client_id);
-    if (!store) {
-      return;
-    }
-    const ids = subscriptions.selectors.getIds(client_id) || [];
-    const issues = issuesStore.getMany(ids) || [];
-    store.applyPush({
-      type: 'snapshot',
-      id: client_id,
-      revision: nextRevision(client_id),
-      issues
-    });
-    emit();
-  }
-
-  function recomputeAll() {
-    for (const client_id of Array.from(stores_by_id.keys())) {
-      recompute(client_id);
-    }
-  }
-
-  /**
-   * Recompute stores for all client ids bound to a given subscription key.
-   * @param {string} key
-   */
-  /**
-   * @param {string} key
-   */
-  function recomputeByKey(key) {
-    const set = ids_by_key.get(key);
-    if (!set) {
-      return;
-    }
-    for (const client_id of Array.from(set)) {
-      recompute(client_id);
+    const off = store_unsubs.get(client_id);
+    if (off) {
+      try {
+        off();
+      } catch {
+        // ignore
+      }
+      store_unsubs.delete(client_id);
     }
   }
 
@@ -186,8 +96,7 @@ export function createSubscriptionIssueStores(subscriptions, issuesStore) {
     subscribe(fn) {
       listeners.add(fn);
       return () => listeners.delete(fn);
-    },
-    recomputeByKey,
-    recomputeAll
+    }
+    // No recompute helpers in vNext; stores are updated directly via push
   };
 }

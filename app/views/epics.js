@@ -11,12 +11,11 @@ import { createIssueRowRenderer } from './issue-row.js';
  * Epics view (push-only):
  * - Derives epic groups from the local issues store (no RPC reads)
  * - Subscribes to `tab:epics` for top-level membership and per-epic children
- * - Renders children from `issuesStore.getMany(ids)` via `subscriptions.selectors.getIds()`
+ * - Renders children from per-subscription store snapshots for `epic:{id}`
  * - Provides inline edits via mutations; UI re-renders on push
  * @param {HTMLElement} mount_element
  * @param {{ getIssue: (id: string) => Promise<any>, updateIssue: (input: any) => Promise<any> }} data
  * @param {(id: string) => void} goto_issue - Navigate to issue detail.
- * @param {{ subscribe: (fn: () => void) => () => void, getMany: (ids: string[]) => any[], getAll: () => any[], getById: (id: string) => any|null }} [issues_store]
  * @param {{ subscribeList: (client_id: string, spec: { type: string, params?: Record<string, string|number|boolean> }) => Promise<() => Promise<void>>, selectors: { getIds: (client_id: string) => string[], count?: (client_id: string) => number } }} [subscriptions]
  * @param {{ snapshotFor?: (client_id: string) => IssueLite[], subscribe?: (fn: () => void) => () => void }} [issue_stores]
  */
@@ -24,7 +23,6 @@ export function createEpicsView(
   mount_element,
   data,
   goto_issue,
-  issues_store = undefined,
   subscriptions = undefined,
   issue_stores = undefined
 ) {
@@ -37,21 +35,12 @@ export function createEpicsView(
   /** @type {Map<string, () => Promise<void>>} */
   const epic_unsubs = new Map();
   // Centralized selection helpers
-  const selectors =
-    subscriptions && issues_store
-      ? createListSelectors(
-          subscriptions,
-          issues_store,
-          /** @type {*} */ (issue_stores)
-        )
-      : null;
+  const selectors = issue_stores
+    ? createListSelectors(/** @type {*} */ (issue_stores))
+    : null;
   // Live re-render on pushes
   if (selectors) {
     selectors.subscribe(() => {
-      doRender();
-    });
-  } else if (issues_store && typeof issues_store.subscribe === 'function') {
-    issues_store.subscribe(() => {
       doRender();
     });
   }
@@ -223,50 +212,31 @@ export function createEpicsView(
 
   return {
     async load() {
-      /**
-       * Compose groups based on subscription membership for `epics`.
-       * Falls back to deriving from the local store when membership is not
-       * available (e.g., tests that do not wire subscriptions).
-       */
-      /** @type {string[]} */
-      let epic_ids = [];
-      if (subscriptions && subscriptions.selectors) {
-        try {
-          epic_ids = subscriptions.selectors.getIds('tab:epics');
-        } catch {
-          epic_ids = [];
-        }
-      }
-      if (epic_ids.length === 0 && issues_store) {
-        // Test-friendly fallback: derive epics from all issues when no
-        // membership is available yet.
-        const all = issues_store.getAll();
-        epic_ids = all
-          .filter((it) => String(it.issue_type || '') === 'epic')
-          .map((it) => String(it.id || ''))
-          .filter((id) => !!id);
-      }
-
+      // Compose groups from per-subscription store snapshot for `tab:epics`
+      /** @type {IssueLite[]} */
+      const epic_entities =
+        issue_stores && issue_stores.snapshotFor
+          ? /** @type {IssueLite[]} */ (
+              issue_stores.snapshotFor('tab:epics') || []
+            )
+          : [];
       const next_groups = [];
-      if (issues_store) {
-        for (const id of epic_ids) {
-          const epic = issues_store.getById(id) || { id };
-          const dependents = Array.isArray(epic.dependents)
-            ? epic.dependents
-            : [];
-          const total = dependents.length;
-          let closed = 0;
-          for (const d of dependents) {
-            if (String(d.status || '') === 'closed') {
-              closed++;
-            }
+      for (const epic of epic_entities) {
+        const dependents = Array.isArray(/** @type {any} */ (epic).dependents)
+          ? /** @type {any[]} */ (/** @type {any} */ (epic).dependents)
+          : [];
+        const total = dependents.length;
+        let closed = 0;
+        for (const d of dependents) {
+          if (String(d.status || '') === 'closed') {
+            closed++;
           }
-          next_groups.push({
-            epic,
-            total_children: total,
-            closed_children: closed
-          });
         }
+        next_groups.push({
+          epic,
+          total_children: total,
+          closed_children: closed
+        });
       }
 
       groups = next_groups;
@@ -274,7 +244,9 @@ export function createEpicsView(
       // Auto-expand first epic on screen
       try {
         if (groups.length > 0) {
-          const first_id = String((groups[0].epic && groups[0].epic.id) || '');
+          const first_id = String(
+            /** @type {any} */ (groups[0].epic)?.id || ''
+          );
           if (first_id && !expanded.has(first_id)) {
             // This will render and load children lazily
             await toggle(first_id);

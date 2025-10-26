@@ -61,19 +61,13 @@ describe('deep link on initial load (UI-44)', () => {
 
     // Allow initial subscriptions to wire
     await Promise.resolve();
-    // Simulate list subscription delta for Issues tab
-    client._trigger('list-delta', {
-      key: 'all-issues',
-      delta: { added: issues.map((i) => i.id), updated: [], removed: [] }
-    });
-    // Simulate issues snapshot envelope
-    client._trigger('issues', {
-      topic: 'issues',
+    // Simulate per-subscription snapshot envelope for Issues tab
+    client._trigger('snapshot', {
+      type: 'snapshot',
+      id: 'tab:issues',
+      schema: 'beads.subscription@v1',
       revision: 1,
-      snapshot: true,
-      added: issues,
-      updated: [],
-      removed: []
+      issues
     });
     await Promise.resolve();
     await Promise.resolve();

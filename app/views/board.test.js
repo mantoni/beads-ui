@@ -1,7 +1,46 @@
 import { describe, expect, test } from 'vitest';
-import { createIssuesStore } from '../data/issues-store.js';
-import { createSubscriptionStore } from '../data/subscriptions-store.js';
+import { createSubscriptionIssueStore } from '../data/subscription-issue-store.js';
 import { createBoardView } from './board.js';
+
+function createTestIssueStores() {
+  /** @type {Map<string, any>} */
+  const stores = new Map();
+  /** @type {Set<() => void>} */
+  const listeners = new Set();
+  /**
+   * @param {string} id
+   * @returns {any}
+   */
+  function getStore(id) {
+    let s = stores.get(id);
+    if (!s) {
+      s = createSubscriptionIssueStore(id);
+      stores.set(id, s);
+      s.subscribe(() => {
+        for (const fn of Array.from(listeners)) {
+          try {
+            fn();
+          } catch {
+            /* ignore */
+          }
+        }
+      });
+    }
+    return s;
+  }
+  return {
+    getStore,
+    /** @param {string} id */
+    snapshotFor(id) {
+      return getStore(id).snapshot().slice();
+    },
+    /** @param {() => void} fn */
+    subscribe(fn) {
+      listeners.add(fn);
+      return () => listeners.delete(fn);
+    }
+  };
+}
 
 describe('views/board', () => {
   test('renders four columns (Blocked, Ready, In Progress, Closed) with sorted cards and navigates on click', async () => {
@@ -76,47 +115,30 @@ describe('views/board', () => {
         issue_type: 'bug'
       }
     ];
-    const issuesStore = createIssuesStore();
-    const subscriptions = createSubscriptionStore(async () => {});
-    await subscriptions.subscribeList('tab:board:blocked', {
-      type: 'blocked-issues'
-    });
-    await subscriptions.subscribeList('tab:board:ready', {
-      type: 'ready-issues'
-    });
-    await subscriptions.subscribeList('tab:board:in-progress', {
-      type: 'in-progress-issues'
-    });
-    await subscriptions.subscribeList('tab:board:closed', {
-      type: 'closed-issues'
-    });
-    subscriptions._applyDelta('blocked-issues', {
-      added: ['B-2', 'B-1'],
-      updated: [],
-      removed: []
-    });
-    subscriptions._applyDelta('ready-issues', {
-      added: ['R-2', 'R-1', 'R-3'],
-      updated: [],
-      removed: []
-    });
-    subscriptions._applyDelta('in-progress-issues', {
-      added: ['P-1', 'P-2'],
-      updated: [],
-      removed: []
-    });
-    subscriptions._applyDelta('closed-issues', {
-      added: ['C-2', 'C-1'],
-      updated: [],
-      removed: []
-    });
-    issuesStore._applyEnvelope({
-      topic: 'issues',
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:board:blocked').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:blocked',
       revision: 1,
-      snapshot: true,
-      added: issues,
-      updated: [],
-      removed: []
+      issues: issues.filter((i) => i.id.startsWith('B-'))
+    });
+    issueStores.getStore('tab:board:ready').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:ready',
+      revision: 1,
+      issues: issues.filter((i) => i.id.startsWith('R-'))
+    });
+    issueStores.getStore('tab:board:in-progress').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:in-progress',
+      revision: 1,
+      issues: issues.filter((i) => i.id.startsWith('P-'))
+    });
+    issueStores.getStore('tab:board:closed').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:closed',
+      revision: 1,
+      issues: issues.filter((i) => i.id.startsWith('C-'))
     });
 
     /** @type {string[]} */
@@ -128,8 +150,8 @@ describe('views/board', () => {
         navigations.push(id);
       },
       undefined,
-      issuesStore,
-      subscriptions
+      undefined,
+      issueStores
     );
 
     await view.load();
@@ -186,34 +208,18 @@ describe('views/board', () => {
         issue_type: 'task'
       }
     ];
-    const issuesStore = createIssuesStore();
-    const subscriptions = createSubscriptionStore(async () => {});
-    await subscriptions.subscribeList('tab:board:ready', {
-      type: 'ready-issues'
-    });
-    await subscriptions.subscribeList('tab:board:in-progress', {
-      type: 'in-progress-issues'
-    });
-    await subscriptions.subscribeList('tab:board:closed', {
-      type: 'closed-issues'
-    });
-    subscriptions._applyDelta('ready-issues', {
-      added: ['X-1', 'X-2'],
-      updated: [],
-      removed: []
-    });
-    subscriptions._applyDelta('in-progress-issues', {
-      added: ['X-2'],
-      updated: [],
-      removed: []
-    });
-    issuesStore._applyEnvelope({
-      topic: 'issues',
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:board:ready').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:ready',
       revision: 1,
-      snapshot: true,
-      added: issues,
-      updated: [],
-      removed: []
+      issues: issues
+    });
+    issueStores.getStore('tab:board:in-progress').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:in-progress',
+      revision: 1,
+      issues: issues.filter((i) => i.id.startsWith('X-2'))
     });
 
     const view = createBoardView(
@@ -221,8 +227,8 @@ describe('views/board', () => {
       null,
       () => {},
       undefined,
-      issuesStore,
-      subscriptions
+      undefined,
+      issueStores
     );
 
     await view.load();

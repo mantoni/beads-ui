@@ -55,13 +55,8 @@ function createTestIssueStores() {
  * Helper to build stores and selectors bound together.
  */
 function setup() {
-  const dummy_subs = /** @type {any} */ ({});
   const issueStores = createTestIssueStores();
-  const selectors = createListSelectors(
-    dummy_subs,
-    /** @type {any} */ (null),
-    /** @type {any} */ (issueStores)
-  );
+  const selectors = createListSelectors(/** @type {any} */ (issueStores));
   return { issueStores, selectors };
 }
 

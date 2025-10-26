@@ -11,17 +11,11 @@
 /**
  * Factory for list selectors.
  *
- * NOTE: Per-subscription stores are the source of truth. The legacy
- * composition path via a central issues store has been removed.
- * @param {{ selectors?: { getIds: (client_id: string) => string[] } }} subscriptions
- * @param {unknown} _issues_store - Legacy param retained for call compatibility; unused.
+ * Source of truth is per-subscription stores providing snapshots for a given
+ * client id. Central issues store fallback has been removed.
  * @param {{ snapshotFor?: (client_id: string) => IssueLite[], subscribe?: (fn: () => void) => () => void }} [issue_stores]
  */
-export function createListSelectors(
-  subscriptions,
-  _issues_store,
-  issue_stores = undefined
-) {
+export function createListSelectors(issue_stores = undefined) {
   /**
    * Compare by priority asc, then updated_at desc, then id asc.
    * @param {IssueLite} a
@@ -79,18 +73,10 @@ export function createListSelectors(
    * @returns {IssueLite[]}
    */
   function selectIssuesFor(client_id) {
-    if (issue_stores && typeof issue_stores.snapshotFor === 'function') {
-      return issue_stores.snapshotFor(client_id).slice();
+    if (!issue_stores || typeof issue_stores.snapshotFor !== 'function') {
+      return [];
     }
-    // Legacy fallback: compose from central entities
-    const ids =
-      subscriptions && subscriptions.selectors
-        ? subscriptions.selectors.getIds(client_id) || []
-        : [];
-    const items = /** @type {IssueLite[]} */ (
-      /** @type {any} */ (_issues_store)?.getMany?.(ids) || []
-    );
-    return [...items].sort(cmpPriorityThenUpdated);
+    return issue_stores.snapshotFor(client_id).slice();
   }
 
   /**
@@ -103,15 +89,7 @@ export function createListSelectors(
     const arr =
       issue_stores && issue_stores.snapshotFor
         ? issue_stores.snapshotFor(client_id).slice()
-        : /** @type {IssueLite[]} */ (
-            /** @type {any} */ (_issues_store)
-              ?.getMany?.(
-                subscriptions && subscriptions.selectors
-                  ? subscriptions.selectors.getIds(client_id) || []
-                  : []
-              )
-              ?.slice?.() || []
-          );
+        : [];
     if (mode === 'in_progress') {
       arr.sort(cmpUpdatedDesc);
     } else if (mode === 'closed') {
@@ -143,8 +121,7 @@ export function createListSelectors(
     if (issue_stores && typeof issue_stores.subscribe === 'function') {
       return issue_stores.subscribe(fn);
     }
-    const s = /** @type {any} */ (_issues_store);
-    return typeof s?.subscribe === 'function' ? s.subscribe(fn) : () => {};
+    return () => {};
   }
 
   return {
