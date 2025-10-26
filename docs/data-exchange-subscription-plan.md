@@ -22,8 +22,8 @@ Owner: agent
 ## Subscription Types
 
 - `all-issues`
-- `epics`
-- `issues-for-epic` (param: `epic_id`)
+- `epics` // Removed: `issues-for-epic` (use `issue-detail` for the epic and
+  render its `dependents`)
 - `blocked-issues`
 - `ready-issues`
 - `in-progress-issues`
@@ -46,7 +46,8 @@ Owner: agent
 
 - `all-issues` → `bd list` (default/open)
 - `epics` → `bd list --type epic` (or equivalent)
-- `issues-for-epic:{epic_id}` → `bd list --epic <id>`
+- `detail:{id}` → `bd show <id> --json` (use `dependents` from the epic detail
+  for children)
 - `blocked-issues` → `bd list --blocked`
 - `ready-issues` → `bd ready --limit 1000`
 - `in-progress-issues` → `bd list --status in_progress`
@@ -131,7 +132,8 @@ When client requests a change (e.g., update status):
 ### UI Flow
 
 - Tab switch: unsubscribe previous, subscribe new.
-- Epic toggle: subscribe/unsubscribe `issues-for-epic:{id}`.
+- Epic toggle: subscribe/unsubscribe `detail:{id}` with
+  `{ type: 'issue-detail', params: { id } }`.
 - Components derive view state from the local store snapshot.
 
 ## Wire Protocol (vNext)

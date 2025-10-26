@@ -15,14 +15,6 @@ export function mapSubscriptionToBdArgs(spec) {
     case 'epics': {
       return ['epic', 'status', '--json'];
     }
-    case 'issues-for-epic': {
-      const p = spec.params || {};
-      const epic_id = String(p.epic_id || '').trim();
-      if (epic_id.length === 0) {
-        throw badRequest('Missing param: params.epic_id');
-      }
-      return ['list', '--json', '--epic', epic_id];
-    }
     case 'blocked-issues': {
       return ['blocked', '--json'];
     }

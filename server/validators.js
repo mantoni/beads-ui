@@ -11,7 +11,6 @@
 const SUBSCRIPTION_TYPES = new Set([
   'all-issues',
   'epics',
-  'issues-for-epic',
   'blocked-issues',
   'ready-issues',
   'in-progress-issues',
@@ -71,17 +70,7 @@ export function validateSubscribeListPayload(payload) {
   }
 
   // Per-type param schemas
-  if (type === 'issues-for-epic') {
-    const epic_id = String(params?.epic_id ?? '').trim();
-    if (epic_id.length === 0) {
-      return {
-        ok: false,
-        code: 'bad_request',
-        message: 'params.epic_id must be a non-empty string'
-      };
-    }
-    params = { epic_id };
-  } else if (type === 'issue-detail') {
+  if (type === 'issue-detail') {
     const id = String(params?.id ?? '').trim();
     if (id.length === 0) {
       return {

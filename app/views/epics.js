@@ -10,8 +10,9 @@ import { createIssueRowRenderer } from './issue-row.js';
 /**
  * Epics view (push-only):
  * - Derives epic groups from the local issues store (no RPC reads)
- * - Subscribes to `tab:epics` for top-level membership and per-epic children
- * - Renders children from per-subscription store snapshots for `epic:{id}`
+ * - Subscribes to `tab:epics` for top-level membership
+ * - On expand, subscribes to `detail:{id}` (issue-detail) for the epic
+ * - Renders children from the epic detail's `dependents` list
  * - Provides inline edits via mutations; UI re-renders on push
  * @param {HTMLElement} mount_element
  * @param {{ updateIssue: (input: any) => Promise<any> }} data
@@ -79,9 +80,8 @@ export function createEpicsView(
     const epic = g.epic || {};
     const id = String(epic.id || '');
     const is_open = expanded.has(id);
-    // Compose children via selectors; then filter out closed locally
-    let list = selectors ? selectors.selectEpicChildren(id) : [];
-    list = list.filter((it) => String(it.status || '') !== 'closed');
+    // Compose children via selectors
+    const list = selectors ? selectors.selectEpicChildren(id) : [];
     const is_loading = loading.has(id);
     return html`
       <div class="epic-group" data-epic-id=${id}>
@@ -114,7 +114,7 @@ export function createEpicsView(
               ${is_loading
                 ? html`<div class="muted">Loading…</div>`
                 : list.length === 0
-                  ? html`<div class="muted">No open issues</div>`
+                  ? html`<div class="muted">No issues found</div>`
                   : html`<table class="table">
                       <colgroup>
                         <col style="width: 100px" />
@@ -166,23 +166,23 @@ export function createEpicsView(
       expanded.add(epic_id);
       loading.add(epic_id);
       doRender();
-      // Subscribe to issues-for-epic deltas for this epic (best-effort)
+      // Subscribe to epic detail; children are rendered from `dependents`
       if (subscriptions && typeof subscriptions.subscribeList === 'function') {
         try {
           // Register store first to avoid dropping the initial snapshot
           try {
             if (issue_stores && /** @type {any} */ (issue_stores).register) {
-              /** @type {any} */ (issue_stores).register(`epic:${epic_id}`, {
-                type: 'issues-for-epic',
-                params: { epic_id: epic_id }
+              /** @type {any} */ (issue_stores).register(`detail:${epic_id}`, {
+                type: 'issue-detail',
+                params: { id: epic_id }
               });
             }
           } catch {
             // ignore
           }
-          const u = await subscriptions.subscribeList(`epic:${epic_id}`, {
-            type: 'issues-for-epic',
-            params: { epic_id: epic_id }
+          const u = await subscriptions.subscribeList(`detail:${epic_id}`, {
+            type: 'issue-detail',
+            params: { id: epic_id }
           });
           epic_unsubs.set(epic_id, u);
         } catch {
@@ -206,7 +206,7 @@ export function createEpicsView(
         epic_unsubs.delete(epic_id);
         try {
           if (issue_stores && /** @type {any} */ (issue_stores).unregister) {
-            /** @type {any} */ (issue_stores).unregister(`epic:${epic_id}`);
+            /** @type {any} */ (issue_stores).unregister(`detail:${epic_id}`);
           }
         } catch {
           // ignore

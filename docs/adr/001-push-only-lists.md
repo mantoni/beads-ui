@@ -33,7 +33,7 @@ Related docs:
   - Issues tab: `tab:issues` with spec from filters via `computeIssuesSpec()`
   - Board: `tab:board:ready|in-progress|closed|blocked`
   - Epics list: `tab:epics` (for epic entities); children subscribe on expand as
-    `epic:{id}` with `{ type: 'issues-for-epic', params: { epic_id: id } }`
+    `detail:{id}` with `{ type: 'issue-detail', params: { id } }`
 - Rendering reads from two local stores only:
   - `per‑subscription stores`: one store per active client subscription id.
     Stores receive versioned `snapshot`/`upsert`/`delete` push envelopes with
@@ -104,7 +104,7 @@ Views
 - [x] Issues view renders from per‑subscription stores; no `list-issues`.
 - [x] Board renders from per‑subscription stores; no `get*` list reads.
 - [x] Epics list/children render from per‑subscription stores; children use
-      `issues-for-epic` with `epic_id` param; no `epic-status` reads.
+      `issue-detail` for the epic id; children come from `dependents`.
 
 Client Data Layer
 

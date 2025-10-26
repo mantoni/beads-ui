@@ -5,9 +5,9 @@
 
 export interface IssueRef {
   id: string;
-  created_at: number; // epoch ms
-  updated_at: number; // epoch ms
-  closed_at: number | null; // epoch ms or null
+  created_at?: number; // epoch ms
+  updated_at?: number; // epoch ms
+  closed_at?: number | null; // epoch ms or null
 }
 
 export interface Issue extends IssueRef {
@@ -19,12 +19,25 @@ export interface Issue extends IssueRef {
   issue_type?: string;
   assignee?: string | null;
   labels?: string[];
+  // Relationship fields for detail payloads
+  dependencies?: DependencyRef[];
+  dependents?: DependencyRef[];
+}
+
+export interface DependencyRef {
+  id: string;
+  title?: string;
+  status?: string;
+  priority?: number;
+  issue_type?: string;
+  created_at?: number;
+  updated_at?: number;
+  closed_at?: number | null;
 }
 
 export type SubscriptionType =
   | 'all-issues'
   | 'epics'
-  | 'issues-for-epic'
   | 'blocked-issues'
   | 'ready-issues'
   | 'in-progress-issues'

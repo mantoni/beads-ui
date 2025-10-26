@@ -22,14 +22,6 @@ describe('list adapters for subscription types', () => {
     expect(args).toEqual(['epic', 'status', '--json']);
   });
 
-  test('mapSubscriptionToBdArgs returns args for issues-for-epic', () => {
-    const args = mapSubscriptionToBdArgs({
-      type: 'issues-for-epic',
-      params: { epic_id: 'E-1' }
-    });
-    expect(args).toEqual(['list', '--json', '--epic', 'E-1']);
-  });
-
   test('mapSubscriptionToBdArgs returns args for blocked-issues', () => {
     const args = mapSubscriptionToBdArgs({ type: 'blocked-issues' });
     // We choose dedicated subcommand mapping for blocked
@@ -97,17 +89,6 @@ describe('list adapters for subscription types', () => {
         updated_at: 0,
         closed_at: null
       });
-    }
-  });
-
-  test('fetchListForSubscription returns error for missing epic_id', async () => {
-    const res = await fetchListForSubscription({
-      type: 'issues-for-epic',
-      params: {}
-    });
-    expect(res.ok).toBe(false);
-    if (!res.ok) {
-      expect(res.error.code).toBe('bad_request');
     }
   });
 
