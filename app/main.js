@@ -433,6 +433,8 @@ export function bootstrap(root_element) {
       return { type: 'all-issues' };
     }
 
+    /** @type {string|null} */
+    let last_issues_spec_key = null;
     /**
      * Ensure only the active tab has subscriptions; clean up previous.
      * @param {{ view: 'issues'|'epics'|'board', filters: any }} s
@@ -441,23 +443,29 @@ export function bootstrap(root_element) {
       // Issues tab
       if (s.view === 'issues') {
         const spec = computeIssuesSpec(s.filters || {});
+        const key = JSON.stringify(spec);
         // Register store first to capture the initial snapshot
         try {
           sub_issue_stores.register('tab:issues', spec);
         } catch {
           // ignore
         }
-        void subscriptions
-          .subscribeList('tab:issues', spec)
-          .then((unsub) => {
-            unsub_issues_tab = unsub;
-          })
-          .catch(() => {
-            // ignore transport errors; retry on next change
-          });
+        // Only (re)subscribe if not yet subscribed or the spec changed
+        if (!unsub_issues_tab || key !== last_issues_spec_key) {
+          void subscriptions
+            .subscribeList('tab:issues', spec)
+            .then((unsub) => {
+              unsub_issues_tab = unsub;
+              last_issues_spec_key = key;
+            })
+            .catch(() => {
+              // ignore transport errors; retry on next change
+            });
+        }
       } else if (unsub_issues_tab) {
         void unsub_issues_tab().catch(() => {});
         unsub_issues_tab = null;
+        last_issues_spec_key = null;
         try {
           sub_issue_stores.unregister('tab:issues');
         } catch {
@@ -617,20 +625,7 @@ export function bootstrap(root_element) {
     // Ensure initial state is reflected (fixes reload on #/epics)
     onRouteChange(store.getState());
 
-    // React to filter changes that impact the Issues tab subscription
-    store.subscribe((s) => {
-      if (s.view === 'issues') {
-        const spec = computeIssuesSpec(s.filters || {});
-        // Keep per-subscription store mapping in sync and ensure it's present
-        try {
-          sub_issue_stores.register('tab:issues', spec);
-        } catch {
-          // ignore
-        }
-        // Reuse the same client id so the server switches lists without leaks
-        void subscriptions.subscribeList('tab:issues', spec).catch(() => {});
-      }
-    });
+    // Removed redundant filter-change subscription: handled by ensureTabSubscriptions
 
     // Keyboard shortcuts: Ctrl/Cmd+N opens new issue; Ctrl/Cmd+Enter submits inside dialog
     window.addEventListener('keydown', (ev) => {
