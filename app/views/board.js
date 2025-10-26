@@ -28,7 +28,7 @@ import { createTypeBadge } from '../utils/type-badge.js';
  * @param {(id: string) => void} gotoIssue - Navigate to issue detail.
  * @param {{ getState: () => any, setState: (patch: any) => void, subscribe?: (fn: (s:any)=>void)=>()=>void }} [store]
  * @param {{ subscribe: (fn: () => void) => () => void, getMany: (ids: string[]) => any[] }} [issuesStore]
- * @param {{ selectors: { getIds: (client_id: string) => string[] } }} [subscriptions]
+ * @param {{ selectors: { getIds: (client_id: string) => string[], count?: (client_id: string) => number } }} [subscriptions]
  * @returns {{ load: () => Promise<void>, clear: () => void }}
  */
 export function createBoardView(
@@ -502,6 +502,87 @@ export function createBoardView(
     async load() {
       // Compose lists from subscriptions + issues store
       refreshFromStores();
+      // If nothing is present yet (e.g., immediately after switching back
+      // to the Board and before list-delta arrives), fetch via data layer as
+      // a fallback so the board is not empty on initial display.
+      try {
+        const has_subs = Boolean(subscriptions && subscriptions.selectors);
+        /**
+         * @param {string} id
+         */
+        const cnt = (id) => {
+          if (!has_subs || !subscriptions) {
+            return 0;
+          }
+          const sel = subscriptions.selectors;
+          if (typeof sel.count === 'function') {
+            return Number(sel.count(id) || 0);
+          }
+          try {
+            const arr = sel.getIds(id);
+            return Array.isArray(arr) ? arr.length : 0;
+          } catch {
+            return 0;
+          }
+        };
+        const total_items =
+          cnt('tab:board:ready') +
+          cnt('tab:board:blocked') +
+          cnt('tab:board:in-progress') +
+          cnt('tab:board:closed');
+        const data = /** @type {any} */ (_data);
+        const can_fetch =
+          data &&
+          typeof data.getReady === 'function' &&
+          typeof data.getBlocked === 'function' &&
+          typeof data.getInProgress === 'function' &&
+          typeof data.getClosed === 'function';
+        if (total_items === 0 && can_fetch) {
+          /** @type {[IssueLite[], IssueLite[], IssueLite[], IssueLite[]]} */
+          const [ready_raw, blocked_raw, in_prog_raw, closed_raw] =
+            await Promise.all([
+              data.getReady().catch(() => []),
+              data.getBlocked().catch(() => []),
+              data.getInProgress().catch(() => []),
+              data.getClosed().catch(() => [])
+            ]);
+          // Normalize and map unknowns to IssueLite shape
+          /** @type {IssueLite[]} */
+          let ready = Array.isArray(ready_raw)
+            ? ready_raw.map((it) => /** @type {any} */ (it))
+            : [];
+          /** @type {IssueLite[]} */
+          const blocked = Array.isArray(blocked_raw)
+            ? blocked_raw.map((it) => /** @type {any} */ (it))
+            : [];
+          /** @type {IssueLite[]} */
+          const in_prog = Array.isArray(in_prog_raw)
+            ? in_prog_raw.map((it) => /** @type {any} */ (it))
+            : [];
+          /** @type {IssueLite[]} */
+          const closed = Array.isArray(closed_raw)
+            ? closed_raw.map((it) => /** @type {any} */ (it))
+            : [];
+
+          // Remove items from Ready that are already In Progress
+          /** @type {Set<string>} */
+          const in_progress_ids = new Set(in_prog.map((i) => i.id));
+          ready = ready.filter((i) => !in_progress_ids.has(i.id));
+
+          // Sort as per column rules
+          sortReady(ready);
+          sortReady(blocked);
+          sortByUpdatedDesc(in_prog);
+          list_ready = ready;
+          list_blocked = blocked;
+          list_in_progress = in_prog;
+          list_closed_raw = closed;
+          applyClosedFilter();
+          doRender();
+        }
+      } catch {
+        // ignore fallback errors
+      }
     },
     clear() {
       mount_element.replaceChildren();
