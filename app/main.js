@@ -212,7 +212,9 @@ export function bootstrap(root_element) {
           router.gotoIssue(id);
         }
       },
-      store
+      store,
+      issuesStore,
+      subscriptions
     );
     // Persist filter changes to localStorage
     store.subscribe((s) => {

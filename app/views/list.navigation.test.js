@@ -1,13 +1,7 @@
 import { describe, expect, test } from 'vitest';
+import { createIssuesStore } from '../data/issues-store.js';
+import { createSubscriptionStore } from '../data/subscriptions-store.js';
 import { createListView } from './list.js';
-
-/** @type {(items: any[]) => (type: string, payload?: unknown) => Promise<any[]>} */
-const stubSend = (items) => async (type) => {
-  if (type !== 'list-issues') {
-    throw new Error('Unexpected type');
-  }
-  return items;
-};
 
 describe('views/list navigation', () => {
   test('ArrowDown moves focus to same column in next row', async () => {
@@ -36,7 +30,30 @@ describe('views/list navigation', () => {
         issue_type: 'feature'
       }
     ];
-    const view = createListView(mount, stubSend(issues));
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
+    subscriptions._applyDelta('all-issues', {
+      added: issues.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: issues,
+      updated: [],
+      removed: []
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      issuesStore,
+      subscriptions
+    );
     await view.load();
 
     // Focus Title cell (3rd column) in first row
@@ -87,7 +104,30 @@ describe('views/list navigation', () => {
         issue_type: 'feature'
       }
     ];
-    const view = createListView(mount, stubSend(issues));
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
+    subscriptions._applyDelta('all-issues', {
+      added: issues.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: issues,
+      updated: [],
+      removed: []
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      issuesStore,
+      subscriptions
+    );
     await view.load();
 
     const third_title = /** @type {HTMLElement} */ (
@@ -127,7 +167,30 @@ describe('views/list navigation', () => {
         issue_type: 'bug'
       }
     ];
-    const view = createListView(mount, stubSend(issues));
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
+    subscriptions._applyDelta('all-issues', {
+      added: issues.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: issues,
+      updated: [],
+      removed: []
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      issuesStore,
+      subscriptions
+    );
     await view.load();
 
     // Focus Status select (4th column) in first row
@@ -164,7 +227,30 @@ describe('views/list navigation', () => {
         issue_type: 'bug'
       }
     ];
-    const view = createListView(mount, stubSend(issues));
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
+    subscriptions._applyDelta('all-issues', {
+      added: issues.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: issues,
+      updated: [],
+      removed: []
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      issuesStore,
+      subscriptions
+    );
     await view.load();
 
     const id_btn_row1 = /** @type {HTMLButtonElement} */ (

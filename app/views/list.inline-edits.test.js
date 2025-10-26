@@ -1,4 +1,6 @@
 import { describe, expect, test, vi } from 'vitest';
+import { createIssuesStore } from '../data/issues-store.js';
+import { createSubscriptionStore } from '../data/subscriptions-store.js';
 import { createListView } from './list.js';
 
 describe('views/list inline edits', () => {
@@ -30,9 +32,7 @@ describe('views/list inline edits', () => {
     /** @type {(type: string, payload?: any) => Promise<any>} */
     const send = vi.fn(async (type, payload) => {
       spy.calls.push({ type, payload });
-      if (type === 'list-issues') {
-        return current;
-      }
+      // no list-issues requests in push-only mode
       if (type === 'update-priority') {
         // no-op; list refresh happens via show-issue below
         return {};
@@ -51,8 +51,31 @@ describe('views/list inline edits', () => {
       }
       throw new Error('Unexpected');
     });
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
+    subscriptions._applyDelta('all-issues', {
+      added: current.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: current,
+      updated: [],
+      removed: []
+    });
 
-    const view = createListView(mount, send);
+    const view = createListView(
+      mount,
+      send,
+      undefined,
+      undefined,
+      issuesStore,
+      subscriptions
+    );
     await view.load();
 
     const firstRow = /** @type {HTMLElement} */ (

@@ -1,16 +1,10 @@
 import { describe, expect, test } from 'vitest';
+import { createIssuesStore } from '../data/issues-store.js';
+import { createSubscriptionStore } from '../data/subscriptions-store.js';
 import { createListView } from './list.js';
 
-/** @type {(expected: any[]) => (type: string, payload?: unknown) => Promise<any[]>} */
-const stubSend = (expected) => async (type) => {
-  if (type !== 'list-issues') {
-    throw new Error('Unexpected type');
-  }
-  return expected;
-};
-
 describe('views/list', () => {
-  test('renders issues in table and navigates on row click', async () => {
+  test('renders issues from push stores and navigates on row click', async () => {
     document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
     const issues = [
@@ -29,9 +23,35 @@ describe('views/list', () => {
         issue_type: 'bug'
       }
     ];
-    const view = createListView(mount, stubSend(issues), (hash) => {
-      window.location.hash = hash;
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    // subscribe tab:issues → all-issues
+    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
+    // push membership and entities
+    subscriptions._applyDelta('all-issues', {
+      added: issues.map((i) => i.id),
+      updated: [],
+      removed: []
     });
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: issues,
+      updated: [],
+      removed: []
+    });
+
+    const view = createListView(
+      mount,
+      async () => [],
+      (hash) => {
+        window.location.hash = hash;
+      },
+      undefined,
+      issuesStore,
+      subscriptions
+    );
     await view.load();
     const rows = mount.querySelectorAll('tr.issue-row');
     expect(rows.length).toBe(2);
@@ -53,7 +73,30 @@ describe('views/list', () => {
       { id: 'UI-2', title: 'Beta', status: 'in_progress', priority: 2 },
       { id: 'UI-3', title: 'Gamma', status: 'closed', priority: 3 }
     ];
-    const view = createListView(mount, stubSend(issues));
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
+    subscriptions._applyDelta('all-issues', {
+      added: issues.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: issues,
+      updated: [],
+      removed: []
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      issuesStore,
+      subscriptions
+    );
     await view.load();
     const select = /** @type {HTMLSelectElement} */ (
       mount.querySelector('select')
@@ -117,7 +160,30 @@ describe('views/list', () => {
         issue_type: 'task'
       }
     ];
-    const view = createListView(mount, stubSend(issues));
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
+    subscriptions._applyDelta('all-issues', {
+      added: issues.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: issues,
+      updated: [],
+      removed: []
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      issuesStore,
+      subscriptions
+    );
     await view.load();
 
     // Initially shows all
@@ -203,26 +269,45 @@ describe('views/list', () => {
       }
     ];
 
-    /** @type {{ calls: any[] }} */
-    const spy = { calls: [] };
-    /** @type {(type: string, payload?: unknown) => Promise<any[]>} */
-    const send = async (type, payload) => {
-      spy.calls.push({ type, payload });
-      const p = /** @type {any} */ (payload);
-      if (p && p.filters && p.filters.ready === true) {
-        return readyIssues;
-      }
-      return allIssues;
-    };
-
-    const view = createListView(mount, send);
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
+    // initial: all issues
+    subscriptions._applyDelta('all-issues', {
+      added: allIssues.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: allIssues,
+      updated: [],
+      removed: []
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      issuesStore,
+      subscriptions
+    );
     await view.load();
     const statusSelect = /** @type {HTMLSelectElement} */ (
       mount.querySelector('select')
     );
     statusSelect.value = 'ready';
     statusSelect.dispatchEvent(new Event('change'));
-    await Promise.resolve();
+    // switch subscription key and apply ready membership
+    await subscriptions.subscribeList('tab:issues', { type: 'ready-issues' });
+    subscriptions._applyDelta('ready-issues', {
+      added: readyIssues.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    await view.load();
 
     // Apply type filter (feature)
     const typeSelect = /** @type {HTMLSelectElement} */ (
@@ -237,15 +322,7 @@ describe('views/list', () => {
     );
     expect(rows).toEqual(['UI-2']);
 
-    // Ensure ready call happened
-    const has_ready = spy.calls.some(
-      (c) =>
-        c.type === 'list-issues' &&
-        c.payload &&
-        c.payload.filters &&
-        c.payload.filters.ready === true
-    );
-    expect(has_ready).toBe(true);
+    // No RPC calls expected; derived from stores
   });
 
   test('initializes type filter from store and reflects in controls', async () => {
@@ -304,7 +381,30 @@ describe('views/list', () => {
       }
     };
 
-    const view = createListView(mount, stubSend(issues), undefined, store);
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
+    subscriptions._applyDelta('all-issues', {
+      added: issues.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: issues,
+      updated: [],
+      removed: []
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      store,
+      issuesStore,
+      subscriptions
+    );
     await view.load();
 
     // Only bug issues visible
@@ -319,7 +419,7 @@ describe('views/list', () => {
     expect(typeSelect.value).toBe('bug');
   });
 
-  test('ready filter via select triggers backend reload', async () => {
+  test('ready filter via select composes from push membership', async () => {
     document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
 
@@ -331,19 +431,30 @@ describe('views/list', () => {
       { id: 'UI-2', title: 'Two', status: 'open', priority: 2 }
     ];
 
-    /** @type {{ calls: any[] }} */
-    const spy = { calls: [] };
-    /** @type {(type: string, payload?: unknown) => Promise<any[]>} */
-    const send = async (type, payload) => {
-      spy.calls.push({ type, payload });
-      const p = /** @type {any} */ (payload);
-      if (p && p.filters && p.filters.ready === true) {
-        return readyIssues;
-      }
-      return allIssues;
-    };
-
-    const view = createListView(mount, send);
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
+    subscriptions._applyDelta('all-issues', {
+      added: allIssues.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: allIssues,
+      updated: [],
+      removed: []
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      issuesStore,
+      subscriptions
+    );
     await view.load();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(2);
 
@@ -352,18 +463,13 @@ describe('views/list', () => {
     );
     select.value = 'ready';
     select.dispatchEvent(new Event('change'));
-    // Await a microtask to allow load to complete in jsdom
-    await Promise.resolve();
-
-    // A call should include filters.ready = true
-    const has_ready = spy.calls.some(
-      (c) =>
-        c.type === 'list-issues' &&
-        c.payload &&
-        c.payload.filters &&
-        c.payload.filters.ready === true
-    );
-    expect(has_ready).toBe(true);
+    await subscriptions.subscribeList('tab:issues', { type: 'ready-issues' });
+    subscriptions._applyDelta('ready-issues', {
+      added: readyIssues.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    await view.load();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(1);
   });
 
@@ -379,19 +485,32 @@ describe('views/list', () => {
       { id: 'UI-2', title: 'Two', status: 'closed', priority: 2 }
     ];
 
-    /** @type {{ calls: any[] }} */
-    const spy = { calls: [] };
-    /** @type {(type: string, payload?: unknown) => Promise<any[]>} */
-    const send = async (type, payload) => {
-      spy.calls.push({ type, payload });
-      const p = /** @type {any} */ (payload);
-      if (p && p.filters && p.filters.ready === true) {
-        return readyIssues;
-      }
-      return allIssues;
-    };
+    // No RPC calls are made in push-only mode
 
-    const view = createListView(mount, send);
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
+    subscriptions._applyDelta('all-issues', {
+      added: allIssues.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: allIssues,
+      updated: [],
+      removed: []
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      issuesStore,
+      subscriptions
+    );
     await view.load();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(2);
 
@@ -399,23 +518,31 @@ describe('views/list', () => {
       mount.querySelector('select')
     );
 
-    // Switch to ready (backend should return the smaller set)
+    // Switch to ready (subscription now maps to ready-issues)
     select.value = 'ready';
     select.dispatchEvent(new Event('change'));
-    await Promise.resolve();
+    await subscriptions.subscribeList('tab:issues', { type: 'ready-issues' });
+    subscriptions._applyDelta('ready-issues', {
+      added: readyIssues.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    await view.load();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(1);
 
-    // Switch back to all; view should reload full list from backend
+    // Switch back to all; view should compose from all-issues membership
     select.value = 'all';
     select.dispatchEvent(new Event('change'));
-    await Promise.resolve();
+    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
+    subscriptions._applyDelta('all-issues', {
+      added: allIssues.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    await view.load();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(2);
 
-    // Verify that a request without ready=true was made after switching to all
-    const lastCall = spy.calls[spy.calls.length - 1];
-    expect(lastCall.type).toBe('list-issues');
-    const payload = /** @type {any} */ (lastCall.payload);
-    expect(payload && payload.filters && payload.filters.ready).not.toBe(true);
+    // No RPC calls are expected in push-only model
   });
 
   test('applies persisted filters from store on initial load', async () => {
@@ -453,7 +580,30 @@ describe('views/list', () => {
       }
     };
 
-    const view = createListView(mount, stubSend(issues), undefined, store);
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    await subscriptions.subscribeList('tab:issues', { type: 'all-issues' });
+    subscriptions._applyDelta('all-issues', {
+      added: issues.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: issues,
+      updated: [],
+      removed: []
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      store,
+      issuesStore,
+      subscriptions
+    );
     await view.load();
 
     // Expect only UI-2 ("Gamma" open) to be visible

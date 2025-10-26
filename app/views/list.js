@@ -20,7 +20,24 @@ import { createIssueRowRenderer } from './issue-row.js';
  * @param {{ getState: () => any, setState: (patch: any) => void, subscribe: (fn: (s:any)=>void)=>()=>void }} [store] - Optional state store.
  * @returns {{ load: () => Promise<void>, destroy: () => void }} View API.
  */
-export function createListView(mount_element, sendFn, navigate_fn, store) {
+/**
+ * Create the Issues List view.
+ * @param {HTMLElement} mount_element
+ * @param {(type: string, payload?: unknown) => Promise<unknown>} sendFn
+ * @param {(hash: string) => void} [navigate_fn]
+ * @param {{ getState: () => any, setState: (patch: any) => void, subscribe: (fn: (s:any)=>void)=>()=>void }} [store]
+ * @param {{ subscribe: (fn: () => void) => () => void, getMany: (ids: string[]) => any[] }} [issuesStore]
+ * @param {{ selectors: { getIds: (client_id: string) => string[] } }} [subscriptions]
+ * @returns {{ load: () => Promise<void>, destroy: () => void }}
+ */
+export function createListView(
+  mount_element,
+  sendFn,
+  navigate_fn,
+  store,
+  issuesStore = undefined,
+  subscriptions = undefined
+) {
   /** @type {string} */
   let status_filter = 'all';
   /** @type {string} */
@@ -212,7 +229,52 @@ export function createListView(mount_element, sendFn, navigate_fn, store) {
   // no separate ready checkbox when using select option
 
   /**
-   * Load issues from backend and re-render.
+   * Update minimal fields inline via ws mutations and refresh that row's data.
+   * @param {string} id
+   * @param {{ [k: string]: any }} patch
+   */
+  async function updateInline(id, patch) {
+    try {
+      // Dispatch specific mutations based on provided keys
+      if (typeof patch.title === 'string') {
+        await sendFn('edit-text', { id, field: 'title', value: patch.title });
+      }
+      if (typeof patch.assignee === 'string') {
+        await sendFn('update-assignee', { id, assignee: patch.assignee });
+      }
+      if (typeof patch.status === 'string') {
+        await sendFn('update-status', { id, status: patch.status });
+      }
+      if (typeof patch.priority === 'number') {
+        await sendFn('update-priority', { id, priority: patch.priority });
+      }
+      // Optionally fetch fresh row data while push updates arrive
+      try {
+        /** @type {any} */
+        const full = await sendFn('show-issue', { id });
+        const idx = issues_cache.findIndex((x) => x.id === id);
+        if (idx >= 0 && full && typeof full === 'object') {
+          issues_cache[idx] = /** @type {Issue} */ ({
+            id: full.id,
+            title: full.title,
+            status: full.status,
+            priority: full.priority,
+            issue_type: full.issue_type,
+            assignee: full.assignee,
+            labels: Array.isArray(full.labels) ? full.labels : []
+          });
+          doRender();
+        }
+      } catch {
+        // ignore refresh error; push will update view shortly
+      }
+    } catch {
+      // ignore failures; UI state remains as-is
+    }
+  }
+
+  /**
+   * Load issues from local push stores and re-render.
    */
   async function load() {
     // Preserve scroll position to avoid jarring jumps on live refresh
@@ -221,25 +283,19 @@ export function createListView(mount_element, sendFn, navigate_fn, store) {
       mount_element.querySelector('#list-root')
     );
     const prevScroll = beforeEl ? beforeEl.scrollTop : 0;
-    /** @type {any} */
-    const filters = {};
-    if (status_filter !== 'all' && status_filter !== 'ready') {
-      filters.status = status_filter;
-    }
-    if (status_filter === 'ready') {
-      filters.ready = true;
-    }
-    /** @type {unknown} */
-    let result;
+    // Compose items from subscriptions membership and issues store entities
     try {
-      result = await sendFn('list-issues', { filters });
+      const ids =
+        subscriptions && subscriptions.selectors
+          ? subscriptions.selectors.getIds('tab:issues')
+          : [];
+      const items =
+        issuesStore && typeof issuesStore.getMany === 'function'
+          ? issuesStore.getMany(ids)
+          : [];
+      issues_cache = /** @type {Issue[]} */ (items);
     } catch {
-      result = [];
-    }
-    if (!Array.isArray(result)) {
       issues_cache = [];
-    } else {
-      issues_cache = /** @type {Issue[]} */ (result);
     }
     doRender();
     // Restore scroll position if possible
@@ -412,6 +468,24 @@ export function createListView(mount_element, sendFn, navigate_fn, store) {
     });
   }
 
+  // Live updates: recompose and re-render when issues store changes
+  const is = issuesStore;
+  const subs = subscriptions;
+  if (is && typeof is.subscribe === 'function') {
+    is.subscribe(() => {
+      try {
+        const ids =
+          subs && subs.selectors ? subs.selectors.getIds('tab:issues') : [];
+        issues_cache = /** @type {Issue[]} */ (
+          is.getMany ? is.getMany(ids) : []
+        );
+        doRender();
+      } catch {
+        // ignore
+      }
+    });
+  }
+
   return {
     load,
     destroy() {
@@ -422,46 +496,4 @@ export function createListView(mount_element, sendFn, navigate_fn, store) {
       }
     }
   };
-
-  /**
-   * Update minimal fields inline via ws mutations and refresh that row's data.
-   * @param {string} id
-   * @param {{ [k: string]: any }} patch
-   */
-  async function updateInline(id, patch) {
-    try {
-      // Dispatch specific mutations based on provided keys
-      if (typeof patch.title === 'string') {
-        await sendFn('edit-text', { id, field: 'title', value: patch.title });
-      }
-      if (typeof patch.assignee === 'string') {
-        await sendFn('update-assignee', { id, assignee: patch.assignee });
-      }
-      if (typeof patch.status === 'string') {
-        await sendFn('update-status', { id, status: patch.status });
-      }
-      if (typeof patch.priority === 'number') {
-        await sendFn('update-priority', { id, priority: patch.priority });
-      }
-      // Refresh the item from backend
-      /** @type {any} */
-      const full = await sendFn('show-issue', { id });
-      // Replace in cache
-      const idx = issues_cache.findIndex((x) => x.id === id);
-      if (idx >= 0 && full && typeof full === 'object') {
-        issues_cache[idx] = /** @type {Issue} */ ({
-          id: full.id,
-          title: full.title,
-          status: full.status,
-          priority: full.priority,
-          issue_type: full.issue_type,
-          assignee: full.assignee,
-          labels: Array.isArray(full.labels) ? full.labels : []
-        });
-      }
-      doRender();
-    } catch {
-      // ignore failures; UI state remains as-is
-    }
-  }
 }
