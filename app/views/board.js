@@ -1,4 +1,5 @@
 import { html, render } from 'lit-html';
+import { createListSelectors } from '../data/list-selectors.js';
 import { createIssueIdRenderer } from '../utils/issue-id-renderer.js';
 import { createPriorityBadge } from '../utils/priority-badge.js';
 import { createTypeBadge } from '../utils/type-badge.js';
@@ -49,6 +50,11 @@ export function createBoardView(
   let list_closed = [];
   /** @type {IssueLite[]} */
   let list_closed_raw = [];
+  // Centralized selection helpers
+  const selectors =
+    subscriptions && issuesStore
+      ? createListSelectors(subscriptions, issuesStore)
+      : null;
 
   /**
    * Closed column filter mode.
@@ -433,49 +439,77 @@ export function createBoardView(
    */
   function refreshFromStores() {
     try {
-      const ids_ready =
-        subscriptions && subscriptions.selectors
-          ? subscriptions.selectors.getIds('tab:board:ready')
-          : [];
-      const ids_blocked =
-        subscriptions && subscriptions.selectors
-          ? subscriptions.selectors.getIds('tab:board:blocked')
-          : [];
-      const ids_in_progress =
-        subscriptions && subscriptions.selectors
-          ? subscriptions.selectors.getIds('tab:board:in-progress')
-          : [];
-      const ids_closed =
-        subscriptions && subscriptions.selectors
-          ? subscriptions.selectors.getIds('tab:board:closed')
-          : [];
+      if (selectors) {
+        const in_progress = selectors.selectBoardColumn(
+          'tab:board:in-progress',
+          'in_progress'
+        );
+        const blocked = selectors.selectBoardColumn(
+          'tab:board:blocked',
+          'blocked'
+        );
+        const ready_raw = selectors.selectBoardColumn(
+          'tab:board:ready',
+          'ready'
+        );
+        const closed = selectors.selectBoardColumn(
+          'tab:board:closed',
+          'closed'
+        );
 
-      const r = issuesStore ? issuesStore.getMany(ids_ready) : [];
-      const b = issuesStore ? issuesStore.getMany(ids_blocked) : [];
-      const p = issuesStore ? issuesStore.getMany(ids_in_progress) : [];
-      const c = issuesStore ? issuesStore.getMany(ids_closed) : [];
+        // Ready excludes items that are in progress
+        /** @type {Set<string>} */
+        const in_prog_ids = new Set(in_progress.map((i) => i.id));
+        const ready = ready_raw.filter((i) => !in_prog_ids.has(i.id));
 
-      // Remove items from Ready that are already In Progress by id
-      /** @type {IssueLite[]} */
-      let ready = Array.isArray(r) ? [...r] : [];
-      /** @type {Set<string>} */
-      const in_progress_ids = new Set(
-        Array.isArray(p) ? p.map((it) => it.id) : []
-      );
-      if (ready.length > 0 && in_progress_ids.size > 0) {
-        ready = ready.filter((it) => !in_progress_ids.has(it.id));
+        list_ready = ready;
+        list_blocked = blocked;
+        list_in_progress = in_progress;
+        list_closed_raw = closed;
+      } else {
+        const ids_ready =
+          subscriptions && subscriptions.selectors
+            ? subscriptions.selectors.getIds('tab:board:ready')
+            : [];
+        const ids_blocked =
+          subscriptions && subscriptions.selectors
+            ? subscriptions.selectors.getIds('tab:board:blocked')
+            : [];
+        const ids_in_progress =
+          subscriptions && subscriptions.selectors
+            ? subscriptions.selectors.getIds('tab:board:in-progress')
+            : [];
+        const ids_closed =
+          subscriptions && subscriptions.selectors
+            ? subscriptions.selectors.getIds('tab:board:closed')
+            : [];
+
+        const r = issuesStore ? issuesStore.getMany(ids_ready) : [];
+        const b = issuesStore ? issuesStore.getMany(ids_blocked) : [];
+        const p = issuesStore ? issuesStore.getMany(ids_in_progress) : [];
+        const c = issuesStore ? issuesStore.getMany(ids_closed) : [];
+
+        // Remove items from Ready that are already In Progress by id
+        /** @type {IssueLite[]} */
+        let ready = Array.isArray(r) ? [...r] : [];
+        /** @type {Set<string>} */
+        const in_progress_ids = new Set(
+          Array.isArray(p) ? p.map((it) => it.id) : []
+        );
+        if (ready.length > 0 && in_progress_ids.size > 0) {
+          ready = ready.filter((it) => !in_progress_ids.has(it.id));
+        }
+
+        // Sort lists for display
+        sortReady(ready);
+        sortReady(b);
+        sortByUpdatedDesc(p);
+
+        list_ready = ready;
+        list_blocked = Array.isArray(b) ? b : [];
+        list_in_progress = Array.isArray(p) ? p : [];
+        list_closed_raw = Array.isArray(c) ? c : [];
       }
-
-      // Sort lists for display
-      sortReady(ready);
-      sortReady(b);
-      sortByUpdatedDesc(p);
-      // Closed handled separately to use closed_at and filtering
-
-      list_ready = ready;
-      list_blocked = Array.isArray(b) ? b : [];
-      list_in_progress = Array.isArray(p) ? p : [];
-      list_closed_raw = Array.isArray(c) ? c : [];
       applyClosedFilter();
       doRender();
     } catch {
@@ -488,7 +522,15 @@ export function createBoardView(
   }
 
   // Live updates: recompose on issues envelopes
-  if (issuesStore && typeof issuesStore.subscribe === 'function') {
+  if (selectors) {
+    selectors.subscribe(() => {
+      try {
+        refreshFromStores();
+      } catch {
+        // ignore
+      }
+    });
+  } else if (issuesStore && typeof issuesStore.subscribe === 'function') {
     issuesStore.subscribe(() => {
       try {
         refreshFromStores();

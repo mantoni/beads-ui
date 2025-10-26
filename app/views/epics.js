@@ -1,4 +1,5 @@
 import { html, render } from 'lit-html';
+import { createListSelectors } from '../data/list-selectors.js';
 import { createIssueIdRenderer } from '../utils/issue-id-renderer.js';
 import { createIssueRowRenderer } from './issue-row.js';
 
@@ -33,8 +34,22 @@ export function createEpicsView(
   const loading = new Set();
   /** @type {Map<string, () => Promise<void>>} */
   const epic_unsubs = new Map();
-  // Live re-render on issues pushes
-  if (issuesStore && typeof issuesStore.subscribe === 'function') {
+  // Centralized selection helpers
+  const selectors =
+    subscriptions && issuesStore
+      ? createListSelectors(
+          /** @type {{ selectors: { getIds: (client_id: string) => string[] } }} */ (
+            subscriptions
+          ),
+          issuesStore
+        )
+      : null;
+  // Live re-render on pushes
+  if (selectors) {
+    selectors.subscribe(() => {
+      doRender();
+    });
+  } else if (issuesStore && typeof issuesStore.subscribe === 'function') {
     issuesStore.subscribe(() => {
       doRender();
     });
@@ -67,41 +82,10 @@ export function createEpicsView(
     const epic = g.epic || {};
     const id = String(epic.id || '');
     const is_open = expanded.has(id);
-    // Compose children live from subscriptions + issues store
+    // Compose children via selectors; then filter out closed locally
     /** @type {IssueLite[]} */
-    let list = [];
-    if (
-      subscriptions &&
-      subscriptions.selectors &&
-      typeof subscriptions.selectors.getIds === 'function' &&
-      issuesStore &&
-      typeof issuesStore.getMany === 'function'
-    ) {
-      const ids = subscriptions.selectors.getIds(`epic:${id}`);
-      const many = issuesStore.getMany(ids);
-      list = many
-        .filter((it) => String(it.status || '') !== 'closed')
-        .map((full) => ({
-          id: full.id,
-          title: full.title,
-          status: full.status,
-          priority: full.priority,
-          issue_type: full.issue_type,
-          assignee: full.assignee,
-          updated_at: /** @type {any} */ (full).updated_at
-        }));
-      // Sort by priority, then updated_at desc
-      list.sort((a, b) => {
-        const pa = a.priority ?? 2;
-        const pb = b.priority ?? 2;
-        if (pa !== pb) {
-          return pa - pb;
-        }
-        const ua = a.updated_at || '';
-        const ub = b.updated_at || '';
-        return ua < ub ? 1 : ua > ub ? -1 : 0;
-      });
-    }
+    let list = selectors ? selectors.selectEpicChildren(id) : [];
+    list = list.filter((it) => String(it.status || '') !== 'closed');
     const is_loading = loading.has(id);
     return html`
       <div class="epic-group" data-epic-id=${id}>

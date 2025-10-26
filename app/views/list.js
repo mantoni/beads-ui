@@ -1,5 +1,6 @@
 /* global NodeListOf */
 import { html, render } from 'lit-html';
+import { createListSelectors } from '../data/list-selectors.js';
 import { ISSUE_TYPES, typeLabel } from '../utils/issue-type.js';
 import { issueHashFor } from '../utils/issue-url.js';
 // issueDisplayId not used directly in this file; rendered in shared row
@@ -123,6 +124,11 @@ export function createListView(
     }
   }
   // Initial values are reflected via bound `.value` in the template
+  // Compose helpers: centralize membership + entity selection + sorting
+  const selectors =
+    subscriptions && issuesStore
+      ? createListSelectors(subscriptions, issuesStore)
+      : null;
 
   /**
    * Build lit-html template for the list view.
@@ -285,15 +291,13 @@ export function createListView(
     const prevScroll = beforeEl ? beforeEl.scrollTop : 0;
     // Compose items from subscriptions membership and issues store entities
     try {
-      const ids =
-        subscriptions && subscriptions.selectors
-          ? subscriptions.selectors.getIds('tab:issues')
-          : [];
-      const items =
-        issuesStore && typeof issuesStore.getMany === 'function'
-          ? issuesStore.getMany(ids)
-          : [];
-      issues_cache = /** @type {Issue[]} */ (items);
+      if (selectors) {
+        issues_cache = /** @type {Issue[]} */ (
+          selectors.selectIssuesFor('tab:issues')
+        );
+      } else {
+        issues_cache = [];
+      }
     } catch {
       issues_cache = [];
     }
@@ -469,15 +473,11 @@ export function createListView(
   }
 
   // Live updates: recompose and re-render when issues store changes
-  const is = issuesStore;
-  const subs = subscriptions;
-  if (is && typeof is.subscribe === 'function') {
-    is.subscribe(() => {
+  if (selectors) {
+    selectors.subscribe(() => {
       try {
-        const ids =
-          subs && subs.selectors ? subs.selectors.getIds('tab:issues') : [];
         issues_cache = /** @type {Issue[]} */ (
-          is.getMany ? is.getMany(ids) : []
+          selectors.selectIssuesFor('tab:issues')
         );
         doRender();
       } catch {

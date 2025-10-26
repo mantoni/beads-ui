@@ -3,6 +3,7 @@
  */
 import { html, render } from 'lit-html';
 import { createIssuesStore } from './data/issues-store.js';
+import { createListSelectors } from './data/list-selectors.js';
 import { createDataLayer } from './data/providers.js';
 import { createSubscriptionStore } from './data/subscriptions-store.js';
 import { createHashRouter, parseHash } from './router.js';
@@ -57,6 +58,8 @@ export function bootstrap(root_element) {
     // Issues push-only store
     const issuesStore = createIssuesStore();
     issuesStore.wireEvents((type, handler) => client.on(type, handler));
+    // Derived list selectors (membership + entities + sort)
+    const listSelectors = createListSelectors(subscriptions, issuesStore);
     // Show toasts for WebSocket connectivity changes
     /** @type {boolean} */
     let had_disconnect = false;
@@ -194,8 +197,7 @@ export function bootstrap(root_element) {
     const listTransport = async (type, payload) => {
       if (type === 'list-issues') {
         try {
-          const ids = subscriptions.selectors.getIds('tab:issues');
-          return issuesStore.getMany(ids);
+          return listSelectors.selectIssuesFor('tab:issues');
         } catch {
           return [];
         }
