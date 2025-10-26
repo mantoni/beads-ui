@@ -1,4 +1,7 @@
 /**
+ * @import { WebSocket } from 'ws'
+ */
+/**
  * Server-side subscription registry for list-like data.
  *
  * Maintains per-subscription entries keyed by a stable string derived from
@@ -25,7 +28,7 @@
 /**
  * @typedef {{
  *   itemsById: Map<string, ItemMeta>,
- *   subscribers: Set<import('ws').WebSocket>,
+ *   subscribers: Set<WebSocket>,
  *   lock: Promise<void>,
  *   lockTail: () => void
  * }} Entry
@@ -158,7 +161,7 @@ export class SubscriptionRegistry {
   /**
    * Attach a subscriber to a spec. Creates the entry if missing.
    * @param {SubscriptionSpec} spec
-   * @param {import('ws').WebSocket} ws
+   * @param {WebSocket} ws
    * @returns {{ key: string, subscribed: true }}
    */
   attach(spec, ws) {
@@ -171,7 +174,7 @@ export class SubscriptionRegistry {
    * Detach a subscriber from the spec. Keeps entry even if empty; eviction
    * is handled by `onDisconnect` sweep.
    * @param {SubscriptionSpec} spec
-   * @param {import('ws').WebSocket} ws
+   * @param {WebSocket} ws
    * @returns {boolean} true when the subscriber was removed
    */
   detach(spec, ws) {
@@ -186,7 +189,7 @@ export class SubscriptionRegistry {
   /**
    * On socket disconnect, remove it from all subscriber sets and evict any
    * entries that become empty as a result of this sweep.
-   * @param {import('ws').WebSocket} ws
+   * @param {WebSocket} ws
    */
   onDisconnect(ws) {
     /** @type {string[]} */

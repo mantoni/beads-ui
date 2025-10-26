@@ -160,7 +160,7 @@ export function createSubscriptionIssueStore(id, options = {}) {
     applyPush,
     snapshot() {
       // Return as read-only view; callers must not mutate
-      return /** @type {any[]} */ (ordered);
+      return ordered;
     },
     size() {
       return items_by_id.size;

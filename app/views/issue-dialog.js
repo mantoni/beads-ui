@@ -16,8 +16,7 @@ import { createIssueIdRenderer } from '../utils/issue-id-renderer.js';
  * @returns {{ open: (id: string) => void, close: () => void, getMount: () => HTMLElement }}
  */
 export function createIssueDialog(mount_element, store, onClose) {
-  /** @type {HTMLDialogElement} */
-  const dialog = /** @type {any} */ (document.createElement('dialog'));
+  const dialog = document.createElement('dialog');
   dialog.id = 'issue-dialog';
   dialog.setAttribute('role', 'dialog');
   dialog.setAttribute('aria-modal', 'true');
@@ -37,16 +36,13 @@ export function createIssueDialog(mount_element, store, onClose) {
 
   mount_element.appendChild(dialog);
 
-  /** @type {HTMLElement} */
-  const body_mount = /** @type {any} */ (
+  const body_mount = /** @type {HTMLElement} */ (
     dialog.querySelector('#issue-dialog-body')
   );
-  /** @type {HTMLElement} */
-  const title_el = /** @type {any} */ (
+  const title_el = /** @type {HTMLElement} */ (
     dialog.querySelector('#issue-dialog-title')
   );
-  /** @type {HTMLButtonElement} */
-  const btn_close = /** @type {any} */ (
+  const btn_close = /** @type {HTMLButtonElement} */ (
     dialog.querySelector('.issue-dialog__close')
   );
 
@@ -56,7 +52,7 @@ export function createIssueDialog(mount_element, store, onClose) {
   function setTitle(id) {
     // Use copyable ID renderer but keep visible text as raw id for tests/clarity
     title_el.replaceChildren();
-    title_el.appendChild(createIssueIdRenderer(String(id || '')));
+    title_el.appendChild(createIssueIdRenderer(id));
   }
 
   // Backdrop click: when clicking the dialog itself (outside container), close
@@ -102,7 +98,7 @@ export function createIssueDialog(mount_element, store, onClose) {
   function open(id) {
     // Capture currently focused element to restore after closing
     try {
-      const ae = /** @type {any} */ (document.activeElement);
+      const ae = document.activeElement;
       if (ae && ae instanceof HTMLElement) {
         last_focus = ae;
       } else {
@@ -113,11 +109,8 @@ export function createIssueDialog(mount_element, store, onClose) {
     }
     setTitle(id);
     try {
-      if (
-        'showModal' in dialog &&
-        typeof (/** @type {any} */ (dialog).showModal) === 'function'
-      ) {
-        /** @type {any} */ (dialog).showModal();
+      if ('showModal' in dialog && typeof dialog.showModal === 'function') {
+        dialog.showModal();
       } else {
         dialog.setAttribute('open', '');
       }

@@ -38,7 +38,6 @@ export function createIssueRowRenderer(options) {
    * @param {string} [placeholder]
    */
   function editableText(id, key, value, placeholder = '') {
-    /** @type {string} */
     const k = `${id}:${key}`;
     const is_edit = editing.has(k);
     if (is_edit) {
@@ -111,8 +110,7 @@ export function createIssueRowRenderer(options) {
    */
   function makeSelectChange(id, key) {
     return async (ev) => {
-      /** @type {HTMLSelectElement} */
-      const sel = /** @type {any} */ (ev.currentTarget);
+      const sel = /** @type {HTMLSelectElement} */ (ev.currentTarget);
       const val = sel.value || '';
       /** @type {{ [k:string]: any }} */
       const patch = {};

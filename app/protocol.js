@@ -170,7 +170,7 @@ export function isReply(value) {
     return false;
   }
   if (value.ok === false) {
-    const err = /** @type {any} */ (value).error;
+    const err = value.error;
     if (
       !isRecord(err) ||
       typeof err.code !== 'string' ||

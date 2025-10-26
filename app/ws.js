@@ -195,16 +195,15 @@ export function createWsClient(options = {}) {
     }
     const url = resolveUrl();
     try {
-      ws = /** @type {any} */ (new WebSocket(url));
+      ws = new WebSocket(url);
       state = 'connecting';
       notifyConnection(state);
-      const s = /** @type {any} */ (ws);
-      s.addEventListener('open', onOpen);
-      s.addEventListener('message', onMessage);
-      s.addEventListener('error', () => {
+      ws.addEventListener('open', onOpen);
+      ws.addEventListener('message', onMessage);
+      ws.addEventListener('error', () => {
         // let close handler handle reconnect
       });
-      s.addEventListener('close', onClose);
+      ws.addEventListener('close', onClose);
     } catch (err) {
       logger.error('ws connect failed', err);
       scheduleReconnect();

@@ -58,7 +58,6 @@ export function findNearestBeadsDb(start) {
     const beadsDir = path.join(dir, '.beads');
     try {
       const entries = fs.readdirSync(beadsDir, { withFileTypes: true });
-      /** @type {string[]} */
       const dbs = entries
         .filter((e) => e.isFile() && e.name.endsWith('.db'))
         .map((e) => e.name)

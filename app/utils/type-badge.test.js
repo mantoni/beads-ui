@@ -10,7 +10,7 @@ describe('utils/type-badge', () => {
       ['epic', 'Epic'],
       ['chore', 'Chore']
     ];
-    for (const [t, label] of /** @type {any[]} */ (types)) {
+    for (const [t, label] of types) {
       const el = createTypeBadge(t);
       expect(el.classList.contains('type-badge')).toBe(true);
       expect(el.classList.contains(`type-badge--${t}`)).toBe(true);

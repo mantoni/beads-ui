@@ -35,9 +35,7 @@ export function createEpicsView(
   /** @type {Map<string, () => Promise<void>>} */
   const epic_unsubs = new Map();
   // Centralized selection helpers
-  const selectors = issue_stores
-    ? createListSelectors(/** @type {*} */ (issue_stores))
-    : null;
+  const selectors = issue_stores ? createListSelectors(issue_stores) : null;
   // Live re-render on pushes
   if (selectors) {
     selectors.subscribe(() => {
@@ -73,7 +71,6 @@ export function createEpicsView(
     const id = String(epic.id || '');
     const is_open = expanded.has(id);
     // Compose children via selectors; then filter out closed locally
-    /** @type {IssueLite[]} */
     let list = selectors ? selectors.selectEpicChildren(id) : [];
     list = list.filter((it) => String(it.status || '') !== 'closed');
     const is_loading = loading.has(id);
@@ -244,9 +241,7 @@ export function createEpicsView(
       // Auto-expand first epic on screen
       try {
         if (groups.length > 0) {
-          const first_id = String(
-            /** @type {any} */ (groups[0].epic)?.id || ''
-          );
+          const first_id = String(groups[0].epic?.id || '');
           if (first_id && !expanded.has(first_id)) {
             // This will render and load children lazily
             await toggle(first_id);

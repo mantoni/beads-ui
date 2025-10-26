@@ -1,3 +1,6 @@
+/**
+ * @import { SpawnOptions } from 'node:child_process'
+ */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -13,13 +16,11 @@ import { resolveDbPath } from '../db.js';
  * @returns {string}
  */
 export function getRuntimeDir() {
-  /** @type {string | undefined} */
   const override_dir = process.env.BDUI_RUNTIME_DIR;
   if (override_dir && override_dir.length > 0) {
     return ensureDir(override_dir);
   }
 
-  /** @type {string | undefined} */
   const xdg_dir = process.env.XDG_RUNTIME_DIR;
   if (xdg_dir && xdg_dir.length > 0) {
     return ensureDir(path.join(xdg_dir, 'beads-ui'));
@@ -149,7 +150,7 @@ export function startDaemon() {
     log_fd = -1;
   }
 
-  /** @type {import('node:child_process').SpawnOptions} */
+  /** @type {SpawnOptions} */
   const opts = {
     detached: true,
     env: { ...process.env },

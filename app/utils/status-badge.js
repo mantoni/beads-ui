@@ -4,7 +4,6 @@
  * @returns {HTMLSpanElement}
  */
 export function createStatusBadge(status) {
-  /** @type {HTMLSpanElement} */
   const el = document.createElement('span');
   el.className = 'status-badge';
   const s = String(status || 'open');

@@ -17,13 +17,11 @@ export function getConfig() {
   // Always reflect the directory from which the process was started
   const root_dir = process.cwd();
 
-  /** @type {number} */
   let port_value = Number.parseInt(process.env.PORT || '', 10);
   if (!Number.isFinite(port_value)) {
     port_value = 3000;
   }
 
-  /** @type {string} */
   const host_value = '127.0.0.1';
 
   return {

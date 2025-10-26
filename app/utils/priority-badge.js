@@ -6,9 +6,7 @@ import { priority_levels } from './priority.js';
  * @returns {HTMLSpanElement}
  */
 export function createPriorityBadge(priority) {
-  /** @type {number} */
   const p = typeof priority === 'number' ? priority : 2;
-  /** @type {HTMLSpanElement} */
   const el = document.createElement('span');
   el.className = 'priority-badge';
   el.classList.add(`is-p${Math.max(0, Math.min(4, p))}`);

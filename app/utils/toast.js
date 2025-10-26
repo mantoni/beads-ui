@@ -5,7 +5,6 @@
  * @param {number} [duration_ms] - Auto-dismiss delay in milliseconds.
  */
 export function showToast(text, variant = 'info', duration_ms = 2800) {
-  /** @type {HTMLDivElement} */
   const el = document.createElement('div');
   el.className = 'toast';
   el.textContent = text;

@@ -4,13 +4,10 @@
  * @returns {HTMLSpanElement}
  */
 export function createTypeBadge(issue_type) {
-  /** @type {HTMLSpanElement} */
   const el = document.createElement('span');
   el.className = 'type-badge';
 
-  /** @type {string} */
   const t = (issue_type || '').toString().toLowerCase();
-  /** @type {Set<string>} */
   const KNOWN = new Set(['bug', 'feature', 'task', 'epic', 'chore']);
   const kind = KNOWN.has(t) ? t : 'neutral';
   el.classList.add(`type-badge--${kind}`);

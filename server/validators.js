@@ -71,9 +71,7 @@ export function validateSubscribeListPayload(payload) {
 
   // Per-type param schemas
   if (type === 'issues-for-epic') {
-    const epic_id = String(
-      params && params['epic_id'] ? params['epic_id'] : ''
-    ).trim();
+    const epic_id = String(params?.epic_id ?? '').trim();
     if (epic_id.length === 0) {
       return {
         ok: false,
@@ -84,7 +82,7 @@ export function validateSubscribeListPayload(payload) {
     params = { epic_id };
   } else if (type === 'closed-issues') {
     if (params && 'since' in params) {
-      const since = /** @type {unknown} */ (params['since']);
+      const since = params.since;
       const n = typeof since === 'number' ? since : Number.NaN;
       if (!Number.isFinite(n) || n < 0) {
         return {

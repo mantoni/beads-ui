@@ -75,8 +75,7 @@ export function createListView(
    * @param {Event} ev
    */
   const onStatusChange = async (ev) => {
-    /** @type {HTMLSelectElement} */
-    const sel = /** @type {any} */ (ev.currentTarget);
+    const sel = /** @type {HTMLSelectElement} */ (ev.currentTarget);
     status_filter = sel.value;
     if (store) {
       store.setState({
@@ -320,9 +319,7 @@ export function createListView(
       const tgt = /** @type {HTMLElement} */ (ev.target);
       const table =
         tgt && typeof tgt.closest === 'function'
-          ? /** @type {HTMLTableElement} */ (
-              tgt.closest('#list-root table.table')
-            )
+          ? tgt.closest('#list-root table.table')
           : null;
       if (table) {
         // Do not intercept when inside native editable controls
@@ -335,9 +332,7 @@ export function createListView(
         );
         if (!in_editable) {
           const cell =
-            tgt && typeof tgt.closest === 'function'
-              ? /** @type {HTMLTableCellElement} */ (tgt.closest('td'))
-              : null;
+            tgt && typeof tgt.closest === 'function' ? tgt.closest('td') : null;
           if (cell && cell.parentElement) {
             const row = /** @type {HTMLTableRowElement} */ (cell.parentElement);
             const tbody = /** @type {HTMLTableSectionElement|null} */ (

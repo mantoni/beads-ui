@@ -16,7 +16,6 @@ import { validateSubscribeListPayload } from './validators.js';
  */
 /** @type {ReturnType<typeof setTimeout> | null} */
 let REFRESH_TIMER = null;
-/** @type {number} */
 let REFRESH_DEBOUNCE_MS = 75;
 
 /**
@@ -54,9 +53,9 @@ function triggerMutationRefreshOnce(timeout_ms = 500) {
     return;
   }
   /** @type {(r: 'watcher'|'timeout') => void} */
-  let do_resolve = () => {};
+  let doResolve = () => {};
   const p = new Promise((resolve) => {
-    do_resolve = /** @type {(r: 'watcher'|'timeout') => void} */ (resolve);
+    doResolve = resolve;
   });
   MUTATION_GATE = {
     resolved: false,
@@ -66,7 +65,7 @@ function triggerMutationRefreshOnce(timeout_ms = 500) {
       }
       MUTATION_GATE.resolved = true;
       try {
-        do_resolve(reason);
+        doResolve(reason);
       } catch {
         // ignore resolve errors
       }
@@ -249,7 +248,7 @@ function emitSubscriptionSnapshot(ws, client_id, key, issues) {
   const msg = JSON.stringify({
     id: `evt-${Date.now()}`,
     ok: true,
-    type: /** @type {import('../app/protocol.js').MessageType} */ ('snapshot'),
+    type: /** @type {MessageType} */ ('snapshot'),
     payload
   });
   try {
@@ -268,7 +267,7 @@ function emitSubscriptionSnapshot(ws, client_id, key, issues) {
 function emitSubscriptionUpsert(ws, client_id, key, issue) {
   const revision = nextListRevision(ws, key);
   const payload = {
-    type: /** @type {const} */ ('upsert'),
+    type: 'upsert',
     id: client_id,
     schema: SUBSCRIPTION_SCHEMA,
     revision,
@@ -277,7 +276,7 @@ function emitSubscriptionUpsert(ws, client_id, key, issue) {
   const msg = JSON.stringify({
     id: `evt-${Date.now()}`,
     ok: true,
-    type: /** @type {import('../app/protocol.js').MessageType} */ ('upsert'),
+    type: /** @type {MessageType} */ ('upsert'),
     payload
   });
   try {
@@ -296,7 +295,7 @@ function emitSubscriptionUpsert(ws, client_id, key, issue) {
 function emitSubscriptionDelete(ws, client_id, key, issue_id) {
   const revision = nextListRevision(ws, key);
   const payload = {
-    type: /** @type {const} */ ('delete'),
+    type: 'delete',
     id: client_id,
     schema: SUBSCRIPTION_SCHEMA,
     revision,
@@ -305,7 +304,7 @@ function emitSubscriptionDelete(ws, client_id, key, issue_id) {
   const msg = JSON.stringify({
     id: `evt-${Date.now()}`,
     ok: true,
-    type: /** @type {import('../app/protocol.js').MessageType} */ ('delete'),
+    type: /** @type {MessageType} */ ('delete'),
     payload
   });
   try {
@@ -485,7 +484,6 @@ function applyClosedIssuesFilter(spec, items) {
     return items;
   }
   const p = spec.params || {};
-  /** @type {number} */
   const since = typeof p.since === 'number' ? p.since : 0;
   if (!Number.isFinite(since) || since <= 0) {
     return items;
@@ -598,7 +596,7 @@ export function attachWsServer(http_server, options = {}) {
         if (ws.readyState !== ws.OPEN) {
           continue;
         }
-        const s = ensureSubs(/** @type {any} */ (ws));
+        const s = ensureSubs(ws);
         if (!s.issues_subscribed) {
           continue;
         }
@@ -614,9 +612,7 @@ export function attachWsServer(http_server, options = {}) {
         const msg = JSON.stringify({
           id: `evt-${Date.now()}`,
           ok: true,
-          type: /** @type {import('../app/protocol.js').MessageType} */ (
-            'issues'
-          ),
+          type: /** @type {MessageType} */ ('issues'),
           payload: env
         });
         try {

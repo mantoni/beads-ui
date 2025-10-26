@@ -10,8 +10,9 @@ import { priority_levels } from '../utils/priority.js';
  * @returns {{ open: () => void, close: () => void }}
  */
 export function createNewIssueDialog(mount_element, sendFn, router, store) {
-  /** @type {HTMLDialogElement} */
-  const dialog = /** @type {any} */ (document.createElement('dialog'));
+  const dialog = /** @type {HTMLDialogElement} */ (
+    document.createElement('dialog')
+  );
   dialog.id = 'new-issue-dialog';
   dialog.setAttribute('role', 'dialog');
   dialog.setAttribute('aria-modal', 'true');
@@ -52,32 +53,34 @@ export function createNewIssueDialog(mount_element, sendFn, router, store) {
 
   mount_element.appendChild(dialog);
 
-  /** @type {HTMLFormElement} */
-  const form = /** @type {any} */ (dialog.querySelector('#new-issue-form'));
-  /** @type {HTMLInputElement} */
-  const input_title = /** @type {any} */ (dialog.querySelector('#new-title'));
-  /** @type {HTMLSelectElement} */
-  const sel_type = /** @type {any} */ (dialog.querySelector('#new-type'));
-  /** @type {HTMLSelectElement} */
-  const sel_priority = /** @type {any} */ (
+  const form = /** @type {HTMLFormElement} */ (
+    dialog.querySelector('#new-issue-form')
+  );
+  const input_title = /** @type {HTMLInputElement} */ (
+    dialog.querySelector('#new-title')
+  );
+  const sel_type = /** @type {HTMLSelectElement} */ (
+    dialog.querySelector('#new-type')
+  );
+  const sel_priority = /** @type {HTMLSelectElement} */ (
     dialog.querySelector('#new-priority')
   );
-  /** @type {HTMLInputElement} */
-  const input_labels = /** @type {any} */ (dialog.querySelector('#new-labels'));
-  /** @type {HTMLTextAreaElement} */
-  const input_description = /** @type {any} */ (
+  const input_labels = /** @type {HTMLInputElement} */ (
+    dialog.querySelector('#new-labels')
+  );
+  const input_description = /** @type {HTMLTextAreaElement} */ (
     dialog.querySelector('#new-description')
   );
-  /** @type {HTMLDivElement} */
-  const error_box = /** @type {any} */ (
+  const error_box = /** @type {HTMLDivElement} */ (
     dialog.querySelector('#new-issue-error')
   );
-  /** @type {HTMLButtonElement} */
-  const btn_cancel = /** @type {any} */ (dialog.querySelector('#btn-cancel'));
-  /** @type {HTMLButtonElement} */
-  const btn_create = /** @type {any} */ (dialog.querySelector('#btn-create'));
-  /** @type {HTMLButtonElement} */
-  const btn_close = /** @type {any} */ (
+  const btn_cancel = /** @type {HTMLButtonElement} */ (
+    dialog.querySelector('#btn-cancel')
+  );
+  const btn_create = /** @type {HTMLButtonElement} */ (
+    dialog.querySelector('#btn-create')
+  );
+  const btn_close = /** @type {HTMLButtonElement} */ (
     dialog.querySelector('.new-issue__close')
   );
 
@@ -194,25 +197,20 @@ export function createNewIssueDialog(mount_element, sendFn, router, store) {
    */
   async function createNow() {
     clearError();
-    /** @type {string} */
     const title = String(input_title.value || '').trim();
     if (title.length === 0) {
       setError('Title is required');
       input_title.focus();
       return;
     }
-    /** @type {number} */
     const prio = Number(sel_priority.value || '2');
     if (!(prio >= 0 && prio <= 4)) {
       setError('Priority must be 0..4');
       sel_priority.focus();
       return;
     }
-    /** @type {string} */
     const type = String(sel_type.value || '');
-    /** @type {string} */
     const desc = String(input_description.value || '');
-    /** @type {string[]} */
     const labels = String(input_labels.value || '')
       .split(',')
       .map((s) => s.trim())
@@ -251,10 +249,8 @@ export function createNewIssueDialog(mount_element, sendFn, router, store) {
     } catch {
       list = null;
     }
-    /** @type {string} */
     let created_id = '';
     if (Array.isArray(list)) {
-      /** @type {any[]} */
       const matches = list.filter((it) => String(it.title || '') === title);
       if (matches.length > 0) {
         /** @type {any} */
@@ -326,11 +322,8 @@ export function createNewIssueDialog(mount_element, sendFn, router, store) {
       clearError();
       loadDefaults();
       try {
-        if (
-          'showModal' in dialog &&
-          typeof (/** @type {any} */ (dialog).showModal) === 'function'
-        ) {
-          /** @type {any} */ (dialog).showModal();
+        if ('showModal' in dialog && typeof dialog.showModal === 'function') {
+          dialog.showModal();
         } else {
           dialog.setAttribute('open', '');
         }

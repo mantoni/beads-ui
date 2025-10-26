@@ -28,6 +28,7 @@ import { createTypeBadge } from '../utils/type-badge.js';
  * @property {string} [acceptance]
  * @property {string} [notes]
  * @property {string} [status]
+ * @property {string} [assignee]
  * @property {number} [priority]
  * @property {string[]} [labels]
  * @property {Dependency[]} [dependencies]
@@ -118,8 +119,9 @@ export function createDetailView(
     if (!current || pending) {
       return;
     }
-    /** @type {HTMLInputElement|null} */
-    const input = /** @type {any} */ (mount_element.querySelector('h2 input'));
+    const input = /** @type {HTMLInputElement|null} */ (
+      mount_element.querySelector('h2 input')
+    );
     const prev = current.title || '';
     const next = input ? input.value : '';
     if (next === prev) {
@@ -178,14 +180,11 @@ export function createDetailView(
     if (!current || pending) {
       return;
     }
-    /** @type {HTMLInputElement|null} */
-    const input = /** @type {any} */ (
+    const input = /** @type {HTMLInputElement|null} */ (
       mount_element.querySelector('#detail-root .prop.assignee input')
     );
-    const prev = String(
-      (current && /** @type {any} */ (current).assignee) || ''
-    );
-    const next = input ? String(input.value || '') : '';
+    const prev = current?.assignee ?? '';
+    const next = input?.value ?? '';
     if (next === prev) {
       edit_assignee = false;
       doRender();
@@ -207,7 +206,7 @@ export function createDetailView(
       }
     } catch {
       // revert visually
-      /** @type {any} */ (current).assignee = prev;
+      current.assignee = prev;
       edit_assignee = false;
       doRender();
       showToast('Failed to update assignee', 'error');
@@ -225,8 +224,7 @@ export function createDetailView(
    * @param {Event} ev
    */
   const onLabelInput = (ev) => {
-    /** @type {HTMLInputElement} */
-    const el = /** @type {any} */ (ev.currentTarget);
+    const el = /** @type {HTMLInputElement} */ (ev.currentTarget);
     new_label_text = el.value || '';
   };
   /**
@@ -294,8 +292,7 @@ export function createDetailView(
       doRender();
       return;
     }
-    /** @type {HTMLSelectElement} */
-    const sel = /** @type {any} */ (ev.currentTarget);
+    const sel = /** @type {HTMLSelectElement} */ (ev.currentTarget);
     const prev = current.status || 'open';
     const next = sel.value;
     if (next === prev) {
@@ -329,8 +326,7 @@ export function createDetailView(
       doRender();
       return;
     }
-    /** @type {HTMLSelectElement} */
-    const sel = /** @type {any} */ (ev.currentTarget);
+    const sel = /** @type {HTMLSelectElement} */ (ev.currentTarget);
     const prev = typeof current.priority === 'number' ? current.priority : 2;
     const next = Number(sel.value);
     if (next === prev) {
@@ -368,10 +364,7 @@ export function createDetailView(
     if (ev.key === 'Escape') {
       edit_desc = false;
       doRender();
-    } else if (
-      ev.key === 'Enter' &&
-      /** @type {KeyboardEvent} */ (ev).ctrlKey
-    ) {
+    } else if (ev.key === 'Enter' && ev.ctrlKey) {
       const btn = /** @type {HTMLButtonElement|null} */ (
         mount_element.querySelector('#detail-root .editable-actions button')
       );
@@ -384,8 +377,7 @@ export function createDetailView(
     if (!current || pending) {
       return;
     }
-    /** @type {HTMLTextAreaElement|null} */
-    const ta = /** @type {any} */ (
+    const ta = /** @type {HTMLTextAreaElement|null} */ (
       mount_element.querySelector('#detail-root textarea')
     );
     const prev = current.description || '';
@@ -461,8 +453,7 @@ export function createDetailView(
     if (!current || pending) {
       return;
     }
-    /** @type {HTMLTextAreaElement|null} */
-    const ta = /** @type {any} */ (
+    const ta = /** @type {HTMLTextAreaElement|null} */ (
       mount_element.querySelector('#detail-root .design textarea')
     );
     const prev = current.design || '';
@@ -528,8 +519,7 @@ export function createDetailView(
     if (!current || pending) {
       return;
     }
-    /** @type {HTMLTextAreaElement|null} */
-    const ta = /** @type {any} */ (
+    const ta = /** @type {HTMLTextAreaElement|null} */ (
       mount_element.querySelector('#detail-root .notes textarea')
     );
     const prev = current.notes || '';
@@ -594,8 +584,7 @@ export function createDetailView(
     if (!current || pending) {
       return;
     }
-    /** @type {HTMLTextAreaElement|null} */
-    const ta = /** @type {any} */ (
+    const ta = /** @type {HTMLTextAreaElement|null} */ (
       mount_element.querySelector('#detail-root .acceptance textarea')
     );
     const prev = current.acceptance || '';
@@ -971,12 +960,7 @@ export function createDetailView(
                             .value=${/** @type {any} */ (issue).assignee || ''}
                             size=${Math.min(
                               40,
-                              Math.max(
-                                12,
-                                String(
-                                  /** @type {any} */ (issue).assignee || ''
-                                ).length + 3
-                              )
+                              Math.max(12, (issue.assignee || '').length + 3)
                             )}
                             @keydown=${
                               /** @param {KeyboardEvent} e */ (e) => {
@@ -1005,9 +989,7 @@ export function createDetailView(
                             Cancel
                           </button>`
                       : html`${(() => {
-                          const raw = String(
-                            /** @type {any} */ (issue).assignee || ''
-                          );
+                          const raw = issue.assignee || '';
                           const has = raw.trim().length > 0;
                           const text = has ? raw : 'Unassigned';
                           const cls = has ? 'editable' : 'editable muted';
@@ -1051,9 +1033,7 @@ export function createDetailView(
    */
   function makeDepRemoveClick(did, title) {
     return async (ev) => {
-      /** @type {Event} */
-      const e = ev;
-      e.stopPropagation();
+      ev.stopPropagation();
       if (!current || pending) {
         return;
       }
@@ -1099,10 +1079,10 @@ export function createDetailView(
       if (!current || pending) {
         return;
       }
-      /** @type {HTMLButtonElement} */
-      const btn = /** @type {any} */ (ev.currentTarget);
-      /** @type {HTMLInputElement|null} */
-      const input = /** @type {any} */ (btn.previousElementSibling);
+      const btn = /** @type {HTMLButtonElement} */ (ev.currentTarget);
+      const input = /** @type {HTMLInputElement|null} */ (
+        btn.previousElementSibling
+      );
       const target = input ? input.value.trim() : '';
       if (!target || target === current.id) {
         showToast('Enter a different issue id');

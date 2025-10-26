@@ -150,8 +150,7 @@ export function createBoardView(
           ${it.title || '(no title)'}
         </div>
         <div class="board-card__meta">
-          ${createTypeBadge(/** @type {any} */ (it).issue_type)}
-          ${createPriorityBadge(/** @type {any} */ (it).priority)}
+          ${createTypeBadge(it.issue_type)} ${createPriorityBadge(it.priority)}
           ${createIssueIdRenderer(it.id, { class_name: 'mono' })}
         </div>
       </article>
@@ -177,8 +176,7 @@ export function createBoardView(
         mount_element.querySelectorAll('.board-column')
       );
       for (const col of columns) {
-        /** @type {HTMLElement|null} */
-        const body = /** @type {any} */ (
+        const body = /** @type {HTMLElement|null} */ (
           col.querySelector('.board-column__body')
         );
         if (!body) {
@@ -214,8 +212,7 @@ export function createBoardView(
 
   // Delegate keyboard handling from mount_element
   mount_element.addEventListener('keydown', (ev) => {
-    /** @type {HTMLElement} */
-    const target = /** @type {any} */ (ev.target);
+    const target = ev.target;
     if (!target || !(target instanceof HTMLElement)) {
       return;
     }
@@ -225,7 +222,7 @@ export function createBoardView(
       tag === 'input' ||
       tag === 'textarea' ||
       tag === 'select' ||
-      /** @type {any} */ (target).isContentEditable === true
+      target.isContentEditable === true
     ) {
       return;
     }
@@ -236,9 +233,7 @@ export function createBoardView(
     const key = String(ev.key || '');
     if (key === 'Enter' || key === ' ') {
       ev.preventDefault();
-      const id = /** @type {HTMLElement} */ (card).getAttribute(
-        'data-issue-id'
-      );
+      const id = card.getAttribute('data-issue-id');
       if (id) {
         gotoIssue(id);
       }
@@ -258,9 +253,7 @@ export function createBoardView(
     if (!col) {
       return;
     }
-    const body = /** @type {HTMLElement|null} */ (
-      col.querySelector('.board-column__body')
-    );
+    const body = col.querySelector('.board-column__body');
     if (!body) {
       return;
     }
@@ -379,7 +372,6 @@ export function createBoardView(
     /** @type {IssueLite[]} */
     let items = Array.isArray(list_closed_raw) ? [...list_closed_raw] : [];
     const now = new Date();
-    /** @type {number} */
     let since_ts = 0;
     if (closed_filter_mode === 'today') {
       const start = new Date(
@@ -537,20 +529,18 @@ export function createBoardView(
             ]);
           // Normalize and map unknowns to IssueLite shape
           /** @type {IssueLite[]} */
-          let ready = Array.isArray(ready_raw)
-            ? ready_raw.map((it) => /** @type {any} */ (it))
-            : [];
+          let ready = Array.isArray(ready_raw) ? ready_raw.map((it) => it) : [];
           /** @type {IssueLite[]} */
           const blocked = Array.isArray(blocked_raw)
-            ? blocked_raw.map((it) => /** @type {any} */ (it))
+            ? blocked_raw.map((it) => it)
             : [];
           /** @type {IssueLite[]} */
           const in_prog = Array.isArray(in_prog_raw)
-            ? in_prog_raw.map((it) => /** @type {any} */ (it))
+            ? in_prog_raw.map((it) => it)
             : [];
           /** @type {IssueLite[]} */
           const closed = Array.isArray(closed_raw)
-            ? closed_raw.map((it) => /** @type {any} */ (it))
+            ? closed_raw.map((it) => it)
             : [];
 
           // Remove items from Ready that are already In Progress

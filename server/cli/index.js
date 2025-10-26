@@ -61,7 +61,6 @@ export async function main(args) {
      * Default behavior: do NOT open a browser.
      * `--open` explicitly opens, overriding env/config; `--no-open` forces closed.
      */
-    /** @type {{ no_open: boolean }} */
     const options = {
       no_open: true
     };
@@ -83,7 +82,6 @@ export async function main(args) {
     return await handleStop();
   }
   if (command === 'restart') {
-    /** @type {{ no_open: boolean }} */
     const options = { no_open: true };
     const has_open = flags.includes('open');
     const has_no_open = flags.includes('no-open');

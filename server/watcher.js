@@ -17,11 +17,8 @@ export function watchDb(root_dir, onChange, options = {}) {
   let timer;
   /** @type {fs.FSWatcher | undefined} */
   let watcher;
-  /** @type {string} */
   let current_path = '';
-  /** @type {string} */
   let current_dir = '';
-  /** @type {string} */
   let current_file = '';
 
   const schedule = () => {

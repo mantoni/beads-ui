@@ -59,11 +59,8 @@ export function createSubscriptionStore(send) {
     if (!id_set || id_set.size === 0) {
       return;
     }
-    /** @type {string[]} */
     const added = Array.isArray(delta.added) ? delta.added : [];
-    /** @type {string[]} */
     const updated = Array.isArray(delta.updated) ? delta.updated : [];
-    /** @type {string[]} */
     const removed = Array.isArray(delta.removed) ? delta.removed : [];
 
     for (const client_id of Array.from(id_set)) {

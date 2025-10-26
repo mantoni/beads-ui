@@ -42,14 +42,12 @@ export function runBd(args, options = {}) {
 
     if (child.stdout) {
       child.stdout.setEncoding('utf8');
-      /** @param {string} chunk */
       child.stdout.on('data', (chunk) => {
         out_chunks.push(String(chunk));
       });
     }
     if (child.stderr) {
       child.stderr.setEncoding('utf8');
-      /** @param {string} chunk */
       child.stderr.on('data', (chunk) => {
         err_chunks.push(String(chunk));
       });
