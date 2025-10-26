@@ -1,4 +1,4 @@
-# Data Exchange Model Refactor — Subscription-Based Updates
+# Data Exchange Model — Subscription‑Based Updates (Full‑Issue)
 
 ```
 Date: 2025-10-25
@@ -9,7 +9,8 @@ Owner: agent
 ## Goals
 
 - Replace ad-hoc list fetching with subscription-based incremental updates.
-- Minimize payload size via server-side diffing (added/updated/removed).
+- Minimize complexity; send full‑issue payloads in envelopes targeted to a
+  specific subscription key.
 - Ensure consistent, race-free updates around user-triggered mutations.
 - Keep UI models per-subscription to simplify rendering and memory usage.
 
@@ -57,20 +58,15 @@ Notes:
 - Exact flags depend on `bd`; create adapters that encapsulate CLI details and
   normalize results.
 
-### Diffing Algorithm (per run)
+### Refresh Algorithm (per run)
 
-1. Execute mapped `bd` command to get `issues`.
-2. If subscription is `closed-issues` with a filter, apply the filter to
-   `issues` before diffing.
-3. Create `nextItemsById` (empty Map).
-4. For each `issue` in `issues`:
-   - If not in `prevItemsById`, push to `added`.
-   - Else if `updated_at` differs, push to `updated`.
-   - Put `{ id, updated_at, closed_at }` into `nextItemsById`.
-   - Remove id from a working copy of `prevItemsById`.
-5. Remaining ids in the working copy → `removed`.
-6. Replace `itemsById = nextItemsById`.
-7. Push `{ added, updated, removed }` to subscribers.
+1. Execute mapped `bd` command to get the full list of `issues` for the spec.
+2. If subscription is `closed-issues` with a filter, apply it before step 3.
+3. Compare with the registry’s last known items for this subscription key.
+4. For new or changed items, emit `upsert` envelopes with the full issue payload
+   to all subscribers of the key on the current connection.
+5. For removed items, emit `delete` envelopes with `issue_id`.
+6. Update the registry’s state for the key.
 
 ### Special Case: Closed Issues Filtering
 
@@ -82,16 +78,18 @@ Notes:
 
 ### Migration
 
-This change replaces ad-hoc polling with subscription-based incremental updates.
+This change replaces request/response list reads and id‑only deltas with
+subscription‑based, full‑issue push envelopes.
+
 Client migration steps:
 
 - Replace list fetch calls with `subscribe-list`/`unsubscribe-list` messages.
-- Maintain a per-subscription local store keyed by server `subscriptionKey`.
-- Apply deltas `{ added, updated, removed }` in order; re-render views from the
-  local store.
+- Maintain a per‑subscription local store keyed by the client `id`.
+- Apply `snapshot`/`upsert`/`delete` envelopes in revision order; render from
+  `store.snapshot()`.
 - Remove any legacy polling timers; updates now arrive via server push.
 - For closed issue feeds, pass a `params.since` value (epoch ms) that reflects
-  the UI’s filter horizon to reduce payload sizes.
+  the UI’s filter horizon if needed server‑side.
 
 ### Watcher Integration (DB Updates)
 
@@ -147,9 +145,9 @@ When client requests a change (e.g., update status):
   update-priority, update-assignee, create-issue, dep-add/remove,
   label-add/remove).
 
-### Messages: Server → Client (Per-Subscription)
+### Messages: Server → Client (Per‑Subscription)
 
-All envelopes include `schema: 'beads.subscription@v1'`, a per-subscription
+All envelopes include `schema: 'beads.subscription@v1'`, a per‑subscription
 `revision` (monotonic, starting at 1), and the client subscription `id`.
 
 - `snapshot` `{ id, schema, revision, issues: Issue[] }`
@@ -189,8 +187,8 @@ Notes
 
 ## Release Notes
 
-- This is a breaking change. Clients must adopt the subscription protocol and
-  delta application model. The previous polling-based flows are removed.
+- Breaking change: Clients must adopt `snapshot`/`upsert`/`delete` envelopes and
+  per‑subscription stores. Previous polling and id‑only list deltas are removed.
 
 ## Open Questions
 
