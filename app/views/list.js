@@ -1,5 +1,6 @@
 import { html, render } from 'lit-html';
 import { createListSelectors } from '../data/list-selectors.js';
+import { cmpClosedDesc } from '../data/sort.js';
 import { ISSUE_TYPES, typeLabel } from '../utils/issue-type.js';
 import { issueHashFor } from '../utils/issue-url.js';
 // issueDisplayId not used directly in this file; rendered in shared row
@@ -9,7 +10,7 @@ import { createIssueRowRenderer } from './issue-row.js';
 // List view implementation; requires a transport send function.
 
 /**
- * @typedef {{ id: string, title?: string, status?: string, priority?: number, issue_type?: string, assignee?: string, labels?: string[] }} Issue
+ * @typedef {{ id: string, title?: string, status?: 'closed'|'open'|'in_progress', priority?: number, issue_type?: string, assignee?: string, labels?: string[] }} Issue
  */
 
 /**
@@ -152,20 +153,7 @@ export function createListView(
     }
     // Sorting: closed list is a special case → sort by closed_at desc only
     if (status_filter === 'closed') {
-      filtered = filtered.slice().sort((a, b) => {
-        const ca = Number.isFinite(/** @type {any} */ (a).closed_at)
-          ? /** @type {number} */ (/** @type {any} */ (a).closed_at)
-          : 0;
-        const cb = Number.isFinite(/** @type {any} */ (b).closed_at)
-          ? /** @type {number} */ (/** @type {any} */ (b).closed_at)
-          : 0;
-        if (ca !== cb) {
-          return ca < cb ? 1 : -1;
-        }
-        const ida = String(/** @type {any} */ (a).id || '');
-        const idb = String(/** @type {any} */ (b).id || '');
-        return ida < idb ? -1 : ida > idb ? 1 : 0;
-      });
+      filtered = filtered.slice().sort(cmpClosedDesc);
     }
 
     return html`

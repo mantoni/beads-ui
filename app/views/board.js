@@ -1,5 +1,6 @@
 import { html, render } from 'lit-html';
 import { createListSelectors } from '../data/list-selectors.js';
+import { cmpClosedDesc, cmpPriorityThenCreated } from '../data/sort.js';
 import { createIssueIdRenderer } from '../utils/issue-id-renderer.js';
 import { createPriorityBadge } from '../utils/priority-badge.js';
 import { createTypeBadge } from '../utils/type-badge.js';
@@ -22,7 +23,7 @@ import { createTypeBadge } from '../utils/type-badge.js';
  * Push-only: derives items from per-subscription stores.
  *
  * Sorting rules:
- * - Ready/Blocked/In progress: priority asc, then created_at desc
+ * - Ready/Blocked/In progress: priority asc, then created_at asc
  * - Closed: closed_at desc
  * @param {HTMLElement} mount_element
  * @param {unknown} _data - Unused (legacy param retained for call-compat)
@@ -323,47 +324,7 @@ export function createBoardView(
     }
   }
 
-  /**
-   * Sort helpers.
-   */
-  /**
-   * @param {IssueLite[]} arr
-   */
-  function sortReady(arr) {
-    arr.sort((a, b) => {
-      const pa = a.priority ?? 2;
-      const pb = b.priority ?? 2;
-      if (pa !== pb) {
-        return pa - pb;
-      }
-      const ua = a.updated_at || '';
-      const ub = b.updated_at || '';
-      return ua < ub ? 1 : ua > ub ? -1 : 0;
-    });
-  }
-
-  /**
-   * @param {IssueLite[]} arr
-   */
-  function sortByUpdatedDesc(arr) {
-    arr.sort((a, b) => {
-      const ua = a.updated_at || '';
-      const ub = b.updated_at || '';
-      return ua < ub ? 1 : ua > ub ? -1 : 0;
-    });
-  }
-
-  /**
-   * Sort by closed_at desc with updated_at fallback.
-   * @param {IssueLite[]} arr
-   */
-  function sortByClosedDesc(arr) {
-    arr.sort((a, b) => {
-      const ca = a.closed_at || a.updated_at || '';
-      const cb = b.closed_at || b.updated_at || '';
-      return ca < cb ? 1 : ca > cb ? -1 : 0;
-    });
-  }
+  // Sort helpers centralized in app/data/sort.js
 
   /**
    * Recompute closed list from raw using the current filter and sort.
@@ -398,7 +359,7 @@ export function createBoardView(
       }
       return s >= since_ts;
     });
-    sortByClosedDesc(items);
+    items.sort(cmpClosedDesc);
     list_closed = items;
   }
 
@@ -549,9 +510,9 @@ export function createBoardView(
           ready = ready.filter((i) => !in_progress_ids.has(i.id));
 
           // Sort as per column rules
-          sortReady(ready);
-          sortReady(blocked);
-          sortByUpdatedDesc(in_prog);
+          ready.sort(cmpPriorityThenCreated);
+          blocked.sort(cmpPriorityThenCreated);
+          in_prog.sort(cmpPriorityThenCreated);
           list_ready = ready;
           list_blocked = blocked;
           list_in_progress = in_prog;

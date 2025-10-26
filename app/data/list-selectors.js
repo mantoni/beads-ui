@@ -3,10 +3,10 @@
  * and apply view-specific sorting. Provides a lightweight `subscribe` that
  * triggers once per issues envelope to let views re-render.
  */
-
 /**
  * @typedef {{ id: string, title?: string, status?: 'open'|'in_progress'|'closed', priority?: number, issue_type?: string, created_at?: number, updated_at?: number, closed_at?: number }} IssueLite
  */
+import { cmpClosedDesc, cmpPriorityThenCreated } from './sort.js';
 
 /**
  * Factory for list selectors.
@@ -16,41 +16,10 @@
  * @param {{ snapshotFor?: (client_id: string) => IssueLite[], subscribe?: (fn: () => void) => () => void }} [issue_stores]
  */
 export function createListSelectors(issue_stores = undefined) {
-  /**
-   * Compare by priority asc, then created_at desc, then id asc.
-   * @param {IssueLite} a
-   * @param {IssueLite} b
-   */
-  function cmpPriorityThenCreated(a, b) {
-    const pa = a.priority ?? 2;
-    const pb = b.priority ?? 2;
-    if (pa !== pb) {
-      return pa - pb;
-    }
-    const ca = a.created_at ?? 0;
-    const cb = b.created_at ?? 0;
-    if (ca !== cb) {
-      return ca < cb ? 1 : -1;
-    }
-    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-  }
+  // Sorting comparators are centralized in app/data/sort.js
 
   /**
-   * Compare by closed_at desc only, then id asc for stability.
-   * @param {IssueLite} a
-   * @param {IssueLite} b
-   */
-  function cmpClosedDesc(a, b) {
-    const ca = a.closed_at ?? 0;
-    const cb = b.closed_at ?? 0;
-    if (ca !== cb) {
-      return ca < cb ? 1 : -1;
-    }
-    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-  }
-
-  /**
-   * Get entities for a subscription id with Issues List sort (priority asc → created desc).
+   * Get entities for a subscription id with Issues List sort (priority asc → created asc).
    * @param {string} client_id
    * @returns {IssueLite[]}
    */
@@ -88,7 +57,7 @@ export function createListSelectors(issue_stores = undefined) {
 
   /**
    * Get children for an epic subscribed as client id `epic:${id}`.
-   * Sorted as Issues List (priority asc → created desc).
+   * Sorted as Issues List (priority asc → created asc).
    * @param {string} epic_id
    * @returns {IssueLite[]}
    */

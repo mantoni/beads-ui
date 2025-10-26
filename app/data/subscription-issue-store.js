@@ -1,40 +1,15 @@
 /**
  * @import { SubscriptionIssueStore, SubscriptionIssueStoreOptions } from '../../types/subscription-issue-store.js'
  */
+import { cmpPriorityThenCreated } from './sort.js';
+
 /**
  * Per-subscription issue store. Holds full Issue objects and exposes a
  * deterministic, read-only snapshot for rendering. Applies snapshot/upsert/
  * delete messages in revision order and preserves object identity per id.
  */
 
-/**
- * Compare by priority asc, then created_at desc, then id asc.
- * @param {any} a
- * @param {any} b
- */
-function cmpPriorityThenCreated(a, b) {
-  const pa = Number.isFinite(a?.priority)
-    ? /** @type {number} */ (a.priority)
-    : 2;
-  const pb = Number.isFinite(b?.priority)
-    ? /** @type {number} */ (b.priority)
-    : 2;
-  if (pa !== pb) {
-    return pa - pb;
-  }
-  const ca = Number.isFinite(a?.created_at)
-    ? /** @type {number} */ (a.created_at)
-    : 0;
-  const cb = Number.isFinite(b?.created_at)
-    ? /** @type {number} */ (b.created_at)
-    : 0;
-  if (ca !== cb) {
-    return ca < cb ? 1 : -1;
-  }
-  const ida = String(a?.id || '');
-  const idb = String(b?.id || '');
-  return ida < idb ? -1 : ida > idb ? 1 : 0;
-}
+// Sort comparator is centralized in app/data/sort.js
 
 /**
  * Create a SubscriptionIssueStore for a given subscription id.

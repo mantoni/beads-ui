@@ -121,11 +121,11 @@ describe('list view — fast filter switches', () => {
     /** @type {any[]} */
     const snapshot = issueStores.snapshotFor('tab:issues');
     const ids = snapshot.map((it) => it.id);
-    expect(ids).toEqual(['P-2', 'P-1']);
+    expect(ids).toEqual(['P-1', 'P-2']);
 
     const rows = Array.from(mount.querySelectorAll('tr.issue-row')).map(
       (el) => el.getAttribute('data-issue-id') || ''
     );
-    expect(rows).toEqual(['P-2', 'P-1']);
+    expect(rows).toEqual(['P-1', 'P-2']);
   });
 });

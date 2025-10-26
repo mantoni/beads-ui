@@ -114,7 +114,7 @@ describe('views/epics', () => {
     expect(navCalls[0]).toBe('UI-2');
   });
 
-  test('sorts children by priority then created_at', async () => {
+  test('sorts children by priority then created_at asc', async () => {
     document.body.innerHTML = '<div id="m"></div>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
     const data = {
@@ -227,7 +227,7 @@ describe('views/epics', () => {
         r.querySelector('td.mono')
       )?.textContent?.trim()
     );
-    expect(ids).toEqual(['#11', '#12', '#13']);
+    expect(ids).toEqual(['#12', '#11', '#13']);
   });
 
   test('clicking inputs/selects inside a row does not navigate', async () => {

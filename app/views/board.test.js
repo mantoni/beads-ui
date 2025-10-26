@@ -169,17 +169,17 @@ describe('views/board', () => {
     ).map((el) => el.textContent?.trim());
     expect(blocked_ids).toEqual(['#1', '#2']);
 
-    // Ready: priority asc, then created_at desc for equal priority
+    // Ready: priority asc, then created_at asc for equal priority
     const ready_ids = Array.from(
       mount.querySelectorAll('#ready-col .board-card .mono')
     ).map((el) => el.textContent?.trim());
-    expect(ready_ids).toEqual(['#1', '#3', '#2']);
+    expect(ready_ids).toEqual(['#1', '#2', '#3']);
 
-    // In progress: priority asc (default), then created_at desc
+    // In progress: priority asc (default), then created_at asc
     const prog_ids = Array.from(
       mount.querySelectorAll('#in-progress-col .board-card .mono')
     ).map((el) => el.textContent?.trim());
-    expect(prog_ids).toEqual(['#1', '#2']);
+    expect(prog_ids).toEqual(['#2', '#1']);
 
     // Closed: closed_at desc
     const closed_ids = Array.from(

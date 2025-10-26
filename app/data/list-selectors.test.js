@@ -67,7 +67,7 @@ describe('list-selectors', () => {
     expect(selectors.selectBoardColumn('tab:board:ready', 'ready')).toEqual([]);
   });
 
-  test('selectIssuesFor returns priority asc then created desc', async () => {
+  test('selectIssuesFor returns priority asc then created asc', async () => {
     const { issueStores, selectors } = setup();
     const store = issueStores.getStore('tab:issues');
     // Apply snapshot with items of varying priority and created_at
@@ -101,8 +101,8 @@ describe('list-selectors', () => {
     });
 
     const out = selectors.selectIssuesFor('tab:issues').map((x) => x.id);
-    // priority asc: B,C first (1), then A (2); within same priority sort by created desc
-    expect(out).toEqual(['C', 'B', 'A']);
+    // priority asc: B,C first (1), then A (2); within same priority sort by created asc
+    expect(out).toEqual(['B', 'C', 'A']);
   });
 
   test('selectBoardColumn sorts ready/blocked/in_progress by priority→created, closed by closed_at desc', async () => {
@@ -162,12 +162,12 @@ describe('list-selectors', () => {
     const ready = selectors
       .selectBoardColumn('tab:board:ready', 'ready')
       .map((x) => x.id);
-    expect(ready).toEqual(['R3', 'R2', 'R1']);
+    expect(ready).toEqual(['R2', 'R3', 'R1']);
 
     const inprog = selectors
       .selectBoardColumn('tab:board:in-progress', 'in_progress')
       .map((x) => x.id);
-    expect(inprog).toEqual(['P2', 'P1', 'P3']);
+    expect(inprog).toEqual(['P3', 'P1', 'P2']);
 
     const closed = selectors
       .selectBoardColumn('tab:board:closed', 'closed')
@@ -176,7 +176,7 @@ describe('list-selectors', () => {
     expect(closed).toEqual(['C2', 'C1', 'C3']);
   });
 
-  test('selectEpicChildren uses epic:{id} client id and list sorting (priority→created)', async () => {
+  test('selectEpicChildren uses epic:{id} client id and list sorting (priority→created asc)', async () => {
     const { issueStores, selectors } = setup();
     issueStores.getStore('epic:42').applyPush({
       type: 'snapshot',
@@ -200,7 +200,7 @@ describe('list-selectors', () => {
       ]
     });
     const out = selectors.selectEpicChildren('42').map((x) => x.id);
-    expect(out).toEqual(['E1', 'E2']);
+    expect(out).toEqual(['E2', 'E1']);
   });
 
   test('subscribe triggers once per issues envelope', async () => {

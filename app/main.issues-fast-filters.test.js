@@ -153,7 +153,7 @@ describe('issues view — fast filter switching', () => {
     const rows = Array.from(
       document.querySelectorAll('#list-root tr.issue-row')
     ).map((el) => el.getAttribute('data-issue-id') || '');
-    expect(rows).toEqual(['P-2', 'P-1']);
+    expect(rows).toEqual(['P-1', 'P-2']);
 
     // Ensure no list-issues RPCs are made (push-only source of truth)
     const sentListIssues = calls.filter((c) => c.type === 'list-issues');
