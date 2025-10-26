@@ -36,10 +36,19 @@ export function createEpicsView(
   const epic_unsubs = new Map();
   // Centralized selection helpers
   const selectors = issue_stores ? createListSelectors(issue_stores) : null;
-  // Live re-render on pushes
+  // Live re-render on pushes: recompute groups when stores change
   if (selectors) {
     selectors.subscribe(() => {
+      const had_none = groups.length === 0;
+      groups = buildGroupsFromSnapshot();
       doRender();
+      // Auto-expand first epic when transitioning from empty to non-empty
+      if (had_none && groups.length > 0) {
+        const first_id = String(groups[0].epic?.id || '');
+        if (first_id && !expanded.has(first_id)) {
+          void toggle(first_id);
+        }
+      }
     });
   }
 
@@ -160,12 +169,7 @@ export function createEpicsView(
       // Subscribe to issues-for-epic deltas for this epic (best-effort)
       if (subscriptions && typeof subscriptions.subscribeList === 'function') {
         try {
-          const u = await subscriptions.subscribeList(`epic:${epic_id}`, {
-            type: 'issues-for-epic',
-            params: { epic_id: epic_id }
-          });
-          epic_unsubs.set(epic_id, u);
-          // Register mapping for per-subscription store snapshots if available
+          // Register store first to avoid dropping the initial snapshot
           try {
             if (issue_stores && /** @type {any} */ (issue_stores).register) {
               /** @type {any} */ (issue_stores).register(`epic:${epic_id}`, {
@@ -176,6 +180,11 @@ export function createEpicsView(
           } catch {
             // ignore
           }
+          const u = await subscriptions.subscribeList(`epic:${epic_id}`, {
+            type: 'issues-for-epic',
+            params: { epic_id: epic_id }
+          });
+          epic_unsubs.set(epic_id, u);
         } catch {
           // ignore subscription failures
         }
@@ -207,36 +216,52 @@ export function createEpicsView(
     doRender();
   }
 
-  return {
-    async load() {
-      // Compose groups from per-subscription store snapshot for `tab:epics`
-      /** @type {IssueLite[]} */
-      const epic_entities =
-        issue_stores && issue_stores.snapshotFor
-          ? /** @type {IssueLite[]} */ (
-              issue_stores.snapshotFor('tab:epics') || []
-            )
-          : [];
-      const next_groups = [];
-      for (const epic of epic_entities) {
-        const dependents = Array.isArray(/** @type {any} */ (epic).dependents)
-          ? /** @type {any[]} */ (/** @type {any} */ (epic).dependents)
-          : [];
-        const total = dependents.length;
-        let closed = 0;
+  /** Build groups from the current `tab:epics` snapshot. */
+  function buildGroupsFromSnapshot() {
+    /** @type {IssueLite[]} */
+    const epic_entities =
+      issue_stores && issue_stores.snapshotFor
+        ? /** @type {IssueLite[]} */ (
+            issue_stores.snapshotFor('tab:epics') || []
+          )
+        : [];
+    const next_groups = [];
+    for (const epic of epic_entities) {
+      const dependents = Array.isArray(/** @type {any} */ (epic).dependents)
+        ? /** @type {any[]} */ (/** @type {any} */ (epic).dependents)
+        : [];
+      // Prefer explicit counters when provided by server; otherwise derive
+      const has_total = Number.isFinite(
+        /** @type {any} */ (epic).total_children
+      );
+      const has_closed = Number.isFinite(
+        /** @type {any} */ (epic).closed_children
+      );
+      const total = has_total
+        ? Number(/** @type {any} */ (epic).total_children) || 0
+        : dependents.length;
+      let closed = has_closed
+        ? Number(/** @type {any} */ (epic).closed_children) || 0
+        : 0;
+      if (!has_closed) {
         for (const d of dependents) {
           if (String(d.status || '') === 'closed') {
             closed++;
           }
         }
-        next_groups.push({
-          epic,
-          total_children: total,
-          closed_children: closed
-        });
       }
+      next_groups.push({
+        epic,
+        total_children: total,
+        closed_children: closed
+      });
+    }
+    return next_groups;
+  }
 
-      groups = next_groups;
+  return {
+    async load() {
+      groups = buildGroupsFromSnapshot();
       doRender();
       // Auto-expand first epic on screen
       try {

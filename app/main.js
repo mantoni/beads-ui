@@ -318,12 +318,13 @@ export function bootstrap(root_element) {
       // Ensure detail subscription is active on initial deep-link
       const client_id = `detail:${initial_id}`;
       const spec = { type: 'issue-detail', params: { id: initial_id } };
-      void subscriptions.subscribeList(client_id, spec).catch(() => {});
+      // Register store first to avoid dropping the initial snapshot
       try {
         sub_issue_stores.register(client_id, spec);
       } catch {
         // ignore
       }
+      void subscriptions.subscribeList(client_id, spec).catch(() => {});
     }
 
     // Open/close dialog based on selected_id (always dialog; no page variant)
@@ -340,6 +341,12 @@ export function bootstrap(root_element) {
         // Wire per-issue subscription for detail
         const client_id = `detail:${id}`;
         const spec = { type: 'issue-detail', params: { id } };
+        // Ensure per-subscription issue store exists before subscribing
+        try {
+          sub_issue_stores.register(client_id, spec);
+        } catch {
+          // ignore
+        }
         // Subscribe server-side
         void subscriptions
           .subscribeList(client_id, spec)
@@ -351,12 +358,6 @@ export function bootstrap(root_element) {
             unsub_detail = unsub;
           })
           .catch(() => {});
-        // Ensure per-subscription issue store exists
-        try {
-          sub_issue_stores.register(client_id, spec);
-        } catch {
-          // ignore
-        }
       } else {
         try {
           dialog.close();
@@ -440,6 +441,12 @@ export function bootstrap(root_element) {
       // Issues tab
       if (s.view === 'issues') {
         const spec = computeIssuesSpec(s.filters || {});
+        // Register store first to capture the initial snapshot
+        try {
+          sub_issue_stores.register('tab:issues', spec);
+        } catch {
+          // ignore
+        }
         void subscriptions
           .subscribeList('tab:issues', spec)
           .then((unsub) => {
@@ -448,11 +455,6 @@ export function bootstrap(root_element) {
           .catch(() => {
             // ignore transport errors; retry on next change
           });
-        try {
-          sub_issue_stores.register('tab:issues', spec);
-        } catch {
-          // ignore
-        }
       } else if (unsub_issues_tab) {
         void unsub_issues_tab().catch(() => {});
         unsub_issues_tab = null;
@@ -465,17 +467,18 @@ export function bootstrap(root_element) {
 
       // Epics tab
       if (s.view === 'epics') {
+        // Register store first to avoid race with initial snapshot
+        try {
+          sub_issue_stores.register('tab:epics', { type: 'epics' });
+        } catch {
+          // ignore
+        }
         void subscriptions
           .subscribeList('tab:epics', { type: 'epics' })
           .then((unsub) => {
             unsub_epics_tab = unsub;
           })
           .catch(() => {});
-        try {
-          sub_issue_stores.register('tab:epics', { type: 'epics' });
-        } catch {
-          // ignore
-        }
       } else if (unsub_epics_tab) {
         void unsub_epics_tab().catch(() => {});
         unsub_epics_tab = null;
@@ -489,10 +492,6 @@ export function bootstrap(root_element) {
       // Board tab subscribes to lists used by columns
       if (s.view === 'board') {
         if (!unsub_board_ready) {
-          void subscriptions
-            .subscribeList('tab:board:ready', { type: 'ready-issues' })
-            .then((u) => (unsub_board_ready = u))
-            .catch(() => {});
           try {
             sub_issue_stores.register('tab:board:ready', {
               type: 'ready-issues'
@@ -500,14 +499,12 @@ export function bootstrap(root_element) {
           } catch {
             // ignore
           }
+          void subscriptions
+            .subscribeList('tab:board:ready', { type: 'ready-issues' })
+            .then((u) => (unsub_board_ready = u))
+            .catch(() => {});
         }
         if (!unsub_board_in_progress) {
-          void subscriptions
-            .subscribeList('tab:board:in-progress', {
-              type: 'in-progress-issues'
-            })
-            .then((u) => (unsub_board_in_progress = u))
-            .catch(() => {});
           try {
             sub_issue_stores.register('tab:board:in-progress', {
               type: 'in-progress-issues'
@@ -515,12 +512,14 @@ export function bootstrap(root_element) {
           } catch {
             // ignore
           }
+          void subscriptions
+            .subscribeList('tab:board:in-progress', {
+              type: 'in-progress-issues'
+            })
+            .then((u) => (unsub_board_in_progress = u))
+            .catch(() => {});
         }
         if (!unsub_board_closed) {
-          void subscriptions
-            .subscribeList('tab:board:closed', { type: 'closed-issues' })
-            .then((u) => (unsub_board_closed = u))
-            .catch(() => {});
           try {
             sub_issue_stores.register('tab:board:closed', {
               type: 'closed-issues'
@@ -528,12 +527,12 @@ export function bootstrap(root_element) {
           } catch {
             // ignore
           }
+          void subscriptions
+            .subscribeList('tab:board:closed', { type: 'closed-issues' })
+            .then((u) => (unsub_board_closed = u))
+            .catch(() => {});
         }
         if (!unsub_board_blocked) {
-          void subscriptions
-            .subscribeList('tab:board:blocked', { type: 'blocked-issues' })
-            .then((u) => (unsub_board_blocked = u))
-            .catch(() => {});
           try {
             sub_issue_stores.register('tab:board:blocked', {
               type: 'blocked-issues'
@@ -541,6 +540,10 @@ export function bootstrap(root_element) {
           } catch {
             // ignore
           }
+          void subscriptions
+            .subscribeList('tab:board:blocked', { type: 'blocked-issues' })
+            .then((u) => (unsub_board_blocked = u))
+            .catch(() => {});
         }
       } else {
         // Unsubscribe all board lists when leaving the board view
@@ -618,14 +621,14 @@ export function bootstrap(root_element) {
     store.subscribe((s) => {
       if (s.view === 'issues') {
         const spec = computeIssuesSpec(s.filters || {});
-        // Reuse the same client id so the server switches lists without leaks
-        void subscriptions.subscribeList('tab:issues', spec).catch(() => {});
-        // Keep per-subscription store mapping in sync and recompute
+        // Keep per-subscription store mapping in sync and ensure it's present
         try {
           sub_issue_stores.register('tab:issues', spec);
         } catch {
           // ignore
         }
+        // Reuse the same client id so the server switches lists without leaks
+        void subscriptions.subscribeList('tab:issues', spec).catch(() => {});
       }
     });
 

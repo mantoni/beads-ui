@@ -129,11 +129,40 @@ export async function fetchListForSubscription(spec) {
       };
     }
     // bd show may return a single object; normalize to an array first
-    const raw = Array.isArray(res.stdoutJson)
+    let raw = Array.isArray(res.stdoutJson)
       ? res.stdoutJson
       : res.stdoutJson && typeof res.stdoutJson === 'object'
         ? [res.stdoutJson]
         : [];
+
+    // Special-case mapping for `epics`: current bd output nests the epic under
+    // an `epic` key and exposes counters at the top level. Flatten so that
+    // each entry has a top-level `id` and core fields expected by the registry.
+    if (String(spec.type) === 'epics') {
+      raw = raw.map((it) => {
+        if (it && typeof it === 'object' && 'epic' in it) {
+          const e = /** @type {any} */ (it).epic || {};
+          /** @type {Record<string, unknown>} */
+          const flat = {
+            // Required minimal fields for registry + client rendering
+            id: String(e.id ?? ''),
+            title: e.title,
+            status: e.status,
+            issue_type: e.issue_type || 'epic',
+            created_at: e.created_at,
+            updated_at: e.updated_at,
+            closed_at: e.closed_at ?? null,
+            // Preserve useful counters from bd output
+            total_children: /** @type {any} */ (it).total_children,
+            closed_children: /** @type {any} */ (it).closed_children,
+            eligible_for_close: /** @type {any} */ (it).eligible_for_close
+          };
+          return flat;
+        }
+        return it;
+      });
+    }
+
     const items = normalizeIssueList(raw);
     return { ok: true, items };
   } catch (err) {
