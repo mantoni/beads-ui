@@ -1,15 +1,13 @@
-# beads-ui Architecture and Protocol (v1)
+# beads-ui Architecture (v2)
 
-Note
+Note (2025-10-26)
 
-- As of 2025-10-25, the UI and server move to a push‑only, breaking protocol for
-  issue updates. This document describes the legacy v1 request/response shapes
-  and remains for historical reference. For the current push protocol, see
-  `docs/protocol/issues-push-v2.md`. Legacy read RPCs `list-issues` and
-  `epic-status` are removed from the server.
+- beads-ui has migrated to a push‑only protocol for lists and details. The
+  server no longer implements legacy read RPCs `list-issues` and `epic-status`.
+  For the normative protocol reference, see `docs/protocol/issues-push-v2.md`.
 
-This document describes the high‑level architecture of beads‑ui and the v1
-WebSocket protocol used between the browser SPA and the local Node.js server.
+This document describes the high‑level architecture of beads‑ui and the v2
+push‑only data flow used between the browser SPA and the local Node.js server.
 
 ## Overview
 
@@ -66,95 +64,41 @@ WebSocket protocol used between the browser SPA and the local Node.js server.
 4. Independent of requests, the DB watcher schedules a refresh for active list
    subscriptions; clients receive `snapshot`/`upsert`/`delete` envelopes.
 
-## Protocol (v1.0.0)
+## Protocol (v2.0.0)
 
-Envelope shapes (see `app/protocol.js` for the source of truth):
+Envelope shapes (see `app/protocol.md` and `docs/protocol/issues-push-v2.md`):
 
-- Request: `{ id: string, type: MessageType, payload?: any }`
+- Request: `{ id: string, type: string, payload?: any }`
 - Reply:
-  `{ id: string, ok: boolean, type: MessageType, payload?: any, error?: { code, message, details? } }`
+  `{ id: string, ok: boolean, type: string, payload?: any, error?: { code: string, message: string, details?: any } }`
 
-Message types (legacy v1; server now push-only):
+Push‑only subscriptions for lists and details:
 
-- Removed in v2: `list-issues` (use subscriptions + push stores)
+- Client subscribes via `subscribe-list` with `{ id, type, params? }`.
+- Server acks the subscription and immediately publishes a `snapshot` envelope
+  with the full list for that subscription id followed by `upsert`/`delete`
+  envelopes as data changes. Clients render from local per‑subscription stores.
+
+Common message types (mutations only; list reads removed):
+
 - `update-status` payload:
   `{ id: string, status: 'open'|'in_progress'|'closed' }`
 - `edit-text` payload:
-  `{ id: string, field: 'title'|'description'|'acceptance', value: string }`
+  `{ id: string, field: 'title'|'description'|'acceptance'|'notes'|'design', value: string }`
 - `update-priority` payload: `{ id: string, priority: 0|1|2|3|4 }`
 - `dep-add` payload: `{ a: string, b: string, view_id?: string }`
-- `dep-remove` payload: `{ a: string, b: string, view_id?: string }` Removed in
-  v2: legacy `issues-changed` server push event.
+- `dep-remove` payload: `{ a: string, b: string, view_id?: string }`
+- `create-issue` payload:
+  `{ title: string, type?: 'bug'|'feature'|'task'|'epic'|'chore', priority?: 0|1|2|3|4, description?: string }`
 
-Defined in the spec but not yet handled on the server:
+Removed in v2:
 
-- `create-issue`, `list-ready`
-
-### Examples
-
-List issues (removed in v2; see push protocol)
-
-```json
-{
-  "id": "r1",
-  "type": "list-issues",
-  "payload": { "filters": { "status": "open" } }
-}
-```
-
-Reply
-
-```json
-{
-  "id": "r1",
-  "ok": true,
-  "type": "list-issues",
-  "payload": [{ "id": "UI-1", "title": "..." }]
-}
-```
-
-Update status
-
-```json
-{
-  "id": "r2",
-  "type": "update-status",
-  "payload": { "id": "UI-1", "status": "in_progress" }
-}
-```
-
-Server push (subscriptions)
-
-```json
-{
-  "id": "evt-1732212345000",
-  "ok": true,
-  "type": "upsert",
-  "payload": {
-    "type": "upsert",
-    "id": "tab:issues",
-    "revision": 2,
-    "issue": { "id": "UI-1", "status": "in_progress" }
-  }
-}
-```
-
-Error reply (legacy v1 example)
-
-```json
-{
-  "id": "r3",
-  "ok": false,
-  "type": "edit-text",
-  "error": { "code": "not_found", "message": "Issue UI-99" }
-}
-```
+- `list-issues`, `epic-status`, `subscribe-updates` and the legacy
+  `issues-changed` event.
 
 ## UI → bd Command Mapping
 
-- Removed in v2: List → use subscriptions and push
-  (`docs/protocol/issues-push-v2.md`)
-- Removed in v2: Show (use `issue-detail` subscription)
+- Lists and details: push‑only via `subscribe-list` (no list reads)
 - Update status: `bd update <id> --status <open|in_progress|closed>`
 - Update priority: `bd update <id> --priority <0..4>`
 - Edit title: `bd update <id> --title <text>`
@@ -162,9 +106,7 @@ Error reply (legacy v1 example)
 - Edit acceptance: `bd update <id> --acceptance-criteria <text>`
 - Link dependency: `bd dep add <a> <b>` (a depends on b)
 - Unlink dependency: `bd dep remove <a> <b>`
-- Planned (UI not wired yet): Create:
-  `bd create "title" -t <type> -p <prio> -d "desc"`; Ready list:
-  `bd ready --json`
+- Create issue: `bd create "title" -t <type> -p <prio> -d "desc"`
 
 Rationale
 
