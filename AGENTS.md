@@ -45,7 +45,7 @@ If no issue is specified, run `bd ready` and claim an unblocked issue.
 2. Assign to `agent`, update status as you work (`in_progress` → `closed`);
    maintain dependencies, and attach notes/links for traceability.
 3. Discover new work? Create linked issue with dependency
-   `discovered-from:<parent-id>`.
+   `discovered-from:<parent-id>` and reference it in a code comment.
 4. Land the change; run tests/lint; update any referenced docs.
 5. Close the issue with `bd close <id>`.
 
@@ -54,22 +54,22 @@ Never update `CHANGES.md`.
 ## Coding Standards
 
 - Use ECMAScript modules.
-- Classes, interfaces, and factory types use `PascalCase`.
-- Functions and methods use `camelCase`.
-- Variables and parameters use `lower_snake_case`, unless they refer to a
-  function or class.
-- Constants are `UPPER_SNAKE_CASE`.
-- File and directory names are `kebab-case`.
-- Use `.js` files with JSDoc type annotations (TypeScript mode).
+- Use `PascalCase` for classes and interfaces.
+- Use `camelCase` for functions and methods.
+- Use `lower_snake_case` for all variables and parameters, unless the value is a
+  function where `camelCase` is preferred.
+- Use `UPPER_SNAKE_CASE` for constants.
+- Use `kebab-case` for file and directory names.
+- Use `.js` files for all code with JSDoc type annotations (TypeScript mode).
 - Use `.ts` files only for interface definitions.
-- Type only imports: `@import { X, Y, Z } from './file.js` in top-of-file JSDoc.
-- Add JSDoc to all functions and methods with `@param` (and `@returns` for non
-  trivial return types).
-- Annotate local variables with `@type` blocks if their type is not obvious from
-  the initializer.
+- Use `@import { X, Y, Z } from './file.js` in a JSDoc block at the top of the
+  file for type imports; omit if the symbol is already defined in code.
+- Add JSDoc to all functions and methods and declare all parameter types with
+  `@param`; If the return type is non-trival, add `@returns`, otherwise omit.
+- If a local valiable's type may change, or the initializer is `[]` or `{}` with
+  not yet known content, add a `@type` JSDoc annotation.
 - Use blocks for all control flow statements, even single-line bodies.
-- Avoid runtime type checks, undefined/null checks and optional chaining
-  operators (`?.`, `??`) unless strictly necessary.
+- Rely on type information to reduce `?.`, `??`, `??=`, `||`, `||=` usage.
 
 ## Unit Testing Standards
 
