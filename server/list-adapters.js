@@ -13,8 +13,7 @@ export function mapSubscriptionToBdArgs(spec) {
       return ['list', '--json'];
     }
     case 'epics': {
-      // Prefer a typed list of epics for generic epics subscription
-      return ['list', '--json', '--type', 'epic'];
+      return ['epic', 'status', '--json'];
     }
     case 'issues-for-epic': {
       const p = spec.params || {};
