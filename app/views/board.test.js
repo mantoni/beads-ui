@@ -54,14 +54,14 @@ describe('views/board', () => {
         id: 'B-2',
         title: 'b2',
         priority: 1,
-        updated_at: '2025-10-22T07:00:00.000Z',
+        updated_at: new Date('2025-10-22T07:00:00.000Z').getTime(),
         issue_type: 'task'
       },
       {
         id: 'B-1',
         title: 'b1',
         priority: 0,
-        updated_at: '2025-10-21T07:00:00.000Z',
+        updated_at: new Date('2025-10-21T07:00:00.000Z').getTime(),
         issue_type: 'bug'
       },
       // Ready
@@ -69,49 +69,49 @@ describe('views/board', () => {
         id: 'R-2',
         title: 'r2',
         priority: 1,
-        updated_at: '2025-10-20T08:00:00.000Z',
+        updated_at: new Date('2025-10-20T08:00:00.000Z').getTime(),
         issue_type: 'task'
       },
       {
         id: 'R-1',
         title: 'r1',
         priority: 0,
-        updated_at: '2025-10-21T08:00:00.000Z',
+        updated_at: new Date('2025-10-21T08:00:00.000Z').getTime(),
         issue_type: 'bug'
       },
       {
         id: 'R-3',
         title: 'r3',
         priority: 1,
-        updated_at: '2025-10-22T08:00:00.000Z',
+        updated_at: new Date('2025-10-22T08:00:00.000Z').getTime(),
         issue_type: 'feature'
       },
       // In progress
       {
         id: 'P-1',
         title: 'p1',
-        updated_at: '2025-10-23T09:00:00.000Z',
+        updated_at: new Date('2025-10-23T09:00:00.000Z').getTime(),
         issue_type: 'task'
       },
       {
         id: 'P-2',
         title: 'p2',
-        updated_at: '2025-10-22T09:00:00.000Z',
+        updated_at: new Date('2025-10-22T09:00:00.000Z').getTime(),
         issue_type: 'feature'
       },
       // Closed
       {
         id: 'C-2',
         title: 'c2',
-        updated_at: '2025-10-20T09:00:00.000Z',
-        closed_at: new Date(now).toISOString(),
+        updated_at: new Date('2025-10-20T09:00:00.000Z').getTime(),
+        closed_at: new Date(now).getTime(),
         issue_type: 'task'
       },
       {
         id: 'C-1',
         title: 'c1',
-        updated_at: '2025-10-21T09:00:00.000Z',
-        closed_at: new Date(now - 60 * 60 * 1000).toISOString(),
+        updated_at: new Date('2025-10-21T09:00:00.000Z').getTime(),
+        closed_at: new Date(now - 60 * 60 * 1000).getTime(),
         issue_type: 'bug'
       }
     ];

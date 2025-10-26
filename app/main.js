@@ -53,12 +53,10 @@ export function bootstrap(root_element) {
     const subscriptions = createSubscriptionStore((type, payload) =>
       client.send(type, payload)
     );
-    // Bind through wrapper to preserve `this` semantics in tests/mocks
-    subscriptions.wireEvents((type, handler) => client.on(type, handler));
     // Per-subscription stores (source of truth)
     const sub_issue_stores = createSubscriptionIssueStores();
     // Route per-subscription push envelopes to the owning store
-    client.on(/** @type {any} */ ('snapshot'), (payload) => {
+    client.on('snapshot', (payload) => {
       const p = /** @type {any} */ (payload);
       const id = p && typeof p.id === 'string' ? p.id : '';
       const store = id ? sub_issue_stores.getStore(id) : null;
@@ -70,7 +68,7 @@ export function bootstrap(root_element) {
         }
       }
     });
-    client.on(/** @type {any} */ ('upsert'), (payload) => {
+    client.on('upsert', (payload) => {
       const p = /** @type {any} */ (payload);
       const id = p && typeof p.id === 'string' ? p.id : '';
       const store = id ? sub_issue_stores.getStore(id) : null;
@@ -82,7 +80,7 @@ export function bootstrap(root_element) {
         }
       }
     });
-    client.on(/** @type {any} */ ('delete'), (payload) => {
+    client.on('delete', (payload) => {
       const p = /** @type {any} */ (payload);
       const id = p && typeof p.id === 'string' ? p.id : '';
       const store = id ? sub_issue_stores.getStore(id) : null;
@@ -389,12 +387,7 @@ export function bootstrap(root_element) {
         }
       }
     };
-    // Register list-delta first so tests that keep a single handler slot
-    // end up with issues-changed as the last bound handler.
-    client.on('list-delta', () => {
-      // Legacy membership events are ignored by vNext stores; just coalesce a refresh
-      onPushLike({});
-    });
+    // Legacy list-delta removed in vNext; no handler needed.
     // Trigger lightweight re-render on legacy issues envelopes as well
     client.on('issues', () => {
       // Avoid heavy refetch; our list transport reads from local store

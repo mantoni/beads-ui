@@ -38,7 +38,6 @@ export function subKeyOf(spec) {
  * Create a list subscription store.
  *
  * Wiring:
- *  - Call `wireEvents(onEvent)` to listen for `list-delta` events from ws.
  *  - Use `subscribeList` to register a subscription and send the request.
  *
  * Selectors are synchronous and return derived state by client id.
@@ -89,24 +88,6 @@ export function createSubscriptionStore(send) {
         }
       }
     }
-  }
-
-  /**
-   * Wire ws event subscription to handle `list-delta`.
-   * @param {(type: MessageType, handler: (payload: unknown) => void) => void} onEvent
-   */
-  function wireEvents(onEvent) {
-    onEvent('list-delta', (payload) => {
-      /** @type {any} */
-      const p = payload;
-      const key = p && typeof p.key === 'string' ? p.key : '';
-      const delta =
-        p && p.delta && typeof p.delta === 'object' ? p.delta : null;
-      if (!key || !delta) {
-        return;
-      }
-      applyDelta(key, /** @type {any} */ (delta));
-    });
   }
 
   /**
@@ -232,7 +213,6 @@ export function createSubscriptionStore(send) {
   };
 
   return {
-    wireEvents,
     subscribeList,
     // test/diagnostics helpers
     _applyDelta: applyDelta,

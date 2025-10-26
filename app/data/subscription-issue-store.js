@@ -22,8 +22,12 @@ function cmpPriorityThenUpdated(a, b) {
   if (pa !== pb) {
     return pa - pb;
   }
-  const ua = String(a?.updated_at || '');
-  const ub = String(b?.updated_at || '');
+  const ua = Number.isFinite(a?.updated_at)
+    ? /** @type {number} */ (a.updated_at)
+    : 0;
+  const ub = Number.isFinite(b?.updated_at)
+    ? /** @type {number} */ (b.updated_at)
+    : 0;
   if (ua !== ub) {
     return ua < ub ? 1 : -1;
   }
@@ -105,9 +109,13 @@ export function createSubscriptionIssueStore(id, options = {}) {
           items_by_id.set(it.id, it);
         } else {
           // Guard with updated_at; prefer newer
-          const prev_ts = String(existing.updated_at || '');
-          const next_ts = String(it.updated_at || '');
-          if (!prev_ts || prev_ts <= next_ts) {
+          const prev_ts = Number.isFinite(existing.updated_at)
+            ? /** @type {number} */ (existing.updated_at)
+            : 0;
+          const next_ts = Number.isFinite(it.updated_at)
+            ? /** @type {number} */ (it.updated_at)
+            : 0;
+          if (prev_ts <= next_ts) {
             // Mutate existing object to preserve reference
             for (const k of Object.keys(existing)) {
               if (!(k in it)) {

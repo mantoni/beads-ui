@@ -5,8 +5,8 @@
 
 export interface IssueRef {
   id: string;
-  updated_at: string;
-  closed_at: string | null;
+  updated_at: number; // epoch ms
+  closed_at: number | null; // epoch ms or null
 }
 
 export interface Issue extends IssueRef {
@@ -52,22 +52,30 @@ export interface UnsubscribeMessage {
 
 export type ClientMessage = SubscribeMessage | UnsubscribeMessage;
 
-export interface SubscribedMessage {
-  kind: 'subscribed';
-  id: string;
+export type SubscriptionSchema = 'beads.subscription@v1';
+
+export interface SnapshotMessage {
+  kind: 'snapshot';
+  id: string; // client subscription id
+  schema: SubscriptionSchema;
+  revision: number; // strictly increasing per subscription
+  issues: Issue[];
 }
 
-export interface UnsubscribedMessage {
-  kind: 'unsubscribed';
+export interface UpsertMessage {
+  kind: 'upsert';
   id: string;
+  schema: SubscriptionSchema;
+  revision: number;
+  issue: Issue;
 }
 
-export interface DeltaMessage {
-  kind: 'delta';
+export interface DeleteMessage {
+  kind: 'delete';
   id: string;
-  added: Issue[];
-  updated: Issue[];
-  removed: string[]; // ids
+  schema: SubscriptionSchema;
+  revision: number;
+  issue_id: string;
 }
 
 export interface ErrorMessage {
@@ -79,9 +87,9 @@ export interface ErrorMessage {
 }
 
 export type ServerMessage =
-  | SubscribedMessage
-  | UnsubscribedMessage
-  | DeltaMessage
+  | SnapshotMessage
+  | UpsertMessage
+  | DeleteMessage
   | ErrorMessage;
 
 export interface SubscriptionRegistryEntry {

@@ -5,7 +5,7 @@
  */
 
 /**
- * @typedef {{ id: string, title?: string, status?: 'open'|'in_progress'|'closed', priority?: number, issue_type?: string, updated_at?: string, closed_at?: string }} IssueLite
+ * @typedef {{ id: string, title?: string, status?: 'open'|'in_progress'|'closed', priority?: number, issue_type?: string, updated_at?: number, closed_at?: number }} IssueLite
  */
 
 /**
@@ -31,8 +31,12 @@ export function createListSelectors(issue_stores = undefined) {
     if (pa !== pb) {
       return pa - pb;
     }
-    const ua = a.updated_at || '';
-    const ub = b.updated_at || '';
+    const ua = Number.isFinite(a.updated_at)
+      ? /** @type {number} */ (a.updated_at)
+      : 0;
+    const ub = Number.isFinite(b.updated_at)
+      ? /** @type {number} */ (b.updated_at)
+      : 0;
     if (ua !== ub) {
       return ua < ub ? 1 : -1;
     }
@@ -45,8 +49,12 @@ export function createListSelectors(issue_stores = undefined) {
    * @param {IssueLite} b
    */
   function cmpUpdatedDesc(a, b) {
-    const ua = a.updated_at || '';
-    const ub = b.updated_at || '';
+    const ua = Number.isFinite(a.updated_at)
+      ? /** @type {number} */ (a.updated_at)
+      : 0;
+    const ub = Number.isFinite(b.updated_at)
+      ? /** @type {number} */ (b.updated_at)
+      : 0;
     if (ua !== ub) {
       return ua < ub ? 1 : -1;
     }
@@ -59,8 +67,16 @@ export function createListSelectors(issue_stores = undefined) {
    * @param {IssueLite} b
    */
   function cmpClosedDesc(a, b) {
-    const ca = a.closed_at || a.updated_at || '';
-    const cb = b.closed_at || b.updated_at || '';
+    const ca = Number.isFinite(a.closed_at)
+      ? /** @type {number} */ (a.closed_at)
+      : Number.isFinite(a.updated_at)
+        ? /** @type {number} */ (a.updated_at)
+        : 0;
+    const cb = Number.isFinite(b.closed_at)
+      ? /** @type {number} */ (b.closed_at)
+      : Number.isFinite(b.updated_at)
+        ? /** @type {number} */ (b.updated_at)
+        : 0;
     if (ca !== cb) {
       return ca < cb ? 1 : -1;
     }
@@ -76,7 +92,10 @@ export function createListSelectors(issue_stores = undefined) {
     if (!issue_stores || typeof issue_stores.snapshotFor !== 'function') {
       return [];
     }
-    return issue_stores.snapshotFor(client_id).slice();
+    return issue_stores
+      .snapshotFor(client_id)
+      .slice()
+      .sort(cmpPriorityThenUpdated);
   }
 
   /**

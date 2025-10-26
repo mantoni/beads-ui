@@ -266,33 +266,6 @@ export class SubscriptionRegistry {
     const next_map = toItemsMap(items);
     return this.applyNextMap(key, next_map);
   }
-
-  /**
-   * Publish a delta to all subscribers for a key.
-   * @param {string} key
-   * @param {{ added: string[], updated: string[], removed: string[] }} delta
-   */
-  publishDelta(key, delta) {
-    const entry = this._entries.get(key);
-    if (!entry || entry.subscribers.size === 0) {
-      return;
-    }
-    const msg = JSON.stringify({
-      id: `evt-${Date.now()}`,
-      ok: true,
-      type: 'list-delta',
-      payload: { key, delta }
-    });
-    for (const ws of entry.subscribers) {
-      try {
-        if (ws.readyState === ws.OPEN) {
-          ws.send(msg);
-        }
-      } catch {
-        // ignore send errors per socket
-      }
-    }
-  }
 }
 
 /**

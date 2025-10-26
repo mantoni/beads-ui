@@ -35,6 +35,12 @@ let REFRESH_DEBOUNCE_MS = 75;
 let MUTATION_GATE = null;
 
 /**
+ * Schema tag for per-subscription envelopes.
+ * @type {string}
+ */
+const SUBSCRIPTION_SCHEMA = 'beads.subscription@v1';
+
+/**
  * Start a mutation window gate if not already active. The gate resolves on the
  * next watcher event or after `timeout_ms`, then triggers a single refresh run
  * across all active list subscriptions. Watcher-driven refresh scheduling is
@@ -171,11 +177,12 @@ export function scheduleListRefresh() {
  *   show_id?: string | null,
  *   list_subs?: Map<string, { key: string, spec: { type: string, params?: Record<string, string | number | boolean> } }>,
  *   issues_rev?: number,
- *   issues_subscribed?: boolean
+ *   issues_subscribed?: boolean,
+ *   list_revisions?: Map<string, number>
  * }} ConnectionSubs
  */
 
-/** @type {WeakMap<WebSocket, ConnectionSubs>} */
+/** @type {WeakMap<WebSocket, any>} */
 const SUBS = new WeakMap();
 
 /** @type {WebSocketServer | null} */
@@ -184,7 +191,7 @@ let CURRENT_WSS = null;
 /**
  * Get or initialize the subscription state for a socket.
  * @param {WebSocket} ws
- * @returns {ConnectionSubs}
+ * @returns {any}
  */
 function ensureSubs(ws) {
   let s = SUBS.get(ws);
@@ -193,11 +200,119 @@ function ensureSubs(ws) {
       show_id: null,
       list_subs: new Map(),
       issues_rev: 0,
-      issues_subscribed: false
+      issues_subscribed: false,
+      list_revisions: new Map()
     };
     SUBS.set(ws, s);
   }
   return s;
+}
+
+/**
+ * Get next monotonically increasing revision for a subscription key on this connection.
+ * @param {WebSocket} ws
+ * @param {string} key
+ */
+/**
+ * @param {WebSocket} ws
+ * @param {string} key
+ */
+function nextListRevision(ws, key) {
+  const s = ensureSubs(ws);
+  const m = s.list_revisions || new Map();
+  s.list_revisions = m;
+  const prev = m.get(key) || 0;
+  const next = prev + 1;
+  m.set(key, next);
+  return next;
+}
+
+/**
+ * Emit per-subscription envelopes to a specific client id on a socket.
+ * Helpers for snapshot / upsert / delete.
+ */
+/**
+ * @param {WebSocket} ws
+ * @param {string} client_id
+ * @param {string} key
+ * @param {Array<Record<string, unknown>>} issues
+ */
+function emitSubscriptionSnapshot(ws, client_id, key, issues) {
+  const revision = nextListRevision(ws, key);
+  const payload = {
+    type: /** @type {const} */ ('snapshot'),
+    id: client_id,
+    schema: SUBSCRIPTION_SCHEMA,
+    revision,
+    issues
+  };
+  const msg = JSON.stringify({
+    id: `evt-${Date.now()}`,
+    ok: true,
+    type: /** @type {import('../app/protocol.js').MessageType} */ ('snapshot'),
+    payload
+  });
+  try {
+    ws.send(msg);
+  } catch {
+    // ignore per-socket errors
+  }
+}
+
+/**
+ * @param {WebSocket} ws
+ * @param {string} client_id
+ * @param {string} key
+ * @param {Record<string, unknown>} issue
+ */
+function emitSubscriptionUpsert(ws, client_id, key, issue) {
+  const revision = nextListRevision(ws, key);
+  const payload = {
+    type: /** @type {const} */ ('upsert'),
+    id: client_id,
+    schema: SUBSCRIPTION_SCHEMA,
+    revision,
+    issue
+  };
+  const msg = JSON.stringify({
+    id: `evt-${Date.now()}`,
+    ok: true,
+    type: /** @type {import('../app/protocol.js').MessageType} */ ('upsert'),
+    payload
+  });
+  try {
+    ws.send(msg);
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * @param {WebSocket} ws
+ * @param {string} client_id
+ * @param {string} key
+ * @param {string} issue_id
+ */
+function emitSubscriptionDelete(ws, client_id, key, issue_id) {
+  const revision = nextListRevision(ws, key);
+  const payload = {
+    type: /** @type {const} */ ('delete'),
+    id: client_id,
+    schema: SUBSCRIPTION_SCHEMA,
+    revision,
+    issue_id
+  };
+  const msg = JSON.stringify({
+    id: `evt-${Date.now()}`,
+    ok: true,
+    type: /** @type {import('../app/protocol.js').MessageType} */ ('delete'),
+    payload
+  });
+  try {
+    ws.send(msg);
+  } catch {
+    // ignore
+  }
 }
 
 /**
@@ -304,8 +419,8 @@ function pushIssueUpdateToSubscribers(issue) {
 }
 
 /**
- * Refresh a subscription spec: fetch via adapter, apply to registry and publish delta.
- * Serialized per-key using registry.withKeyLock.
+ * Refresh a subscription spec: fetch via adapter, apply to registry and emit
+ * per-subscription full-issue envelopes to subscribers. Serialized per key.
  * @param {{ type: string, params?: Record<string, string|number|boolean> }} spec
  */
 async function refreshAndPublish(spec) {
@@ -316,13 +431,46 @@ async function refreshAndPublish(spec) {
       return;
     }
     const items = applyClosedIssuesFilter(spec, res.items);
+    const prevSize = registry.get(key)?.itemsById.size || 0;
     const delta = registry.applyItems(key, items);
-    if (
-      delta.added.length > 0 ||
-      delta.updated.length > 0 ||
-      delta.removed.length > 0
-    ) {
-      registry.publishDelta(key, delta);
+    const entry = registry.get(key);
+    if (!entry || entry.subscribers.size === 0) {
+      return;
+    }
+    /** @type {Map<string, any>} */
+    const byId = new Map();
+    for (const it of items) {
+      if (it && typeof it.id === 'string') {
+        byId.set(it.id, it);
+      }
+    }
+    for (const ws of entry.subscribers) {
+      if (ws.readyState !== ws.OPEN) continue;
+      const s = ensureSubs(ws);
+      const subs = s.list_subs || new Map();
+      /** @type {string[]} */
+      const clientIds = [];
+      for (const [cid, v] of subs.entries()) {
+        if (v.key === key) clientIds.push(cid);
+      }
+      if (clientIds.length === 0) continue;
+      if (prevSize === 0) {
+        for (const cid of clientIds) {
+          emitSubscriptionSnapshot(ws, cid, key, items);
+        }
+        continue;
+      }
+      for (const cid of clientIds) {
+        for (const id of [...delta.added, ...delta.updated]) {
+          const issue = byId.get(id);
+          if (issue) {
+            emitSubscriptionUpsert(ws, cid, key, issue);
+          }
+        }
+        for (const id of delta.removed) {
+          emitSubscriptionDelete(ws, cid, key, id);
+        }
+      }
     }
   });
 }
@@ -548,11 +696,19 @@ export async function handleMessage(ws, data) {
     // Attach to registry
     const { key } = registry.attach(spec, ws);
     s.list_subs?.set(client_id, { key, spec });
-    // Kick an initial refresh + delta fanout
+    // Send an initial snapshot for this client id only and store items
     try {
-      await refreshAndPublish(spec);
+      await registry.withKeyLock(key, async () => {
+        const res = await fetchListForSubscription(spec);
+        if (!res.ok) {
+          return;
+        }
+        const items = applyClosedIssuesFilter(spec, res.items);
+        void registry.applyItems(key, items);
+        emitSubscriptionSnapshot(ws, client_id, key, items);
+      });
     } catch {
-      // ignore refresh errors
+      // ignore snapshot errors
     }
     ws.send(JSON.stringify(makeOk(req, { id: client_id, key })));
     return;

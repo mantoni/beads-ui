@@ -51,9 +51,9 @@ describe('views/board persisted closed filter via store', () => {
     const oneDay = 24 * 60 * 60 * 1000;
 
     const issues = [
-      { id: 'A', closed_at: new Date(now - 8 * oneDay).toISOString() },
-      { id: 'B', closed_at: new Date(now - 2 * oneDay).toISOString() },
-      { id: 'C', closed_at: new Date(now).toISOString() }
+      { id: 'A', closed_at: new Date(now - 8 * oneDay).getTime() },
+      { id: 'B', closed_at: new Date(now - 2 * oneDay).getTime() },
+      { id: 'C', closed_at: new Date(now).getTime() }
     ];
     const issueStores = createTestIssueStores();
     issueStores.getStore('tab:board:closed').applyPush({

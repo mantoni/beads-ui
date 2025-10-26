@@ -58,31 +58,6 @@ describe('client subscription store', () => {
     await unsub1();
   });
 
-  test('wireEvents applies deltas from onEvent handler', async () => {
-    const send = async () => ({ ok: true });
-    const store = createSubscriptionStore(send);
-    const spec = { type: 'closed-issues' };
-    const key = store._subKeyOf(spec);
-
-    /** @type {(payload: any) => void} */
-    let handler = () => {
-      throw new Error('list-delta handler was not wired');
-    };
-    /** @type {(type: MessageType, handler: (payload: unknown) => void) => void} */
-    const onEvent = (type, h) => {
-      if (type === 'list-delta') {
-        handler = /** @type {any} */ (h);
-      }
-    };
-    store.wireEvents(/** @type {any} */ (onEvent));
-
-    await store.subscribeList('sA', spec);
-    expect(store.selectors.count('sA')).toBe(0);
-
-    handler({ key, delta: { added: ['UI-20'], updated: [], removed: [] } });
-    expect(store.selectors.getIds('sA')).toEqual(['UI-20']);
-  });
-
   test('unsubscribe clears local store and mapping', async () => {
     const send = async () => ({ ok: true });
     const store = createSubscriptionStore(send);

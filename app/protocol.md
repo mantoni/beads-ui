@@ -4,9 +4,9 @@ Note (2025-10-26)
 
 - The server no longer implements legacy read RPCs `list-issues` and
   `epic-status`. Clients must use the push-only protocol described in
-  `docs/protocol/issues-push-v2.md` (subscribe-list / list-delta and
-  subscribe-issues / issues). The shapes below are retained for historical
-  reference of v1.
+  `docs/protocol/issues-push-v2.md` (subscribe-list with per-subscription events
+  snapshot/upsert/delete, and subscribe-issues / issues). The shapes below are
+  retained for historical reference of v1.
 
 This document defines the JSON messages exchanged between the browser client and
 the local server.

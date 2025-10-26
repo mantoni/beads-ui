@@ -11,8 +11,8 @@ import { createTypeBadge } from '../utils/type-badge.js';
  *   status?: 'open'|'in_progress'|'closed',
  *   priority?: number,
  *   issue_type?: string,
- *   updated_at?: string,
- *   closed_at?: string
+ *   updated_at?: number,
+ *   closed_at?: number
  * }} IssueLite
  */
 
@@ -29,7 +29,7 @@ import { createTypeBadge } from '../utils/type-badge.js';
  * @param {(id: string) => void} gotoIssue - Navigate to issue detail.
  * @param {{ getState: () => any, setState: (patch: any) => void, subscribe?: (fn: (s:any)=>void)=>()=>void }} [store]
  * @param {{ selectors: { getIds: (client_id: string) => string[], count?: (client_id: string) => number } }} [subscriptions]
- * @param {{ snapshotFor?: (client_id: string) => IssueLite[], subscribe?: (fn: () => void) => () => void }} [issueStores]
+ * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void }} [issueStores]
  * @returns {{ load: () => Promise<void>, clear: () => void }}
  */
 export function createBoardView(
@@ -398,12 +398,13 @@ export function createBoardView(
       since_ts = now.getTime() - 7 * 24 * 60 * 60 * 1000;
     }
     items = items.filter((it) => {
-      const s = it.closed_at || '';
-      if (!s || isNaN(Date.parse(s))) {
+      const s = Number.isFinite(it.closed_at)
+        ? /** @type {number} */ (it.closed_at)
+        : NaN;
+      if (!Number.isFinite(s)) {
         return false;
       }
-      const t = Date.parse(s);
-      return t >= since_ts;
+      return s >= since_ts;
     });
     sortByClosedDesc(items);
     list_closed = items;

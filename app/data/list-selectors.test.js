@@ -76,24 +76,9 @@ describe('list-selectors', () => {
       id: 'tab:issues',
       revision: 1,
       issues: [
-        {
-          id: 'A',
-          priority: 2,
-          updated_at: '2025-10-25T10:00:00Z',
-          closed_at: null
-        },
-        {
-          id: 'B',
-          priority: 1,
-          updated_at: '2025-10-25T09:00:00Z',
-          closed_at: null
-        },
-        {
-          id: 'C',
-          priority: 1,
-          updated_at: '2025-10-25T11:00:00Z',
-          closed_at: null
-        }
+        { id: 'A', priority: 2, updated_at: 10_000, closed_at: null },
+        { id: 'B', priority: 1, updated_at: 9_000, closed_at: null },
+        { id: 'C', priority: 1, updated_at: 11_000, closed_at: null }
       ]
     });
 
@@ -110,24 +95,9 @@ describe('list-selectors', () => {
       id: 'tab:board:ready',
       revision: 1,
       issues: [
-        {
-          id: 'R1',
-          priority: 2,
-          updated_at: '2025-10-25T10:00:00Z',
-          closed_at: null
-        },
-        {
-          id: 'R2',
-          priority: 1,
-          updated_at: '2025-10-25T09:00:00Z',
-          closed_at: null
-        },
-        {
-          id: 'R3',
-          priority: 1,
-          updated_at: '2025-10-25T11:00:00Z',
-          closed_at: null
-        }
+        { id: 'R1', priority: 2, updated_at: 10_000, closed_at: null },
+        { id: 'R2', priority: 1, updated_at: 9_000, closed_at: null },
+        { id: 'R3', priority: 1, updated_at: 11_000, closed_at: null }
       ]
     });
     // In progress
@@ -136,9 +106,9 @@ describe('list-selectors', () => {
       id: 'tab:board:in-progress',
       revision: 1,
       issues: [
-        { id: 'P1', updated_at: '2025-10-26T08:00:00Z', closed_at: null },
-        { id: 'P2', updated_at: '2025-10-26T09:00:00Z', closed_at: null },
-        { id: 'P3', updated_at: '2025-10-26T07:00:00Z', closed_at: null }
+        { id: 'P1', updated_at: 8_000, closed_at: null },
+        { id: 'P2', updated_at: 9_000, closed_at: null },
+        { id: 'P3', updated_at: 7_000, closed_at: null }
       ]
     });
     // Closed
@@ -147,21 +117,9 @@ describe('list-selectors', () => {
       id: 'tab:board:closed',
       revision: 1,
       issues: [
-        {
-          id: 'C1',
-          closed_at: '2025-10-26T05:00:00Z',
-          updated_at: '2025-10-25T20:00:00Z'
-        },
-        {
-          id: 'C2',
-          closed_at: '2025-10-26T06:00:00Z',
-          updated_at: '2025-10-25T20:00:00Z'
-        },
-        {
-          id: 'C3',
-          closed_at: '2025-10-26T04:00:00Z',
-          updated_at: '2025-10-26T07:30:00Z'
-        }
+        { id: 'C1', closed_at: 5_000, updated_at: 20_000 },
+        { id: 'C2', closed_at: 6_000, updated_at: 20_000 },
+        { id: 'C3', closed_at: 4_000, updated_at: 7_300 }
       ]
     });
 
@@ -189,18 +147,8 @@ describe('list-selectors', () => {
       id: 'epic:42',
       revision: 1,
       issues: [
-        {
-          id: 'E1',
-          priority: 1,
-          updated_at: '2025-10-26T10:00:00Z',
-          closed_at: null
-        },
-        {
-          id: 'E2',
-          priority: 1,
-          updated_at: '2025-10-26T09:00:00Z',
-          closed_at: null
-        }
+        { id: 'E1', priority: 1, updated_at: 10_000, closed_at: null },
+        { id: 'E2', priority: 1, updated_at: 9_000, closed_at: null }
       ]
     });
     const out = selectors.selectEpicChildren('42').map((x) => x.id);

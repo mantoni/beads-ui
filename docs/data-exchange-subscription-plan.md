@@ -136,55 +136,32 @@ When client requests a change (e.g., update status):
 - Epic toggle: subscribe/unsubscribe `issues-for-epic:{id}`.
 - Components derive view state from the local store snapshot.
 
-## Wire Protocol
+## Wire Protocol (vNext)
 
 ### Messages: Client → Server
 
-- `subscribe` `{ id: string, type: string, params?: object }`
-- `unsubscribe` `{ id: string }`
+- `subscribe-list` `{ id: string, type: string, params?: object }`
+- `unsubscribe-list` `{ id: string }`
 - Explicit mutation messages (enumerated in the protocol; no generic command
-  pipe). Examples: `updateIssue`, `closeIssue`, etc. The exact set follows the
-  existing protocol in the codebase.
+  pipe). The set mirrors the main protocol (update-status, edit-text,
+  update-priority, update-assignee, create-issue, dep-add/remove,
+  label-add/remove).
 
-#### Explicit Mutation Operations
+### Messages: Server → Client (Per-Subscription)
 
-Supported operations mirror the current protocol and map to concrete `bd`
-commands:
+All envelopes include `schema: 'beads.subscription@v1'`, a per-subscription
+`revision` (monotonic, starting at 1), and the client subscription `id`.
 
-- `update-status` `{ id, status: 'open'|'in_progress'|'closed' }`
-  - bd: `bd update <id> --status <status>`
-- `edit-text`
-  `{ id, field: 'title'|'description'|'acceptance'|'notes'|'design', value }`
-  - bd:
-    `bd update <id> --title|--description|--acceptance-criteria|--notes|--design`
-- `update-priority` `{ id, priority: 0|1|2|3|4 }`
-  - bd: `bd update <id> --priority <n>`
-- `update-assignee` `{ id, assignee: string }`
-  - bd: `bd update <id> --assignee <name>`
-- `create-issue` `{ title, type?, priority?, description? }`
-  - bd: `bd create "title" -t <type> -p <prio> -d "desc"`
-- `dep-add` `{ a, b, view_id? }` (a depends on b)
-  - bd: `bd dep add <a> <b>` (exact flags per bd)
-- `dep-remove` `{ a, b, view_id? }`
-  - bd: `bd dep remove <a> <b>` (exact flags per bd)
-- `label-add` `{ id, label }`
-  - bd: `bd label add <id> <label>` (if supported)
-- `label-remove` `{ id, label }`
-  - bd: `bd label remove <id> <label>` (if supported)
+- `snapshot` `{ id, schema, revision, issues: Issue[] }`
+- `upsert` `{ id, schema, revision, issue: Issue }`
+- `delete` `{ id, schema, revision, issue_id: string }`
 
-Notes:
+Notes
 
-- We do not expose a generic execute/command interface.
-- Any additions must be explicitly specified and mapped to `bd`.
-
-### Messages: Server → Client
-
-- `subscribed` `{ id: string }`
-- `unsubscribed` `{ id: string }`
-- `delta` `{ id: string, added: Issue[], updated: Issue[], removed: string[] }`
-- `error` `{ id?: string, code: string, message: string, details?: object }`
-
-`id` is the client’s subscription id; separate from server’s `subscriptionKey`.
+- Initial subscribe triggers a single `snapshot` for the requesting `id` only.
+- Subsequent refresh runs emit `upsert`/`delete` events to all subscribers of
+  the same subscription key on that connection.
+- Clients MUST apply envelopes in `revision` order and ignore stale revisions.
 
 ## Concurrency & Ordering Guarantees
 

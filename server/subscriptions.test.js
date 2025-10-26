@@ -102,20 +102,10 @@ describe('subscriptions registry', () => {
     expect(entry3).toBeNull();
   });
 
-  test('applyItems stores map and publishDelta sends to subscribers', () => {
+  test('applyItems stores map and returns correct delta', () => {
     const reg = new SubscriptionRegistry();
-    /** @type {Array<string>} */
-    const sent = [];
     /** @type {any} */
-    const ws = {
-      OPEN: 1,
-      readyState: 1,
-      /** @param {string} msg */
-      send(msg) {
-        sent.push(String(msg));
-      }
-    };
-
+    const ws = { OPEN: 1, readyState: 1, send: vi.fn() };
     const spec = { type: 'list', params: { ready: true } };
     const { key } = reg.attach(spec, ws);
 
@@ -134,19 +124,5 @@ describe('subscriptions registry', () => {
     expect(d2.added).toEqual(['C']);
     expect(d2.updated).toEqual(['B']);
     expect(d2.removed).toEqual(['A']);
-
-    reg.publishDelta(key, d2);
-    const merged = sent
-      .map((m) => {
-        try {
-          return JSON.parse(m);
-        } catch {
-          return null;
-        }
-      })
-      .filter(Boolean);
-    expect(merged.length).toBe(1);
-    expect(merged[0] && merged[0].type).toBe('list-delta');
-    expect(merged[0] && merged[0].payload && merged[0].payload.key).toBe(key);
   });
 });
