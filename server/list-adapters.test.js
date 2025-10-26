@@ -51,6 +51,14 @@ describe('list adapters for subscription types', () => {
     expect(args).toEqual(['list', '--json', '--status', 'closed']);
   });
 
+  test('mapSubscriptionToBdArgs returns args for issue-detail', () => {
+    const args = mapSubscriptionToBdArgs({
+      type: 'issue-detail',
+      params: { id: 'UI-123' }
+    });
+    expect(args).toEqual(['show', 'UI-123', '--json']);
+  });
+
   test('fetchListForSubscription returns normalized items (Date.parse)', async () => {
     /** @type {import('vitest').Mock} */ (runBdJson).mockResolvedValue({
       code: 0,

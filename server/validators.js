@@ -15,7 +15,8 @@ const SUBSCRIPTION_TYPES = new Set([
   'blocked-issues',
   'ready-issues',
   'in-progress-issues',
-  'closed-issues'
+  'closed-issues',
+  'issue-detail'
 ]);
 
 /**
@@ -80,6 +81,16 @@ export function validateSubscribeListPayload(payload) {
       };
     }
     params = { epic_id };
+  } else if (type === 'issue-detail') {
+    const id = String(params?.id ?? '').trim();
+    if (id.length === 0) {
+      return {
+        ok: false,
+        code: 'bad_request',
+        message: 'params.id must be a non-empty string'
+      };
+    }
+    params = { id };
   } else if (type === 'closed-issues') {
     if (params && 'since' in params) {
       const since = params.since;

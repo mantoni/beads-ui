@@ -28,7 +28,8 @@ export type SubscriptionType =
   | 'blocked-issues'
   | 'ready-issues'
   | 'in-progress-issues'
-  | 'closed-issues';
+  | 'closed-issues'
+  | 'issue-detail';
 
 export interface SubscribeParamsBase {
   /** Client-chosen subscription id (unique per connection). */

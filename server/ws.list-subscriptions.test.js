@@ -250,6 +250,80 @@ describe('ws list subscriptions', () => {
     expect(reply && reply.error && reply.error.code).toBe('bad_request');
   });
 
+  test('subscribe-list accepts issue-detail with id and publishes snapshot', async () => {
+    const sock = {
+      sent: /** @type {string[]} */ ([]),
+      readyState: 1,
+      OPEN: 1,
+      /** @param {string} msg */
+      send(msg) {
+        this.sent.push(String(msg));
+      }
+    };
+
+    await handleMessage(
+      /** @type {any} */ (sock),
+      Buffer.from(
+        JSON.stringify({
+          id: 'sub-detail-1',
+          type: /** @type {any} */ ('subscribe-list'),
+          payload: {
+            id: 'detail:UI-1',
+            type: 'issue-detail',
+            params: { id: 'UI-1' }
+          }
+        })
+      )
+    );
+
+    const last = sock.sent[sock.sent.length - 1];
+    const reply = JSON.parse(last);
+    expect(reply && reply.ok).toBe(true);
+    expect(reply && reply.type).toBe('subscribe-list');
+
+    const snapshotEnvelope = sock.sent
+      .map((m) => {
+        try {
+          return JSON.parse(m);
+        } catch {
+          return null;
+        }
+      })
+      .find((o) => o && o.type === 'snapshot');
+    expect(!!snapshotEnvelope).toBe(true);
+    expect(snapshotEnvelope.payload && snapshotEnvelope.payload.id).toBe(
+      'detail:UI-1'
+    );
+    expect(Array.isArray(snapshotEnvelope.payload.issues)).toBe(true);
+  });
+
+  test('subscribe-list issue-detail enforces id', async () => {
+    const sock = {
+      sent: /** @type {string[]} */ ([]),
+      readyState: 1,
+      OPEN: 1,
+      /** @param {string} msg */
+      send(msg) {
+        this.sent.push(String(msg));
+      }
+    };
+
+    await handleMessage(
+      /** @type {any} */ (sock),
+      Buffer.from(
+        JSON.stringify({
+          id: 'bad-detail',
+          type: /** @type {any} */ ('subscribe-list'),
+          payload: { id: 'detail:UI-X', type: 'issue-detail' }
+        })
+      )
+    );
+    const last = sock.sent[sock.sent.length - 1];
+    const reply = JSON.parse(last);
+    expect(reply && reply.ok).toBe(false);
+    expect(reply && reply.error && reply.error.code).toBe('bad_request');
+  });
+
   test('subscribe-list issues-for-epic enforces epic_id', async () => {
     const sock = {
       sent: /** @type {string[]} */ ([]),
