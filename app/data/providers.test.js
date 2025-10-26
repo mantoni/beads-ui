@@ -22,9 +22,6 @@ function makeTransportRecorder() {
       if (type === 'list-issues') {
         return [];
       }
-      if (type === 'show-issue') {
-        return { id: payload?.id || 'X' };
-      }
       if (
         type === 'update-status' ||
         type === 'update-priority' ||
@@ -70,13 +67,5 @@ describe('data/providers', () => {
     expect(types).toContain('update-assignee');
   });
 
-  test('getIssue calls show-issue and returns the result', async () => {
-    const rec = makeTransportRecorder();
-    const data = createDataLayer((t, p) => rec.send(t, p));
-    const res = await data.getIssue('UI-99');
-    expect(res).toEqual({ id: 'UI-99' });
-    const last = rec.calls[rec.calls.length - 1];
-    expect(last.type).toBe('show-issue');
-    expect(last.payload.id).toBe('UI-99');
-  });
+  // removed: getIssue (read RPC)
 });

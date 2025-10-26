@@ -588,42 +588,7 @@ export async function handleMessage(ws, data) {
 
   // list-issues and epic-status were removed in favor of push-only subscriptions
 
-  // show-issue
-  if (req.type === 'show-issue') {
-    const { id } = /** @type {any} */ (req.payload);
-    if (typeof id !== 'string' || id.length === 0) {
-      ws.send(
-        JSON.stringify(
-          makeError(req, 'bad_request', 'payload.id must be a non-empty string')
-        )
-      );
-      return;
-    }
-    const res = await runBdJson(['show', id, '--json']);
-    if (res.code !== 0) {
-      const err = makeError(req, 'bd_error', res.stderr || 'bd failed');
-      ws.send(JSON.stringify(err));
-      return;
-    }
-    // bd show can return an array when it supports multiple ids;
-    // normalize to a single object for the single-id API.
-    const out = Array.isArray(res.stdoutJson)
-      ? res.stdoutJson[0]
-      : res.stdoutJson;
-    if (!out) {
-      ws.send(JSON.stringify(makeError(req, 'not_found', 'issue not found')));
-      return;
-    }
-    // Track current detail subscription for this connection
-    try {
-      const s = ensureSubs(ws);
-      s.show_id = String(id);
-    } catch {
-      // ignore
-    }
-    ws.send(JSON.stringify(makeOk(req, out)));
-    return;
-  }
+  // Removed: show-issue. Details flow is push-only via `subscribe-list { type: 'issue-detail' }`.
 
   // type updates are not exposed via UI; no handler
 

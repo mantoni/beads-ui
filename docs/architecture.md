@@ -77,7 +77,6 @@ Envelope shapes (see `app/protocol.js` for the source of truth):
 Message types (legacy v1; server now push-only):
 
 - Removed in v2: `list-issues` (use subscriptions + push stores)
-- `show-issue` payload: `{ id: string }`
 - `update-status` payload:
   `{ id: string, status: 'open'|'in_progress'|'closed' }`
 - `edit-text` payload:
@@ -140,13 +139,13 @@ Server push (subscriptions)
 }
 ```
 
-Error reply
+Error reply (legacy v1 example)
 
 ```json
 {
   "id": "r3",
   "ok": false,
-  "type": "show-issue",
+  "type": "edit-text",
   "error": { "code": "not_found", "message": "Issue UI-99" }
 }
 ```
@@ -155,7 +154,7 @@ Error reply
 
 - Removed in v2: List → use subscriptions and push
   (`docs/protocol/issues-push-v2.md`)
-- Show: `bd show <id> --json`
+- Removed in v2: Show (use `issue-detail` subscription)
 - Update status: `bd update <id> --status <open|in_progress|closed>`
 - Update priority: `bd update <id> --priority <0..4>`
 - Edit title: `bd update <id> --title <text>`
@@ -211,9 +210,6 @@ Notes
 - Error object: `{ code: string, message: string, details?: any }`
 - Common codes: `bad_request`, `not_found`, `bd_error`, `unknown_type`,
   `bad_json`
-- Versioning: `PROTOCOL_VERSION` in `app/protocol.js` (currently `1.0.0`).
-  Breaking changes increment this value; additive message types are backwards
-  compatible.
 
 ## Security and Local Boundaries
 

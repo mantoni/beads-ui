@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import {
   MESSAGE_TYPES,
-  PROTOCOL_VERSION,
   decodeReply,
   decodeRequest,
   isMessageType,
@@ -14,23 +13,30 @@ import {
 
 describe('protocol', () => {
   test('version and message types', () => {
-    expect(typeof PROTOCOL_VERSION).toBe('string');
     expect(Array.isArray(MESSAGE_TYPES)).toBe(true);
     expect(MESSAGE_TYPES.length).toBeGreaterThan(3);
-    expect(isMessageType('show-issue')).toBe(true);
+    expect(isMessageType('edit-text')).toBe(true);
     expect(isMessageType('unknown-type')).toBe(false);
   });
 
   test('makeRequest / isRequest / decodeRequest', () => {
-    const req = makeRequest('show-issue', { id: 'UI-1' }, 'r-1');
+    const req = makeRequest(
+      'edit-text',
+      { id: 'UI-1', field: 'title', value: 'X' },
+      'r-1'
+    );
     expect(isRequest(req)).toBe(true);
     const round = decodeRequest(JSON.parse(JSON.stringify(req)));
     expect(round.id).toBe('r-1');
-    expect(round.type).toBe('show-issue');
+    expect(round.type).toBe('edit-text');
   });
 
   test('makeOk / makeError / isReply / decodeReply', () => {
-    const req = makeRequest('show-issue', { id: 'UI-1' }, 'r-2');
+    const req = makeRequest(
+      'edit-text',
+      { id: 'UI-1', field: 'title', value: 'T' },
+      'r-2'
+    );
     const ok = makeOk(req, { id: 'UI-1', title: 'T' });
     expect(isReply(ok)).toBe(true);
     const ok2 = decodeReply(JSON.parse(JSON.stringify(ok)));

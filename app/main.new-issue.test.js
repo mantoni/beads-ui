@@ -28,21 +28,12 @@ vi.mock('./ws.js', () => ({
      */
     async send(type, payload) {
       // Record only mutation-related calls; list reads are push-only now
-      if (
-        type === 'create-issue' ||
-        type === 'label-add' ||
-        type === 'show-issue'
-      ) {
+      if (type === 'create-issue' || type === 'label-add') {
         calls.push({ type, payload });
       }
       if (type === 'list-issues') {
         // Provide data for legacy id-discovery path; do not record
         return issues;
-      }
-      if (type === 'show-issue') {
-        const id = /** @type {any} */ (payload).id;
-        const it = issues.find((x) => x.id === id);
-        return it || null;
       }
       if (type === 'create-issue') {
         return { created: true };

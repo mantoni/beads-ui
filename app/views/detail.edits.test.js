@@ -19,10 +19,16 @@ describe('views/detail edits', () => {
     };
     const updated = { ...initial, status: 'in_progress' };
 
-    const send = mockSend(async (type, payload) => {
-      if (type === 'show-issue') {
-        return initial;
+    const stores1 = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-7' ? [initial] : [];
+      },
+      subscribe() {
+        return () => {};
       }
+    };
+    const send = mockSend(async (type, payload) => {
       if (type === 'update-status') {
         expect(payload).toEqual({ id: 'UI-7', status: 'in_progress' });
         // simulate server reconcile payload
@@ -31,7 +37,7 @@ describe('views/detail edits', () => {
       throw new Error('Unexpected');
     });
 
-    const view = createDetailView(mount, send);
+    const view = createDetailView(mount, send, undefined, stores1);
     await view.load('UI-7');
 
     const select = /** @type {HTMLSelectElement} */ (
@@ -65,17 +71,23 @@ describe('views/detail edits', () => {
       status: 'open',
       priority: 1
     };
-    const send = mockSend(async (type, payload) => {
-      if (type === 'show-issue') {
-        return initial;
+    const stores2 = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-8' ? [initial] : [];
+      },
+      subscribe() {
+        return () => {};
       }
+    };
+    const send = mockSend(async (type, payload) => {
       if (type === 'edit-text') {
         const next = { ...initial, title: /** @type {any} */ (payload).value };
         return next;
       }
       throw new Error('Unexpected');
     });
-    const view = createDetailView(mount, send);
+    const view = createDetailView(mount, send, undefined, stores2);
     await view.load('UI-8');
     // Enter edit mode by clicking the span
     const titleSpan = /** @type {HTMLSpanElement} */ (
@@ -110,16 +122,22 @@ describe('views/detail edits', () => {
       status: 'open',
       priority: 2
     };
-    const send = mockSend(async (type) => {
-      if (type === 'show-issue') {
-        return initial;
+    const stores3 = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-9' ? [initial] : [];
+      },
+      subscribe() {
+        return () => {};
       }
+    };
+    const send = mockSend(async (type) => {
       if (type === 'edit-text') {
         throw new Error('boom');
       }
       throw new Error('Unexpected');
     });
-    const view = createDetailView(mount, send);
+    const view = createDetailView(mount, send, undefined, stores3);
     await view.load('UI-9');
     // Enter edit mode
     const md = /** @type {HTMLDivElement} */ (mount.querySelector('.md'));

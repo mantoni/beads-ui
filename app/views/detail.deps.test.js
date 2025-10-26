@@ -10,28 +10,28 @@ function setupDom() {
 describe('views/detail dependencies', () => {
   test('adds Dependencies link and re-renders', async () => {
     const mount = setupDom();
-    const send = vi
-      .fn()
-      // initial show
-      .mockResolvedValueOnce({
-        id: 'UI-10',
-        title: 'X',
-        dependencies: [],
-        dependents: []
-      })
-      // dep-add returns updated issue
-      .mockResolvedValueOnce({
-        id: 'UI-10',
-        dependencies: [{ id: 'UI-2' }],
-        dependents: []
-      });
-    const view = createDetailView(mount, /** @type {any} */ (send));
+    let current = { id: 'UI-10', title: 'X', dependencies: [], dependents: [] };
+    const stores1 = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-10' ? [current] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const send = vi.fn(async (type) => {
+      if (type === 'dep-add') {
+        return current;
+      }
+      throw new Error('Unexpected');
+    });
+    const view = createDetailView(mount, send, undefined, stores1);
     await view.load('UI-10');
 
     const input = mount.querySelector('[data-testid="add-dependency"]');
     expect(input).toBeTruthy();
-    /** @type {HTMLInputElement} */
-    const el = /** @type {any} */ (input);
+    const el = /** @type {HTMLInputElement} */ (input);
     el.value = 'UI-2';
     const addBtn = el.nextElementSibling;
     addBtn?.dispatchEvent(new window.Event('click'));
@@ -46,18 +46,28 @@ describe('views/detail dependencies', () => {
 
   test('removes Blocks link', async () => {
     const mount = setupDom();
-    const send = vi
-      .fn()
-      // initial show
-      .mockResolvedValueOnce({
-        id: 'UI-20',
-        title: 'Y',
-        dependencies: [],
-        dependents: [{ id: 'UI-5' }]
-      })
-      // dep-remove returns updated issue
-      .mockResolvedValueOnce({ id: 'UI-20', dependencies: [], dependents: [] });
-    const view = createDetailView(mount, /** @type {any} */ (send));
+    let current2 = {
+      id: 'UI-20',
+      title: 'Y',
+      dependencies: [],
+      dependents: [{ id: 'UI-5' }]
+    };
+    const stores2 = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-20' ? [current2] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const send = vi.fn(async (type) => {
+      if (type === 'dep-remove') {
+        return { id: 'UI-20', dependencies: [], dependents: [] };
+      }
+      throw new Error('Unexpected');
+    });
+    const view = createDetailView(mount, send, undefined, stores2);
     await view.load('UI-20');
 
     // Find the remove button next to link #5
@@ -75,16 +85,27 @@ describe('views/detail dependencies', () => {
 
   test('prevents duplicate link add', async () => {
     const mount = setupDom();
-    const send = vi.fn().mockResolvedValueOnce({
+    const current3 = {
       id: 'UI-30',
       dependencies: [{ id: 'UI-9' }],
       dependents: []
-    });
-    const view = createDetailView(mount, /** @type {any} */ (send));
+    };
+    const stores3 = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-30' ? [current3] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    // eslint-disable-next-line no-unused-vars
+    const send = vi.fn(async (type) => current3);
+    const view = createDetailView(mount, send, undefined, stores3);
     await view.load('UI-30');
 
     const input = mount.querySelector('[data-testid="add-dependency"]');
-    const el = /** @type {HTMLInputElement} */ (/** @type {any} */ (input));
+    const el = /** @type {HTMLInputElement} */ (input);
     el.value = 'UI-9';
     const addBtn = el.nextElementSibling;
     addBtn?.dispatchEvent(new window.Event('click'));

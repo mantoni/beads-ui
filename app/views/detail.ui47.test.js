@@ -7,7 +7,6 @@ describe('detail deps UI (UI-47)', () => {
       '<section class="panel"><div id="mount"></div></section>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
 
-    /** @type {any} */
     const issue = {
       id: 'UI-100',
       title: 'Parent',
@@ -18,12 +17,16 @@ describe('detail deps UI (UI-47)', () => {
       dependents: [{ id: 'UI-3', issue_type: 'task', title: 'Gamma' }]
     };
 
-    const view = createDetailView(mount, async (type) => {
-      if (type === 'show-issue') {
-        return issue;
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-100' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
       }
-      throw new Error('Unexpected');
-    });
+    };
+    const view = createDetailView(mount, async () => ({}), undefined, stores);
 
     await view.load('UI-100');
 
@@ -39,13 +42,26 @@ describe('detail deps UI (UI-47)', () => {
       '<section class="panel"><div id="mount"></div></section>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
     const navs = /** @type {string[]} */ ([]);
-    const send = vi.fn().mockResolvedValue({
+    const current = {
       id: 'UI-200',
       dependencies: [{ id: 'UI-9', issue_type: 'feature', title: 'Z' }],
       dependents: []
-    });
-    const view = createDetailView(mount, /** @type {any} */ (send), (hash) =>
-      navs.push(hash)
+    };
+    const stores2 = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-200' ? [current] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const send = vi.fn().mockResolvedValue(current);
+    const view = createDetailView(
+      mount,
+      send,
+      (hash) => navs.push(hash),
+      stores2
     );
 
     await view.load('UI-200');
@@ -59,10 +75,18 @@ describe('detail deps UI (UI-47)', () => {
     document.body.innerHTML =
       '<section class="panel"><div id="mount"></div></section>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
-    const send = vi
-      .fn()
-      .mockResolvedValue({ id: 'UI-300', dependencies: [], dependents: [] });
-    const view = createDetailView(mount, /** @type {any} */ (send));
+    const current2 = { id: 'UI-300', dependencies: [], dependents: [] };
+    const stores3 = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-300' ? [current2] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const send = vi.fn().mockResolvedValue(current2);
+    const view = createDetailView(mount, send, undefined, stores3);
     await view.load('UI-300');
 
     const input = /** @type {HTMLInputElement} */ (

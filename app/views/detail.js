@@ -1062,7 +1062,7 @@ export function createDetailView(
 
   function doRender() {
     if (!current) {
-      renderPlaceholder(current_id ? 'Issue not found' : 'No issue selected');
+      renderPlaceholder(current_id ? 'Loading…' : 'No issue selected');
       return;
     }
     render(detailTemplate(current), mount_element);
@@ -1234,30 +1234,6 @@ export function createDetailView(
       refreshFromStore();
       if (!current) {
         renderPlaceholder('Loading…');
-      }
-      // Fallback: seed from RPC when store has no data yet
-      if (!current) {
-        /** @type {unknown} */
-        let result = null;
-        try {
-          result = await sendFn('show-issue', { id: current_id });
-        } catch {
-          result = null;
-        }
-        if (result && typeof result === 'object') {
-          const issue = /** @type {IssueDetail} */ (result);
-          if (
-            issue &&
-            String(issue.id || '').toLowerCase() ===
-              String(current_id).toLowerCase()
-          ) {
-            current = issue;
-          } else {
-            renderPlaceholder('Issue not found');
-          }
-        } else if (!current) {
-          renderPlaceholder('Issue not found');
-        }
       }
       // Render from current (if available) or keep placeholder until push arrives
       pending = false;

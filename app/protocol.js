@@ -7,16 +7,9 @@
  * - Server → Client uses ReplyEnvelope.
  * - Every request is correlated by `id` in replies.
  * - Server can also send unsolicited events (e.g., subscription `snapshot`).
- *
- * Versioning
- * - Increment `PROTOCOL_VERSION` on breaking changes.
- * - Add new message types without breaking existing ones when possible.
  */
 
-/** @constant {string} */
-export const PROTOCOL_VERSION = '2.1.0';
-
-/** @typedef {'list-issues'|'show-issue'|'update-status'|'edit-text'|'update-priority'|'create-issue'|'list-ready'|'dep-add'|'dep-remove'|'epic-status'|'update-assignee'|'label-add'|'label-remove'|'subscribe-list'|'unsubscribe-list'|'snapshot'|'upsert'|'delete'} MessageType */
+/** @typedef {'list-issues'|'update-status'|'edit-text'|'update-priority'|'create-issue'|'list-ready'|'dep-add'|'dep-remove'|'epic-status'|'update-assignee'|'label-add'|'label-remove'|'subscribe-list'|'unsubscribe-list'|'snapshot'|'upsert'|'delete'} MessageType */
 
 /**
  * @typedef {Object} RequestEnvelope
@@ -44,7 +37,6 @@ export const PROTOCOL_VERSION = '2.1.0';
 /** @type {MessageType[]} */
 export const MESSAGE_TYPES = /** @type {const} */ ([
   'list-issues',
-  'show-issue',
   'update-status',
   'edit-text',
   'update-priority',

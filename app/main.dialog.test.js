@@ -14,23 +14,9 @@ if (typeof HTMLDialogElement !== 'undefined') {
   }
 }
 
-// Mock WS client
-const issues = [
-  { id: 'UI-1', title: 'One', status: 'open', priority: 1 },
-  { id: 'UI-2', title: 'Two', status: 'open', priority: 2 }
-];
 vi.mock('./ws.js', () => ({
   createWsClient: () => ({
-    /**
-     * @param {string} type
-     * @param {any} payload
-     */
-    async send(type, payload) {
-      if (type === 'show-issue') {
-        const id = /** @type {any} */ (payload).id;
-        const it = issues.find((i) => i.id === id);
-        return it || null;
-      }
+    async send() {
       return null;
     },
     on() {

@@ -1,22 +1,12 @@
 import { describe, expect, test } from 'vitest';
 import { createDetailView } from './detail.js';
 
-/** @type {(map: Record<string, any>) => (type: string, payload?: unknown) => Promise<any>} */
-const stubSend = (map) => async (type, payload) => {
-  if (type !== 'show-issue') {
-    throw new Error('Unexpected type');
-  }
-  const id = /** @type {any} */ (payload).id;
-  return map[id] || null;
-};
-
 describe('views/detail', () => {
   test('renders fields, markdown description, and dependency links', async () => {
     document.body.innerHTML =
       '<section class="panel"><div id="mount"></div></section>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
 
-    /** @type {any} */
     const issue = {
       id: 'UI-29',
       title: 'Issue detail view',
@@ -30,12 +20,22 @@ describe('views/detail', () => {
 
     /** @type {string[]} */
     const navigations = [];
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-29' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
     const view = createDetailView(
       mount,
-      stubSend({ 'UI-29': issue }),
+      async () => ({}),
       (hash) => {
         navigations.push(hash);
-      }
+      },
+      stores
     );
 
     await view.load('UI-29');
@@ -81,7 +81,6 @@ describe('views/detail', () => {
     document.body.innerHTML =
       '<section class="panel"><div id="mount"></div></section>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
-    /** @type {any} */
     const issue = {
       id: 'UI-50',
       title: 'With type',
@@ -89,12 +88,16 @@ describe('views/detail', () => {
       dependencies: [],
       dependents: []
     };
-    const view = createDetailView(mount, async (type) => {
-      if (type === 'show-issue') {
-        return issue;
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-50' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
       }
-      throw new Error('Unexpected');
-    });
+    };
+    const view = createDetailView(mount, async () => ({}), undefined, stores);
     await view.load('UI-50');
     const badge = mount.querySelector('.props-card .type-badge');
     expect(badge).toBeTruthy();
@@ -106,7 +109,6 @@ describe('views/detail', () => {
       '<section class="panel"><div id="mount"></div></section>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
 
-    /** @type {any} */
     const issue = {
       id: 'UI-29',
       title: 'Issue detail view',
@@ -117,18 +119,29 @@ describe('views/detail', () => {
       dependents: []
     };
 
-    const view = createDetailView(mount, async (type, payload) => {
-      if (type === 'show-issue') {
-        return issue;
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-29' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
       }
-      if (type === 'edit-text') {
-        const f = /** @type {any} */ (payload).field;
-        const v = /** @type {any} */ (payload).value;
-        issue[f] = v;
-        return issue;
-      }
-      throw new Error('Unexpected type');
-    });
+    };
+    const view = createDetailView(
+      mount,
+      async (type, payload) => {
+        if (type === 'edit-text') {
+          const f = /** @type {any} */ (payload).field;
+          const v = /** @type {any} */ (payload).value;
+          /** @type {any} */ (issue)[f] = v;
+          return issue;
+        }
+        throw new Error('Unexpected type');
+      },
+      undefined,
+      stores
+    );
 
     await view.load('UI-29');
 
@@ -167,10 +180,18 @@ describe('views/detail', () => {
     document.body.innerHTML =
       '<section class="panel"><div id="mount"></div></section>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
-    const view = createDetailView(mount, stubSend({}));
+    const stores = {
+      snapshotFor() {
+        return [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const view = createDetailView(mount, async () => ({}), undefined, stores);
 
     await view.load('UI-404');
-    expect((mount.textContent || '').toLowerCase()).toContain('not found');
+    expect((mount.textContent || '').toLowerCase()).toContain('loading');
 
     view.clear();
     expect((mount.textContent || '').toLowerCase()).toContain(

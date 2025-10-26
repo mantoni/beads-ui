@@ -83,7 +83,11 @@ describe('app/ws client', () => {
     sockets[0].openNow();
 
     const p1 = client.send('list-issues', { filters: {} });
-    const p2 = client.send('show-issue', { id: 'UI-1' });
+    const p2 = client.send('edit-text', {
+      id: 'UI-1',
+      field: 'title',
+      value: 'T'
+    });
 
     // Parse the last two frames to extract ids
     const frames = sockets[0].sent
@@ -96,7 +100,7 @@ describe('app/ws client', () => {
     sockets[0].emitMessage({
       id: id2,
       ok: true,
-      type: 'show-issue',
+      type: 'edit-text',
       payload: { id: 'UI-1' }
     });
     sockets[0].emitMessage({

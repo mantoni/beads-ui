@@ -28,7 +28,6 @@ a generated `id`.
 ## Message Types
 
 - Removed in v2: `list-issues` (use subscriptions + push stores)
-- `show-issue` payload: `{ id: string }`
 - `update-status` payload:
   `{ id: string, status: 'open'|'in_progress'|'closed' }`
 - `edit-text` payload:
@@ -51,7 +50,6 @@ a generated `id`.
 
 - Removed in v2: `list-issues` → use subscriptions and push
   (`docs/protocol/issues-push-v2.md`)
-- `show-issue` → `bd show <id> --json`
 - `update-status` → `bd update <id> --status <status>`
 - `edit-text` → `bd update <id> --title <t>` or `--description <d>` or
   `--acceptance-criteria <a>` or `--notes <n>` or `--design <z>`
@@ -66,8 +64,3 @@ Errors follow the shape `{ code, message, details? }`. Common codes:
 - `bad_request` – malformed payload or unknown type
 - `not_found` – entity not found (e.g., issue id)
 - `bd_error` – underlying `bd` command failed
-
-## Versioning
-
-Breaking changes to shapes or semantics increment `PROTOCOL_VERSION` in
-`app/protocol.js`.

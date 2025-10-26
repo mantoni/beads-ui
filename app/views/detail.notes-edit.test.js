@@ -17,20 +17,31 @@ describe('views/detail notes edit', () => {
       priority: 2
     };
 
-    const view = createDetailView(mount, async (type, payload) => {
-      if (type === 'show-issue') {
-        return issue;
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-117' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
       }
-      if (type === 'edit-text') {
-        // Expect notes field update
-        const f = /** @type {any} */ (payload).field;
-        const v = /** @type {any} */ (payload).value;
-        expect(f).toBe('notes');
-        issue[f] = v;
-        return issue;
-      }
-      throw new Error('Unexpected type: ' + type);
-    });
+    };
+    const view = createDetailView(
+      mount,
+      async (type, payload) => {
+        if (type === 'edit-text') {
+          // Expect notes field update
+          const f = /** @type {any} */ (payload).field;
+          const v = /** @type {any} */ (payload).value;
+          expect(f).toBe('notes');
+          /** @type {any} */ (issue)[f] = v;
+          return issue;
+        }
+        throw new Error('Unexpected type: ' + type);
+      },
+      undefined,
+      stores
+    );
 
     await view.load('UI-117');
 

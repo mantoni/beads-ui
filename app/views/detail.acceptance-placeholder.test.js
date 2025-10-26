@@ -17,19 +17,30 @@ describe('views/detail acceptance placeholder', () => {
       priority: 2
     };
 
-    const view = createDetailView(mount, async (type, payload) => {
-      if (type === 'show-issue') {
-        return issue;
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-200' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
       }
-      if (type === 'edit-text') {
-        const f = /** @type {any} */ (payload).field;
-        const v = /** @type {any} */ (payload).value;
-        expect(f).toBe('acceptance');
-        issue[f] = v;
-        return issue;
-      }
-      throw new Error('Unexpected: ' + type);
-    });
+    };
+    const view = createDetailView(
+      mount,
+      async (type, payload) => {
+        if (type === 'edit-text') {
+          const f = /** @type {any} */ (payload).field;
+          const v = /** @type {any} */ (payload).value;
+          expect(f).toBe('acceptance');
+          /** @type {any} */ (issue)[f] = v;
+          return issue;
+        }
+        throw new Error('Unexpected: ' + type);
+      },
+      undefined,
+      stores
+    );
 
     await view.load('UI-200');
 

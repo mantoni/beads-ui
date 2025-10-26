@@ -14,7 +14,7 @@ import { createIssueRowRenderer } from './issue-row.js';
  * - Renders children from per-subscription store snapshots for `epic:{id}`
  * - Provides inline edits via mutations; UI re-renders on push
  * @param {HTMLElement} mount_element
- * @param {{ getIssue: (id: string) => Promise<any>, updateIssue: (input: any) => Promise<any> }} data
+ * @param {{ updateIssue: (input: any) => Promise<any> }} data
  * @param {(id: string) => void} goto_issue - Navigate to issue detail.
  * @param {{ subscribeList: (client_id: string, spec: { type: string, params?: Record<string, string|number|boolean> }) => Promise<() => Promise<void>>, selectors: { getIds: (client_id: string) => string[], count?: (client_id: string) => number } }} [subscriptions]
  * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void }} [issue_stores]

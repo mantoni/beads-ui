@@ -13,12 +13,7 @@ describe('main websocket toast notifications', () => {
     vi.useFakeTimers();
     CLIENT = {
       // Minimal send used during bootstrap (push-only tests avoid read RPCs)
-      send: vi.fn(async (type) => {
-        if (type === 'show-issue') {
-          return { id: 'UI-1' };
-        }
-        return [];
-      }),
+      send: vi.fn(async () => []),
       /**
        * @param {string} type
        * @param {(p:any)=>void} handler

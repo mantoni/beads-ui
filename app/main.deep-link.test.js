@@ -18,11 +18,6 @@ vi.mock('./ws.js', () => {
      */
     async send(type, payload) {
       calls.push({ type, payload });
-      if (type === 'show-issue') {
-        const id = payload.id;
-        const it = issues.find((i) => i.id === id);
-        return it || null;
-      }
       return null;
     },
     /**

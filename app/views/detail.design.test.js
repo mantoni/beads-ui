@@ -19,12 +19,16 @@ describe('detail view design section', () => {
       notes: 'Some notes',
       acceptance_criteria: '- a' // also supports fallback field
     };
-    const view = createDetailView(mount, async (type) => {
-      if (type === 'show-issue') {
-        return issue;
+    const storesA = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-116' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
       }
-      throw new Error('Unexpected: ' + type);
-    });
+    };
+    const view = createDetailView(mount, async () => ({}), undefined, storesA);
     await view.load('UI-116');
 
     const main = /** @type {HTMLElement} */ (
@@ -64,11 +68,20 @@ describe('detail view design section', () => {
       status: 'open',
       priority: 2
     };
-    /** @type {(type: string, payload?: any) => Promise<any>} */
-    const send = async (type, payload) => {
-      if (type === 'show-issue') {
-        return current;
+    const storesB = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-116' ? [current] : [];
+      },
+      subscribe() {
+        return () => {};
       }
+    };
+    /**
+     * @param {string} type
+     * @param {any} [payload]
+     */
+    const send = async (type, payload) => {
       if (type === 'edit-text') {
         if (payload.field === 'design') {
           current = { ...current, design: payload.value };
@@ -78,7 +91,7 @@ describe('detail view design section', () => {
       }
       throw new Error('Unexpected: ' + type);
     };
-    const view = createDetailView(mount, send);
+    const view = createDetailView(mount, send, undefined, storesB);
     await view.load('UI-116');
 
     // Simulate edit-text result from server and reload to verify persistence

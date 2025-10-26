@@ -1,15 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { createDetailView } from './detail.js';
 
-/** @type {(map: Record<string, any>) => (type: string, payload?: unknown) => Promise<any>} */
-const stubSend = (map) => async (type, payload) => {
-  if (type !== 'show-issue') {
-    throw new Error('Unexpected type');
-  }
-  const id = /** @type {any} */ (payload).id;
-  return map[id] || null;
-};
-
 describe('views/detail acceptance + notes', () => {
   test('renders acceptance from acceptance_criteria and notes markdown', async () => {
     document.body.innerHTML =
@@ -26,7 +17,16 @@ describe('views/detail acceptance + notes', () => {
       priority: 2
     };
 
-    const view = createDetailView(mount, stubSend({ 'UI-71': issue }));
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-71' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const view = createDetailView(mount, async () => ({}), undefined, stores);
     await view.load('UI-71');
 
     const accTitle = mount.querySelector('.acceptance .props-card__title');
@@ -57,7 +57,16 @@ describe('views/detail acceptance + notes', () => {
       priority: 2
     };
 
-    const view = createDetailView(mount, stubSend({ 'UI-72': issue }));
+    const stores2 = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-72' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const view = createDetailView(mount, async () => ({}), undefined, stores2);
     await view.load('UI-72');
 
     // Headings should not be present

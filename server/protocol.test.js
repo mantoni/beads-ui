@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import {
   MESSAGE_TYPES,
-  PROTOCOL_VERSION,
   decodeReply,
   decodeRequest,
   isMessageType,
@@ -15,7 +14,7 @@ import {
 describe('server/protocol', () => {
   test('isMessageType returns true for known type', () => {
     // execution
-    const res = isMessageType('show-issue');
+    const res = isMessageType('edit-text');
 
     // assertion
     expect(res).toBe(true);
@@ -31,7 +30,11 @@ describe('server/protocol', () => {
 
   test('makeRequest and decodeRequest round-trip', () => {
     // setup
-    const req = makeRequest('show-issue', { id: 'UI-9' }, 'r-9');
+    const req = makeRequest(
+      'edit-text',
+      { id: 'UI-9', field: 'title', value: 'X' },
+      'r-9'
+    );
 
     // execution
     const decoded = decodeRequest(JSON.parse(JSON.stringify(req)));
@@ -39,12 +42,16 @@ describe('server/protocol', () => {
     // assertion
     expect(isRequest(req)).toBe(true);
     expect(decoded.id).toBe('r-9');
-    expect(decoded.type).toBe('show-issue');
+    expect(decoded.type).toBe('edit-text');
   });
 
   test('makeOk and makeError create valid replies', () => {
     // setup
-    const req = makeRequest('show-issue', { id: 'UI-1' }, 'r-10');
+    const req = makeRequest(
+      'edit-text',
+      { id: 'UI-1', field: 'title', value: 'T' },
+      'r-10'
+    );
 
     // execution
     const ok = makeOk(req, [{ id: 'UI-1' }]);
@@ -80,7 +87,6 @@ describe('server/protocol', () => {
 
   test('exports protocol constants', () => {
     // assertion
-    expect(typeof PROTOCOL_VERSION).toBe('string');
     expect(Array.isArray(MESSAGE_TYPES)).toBe(true);
     expect(MESSAGE_TYPES.length).toBeGreaterThan(0);
   });

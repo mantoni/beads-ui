@@ -17,10 +17,16 @@ describe('detail view labels', () => {
       priority: 2,
       labels: ['frontend']
     };
-    const sendFn = vi.fn(async (type, payload) => {
-      if (type === 'show-issue') {
-        return current;
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-5' ? [current] : [];
+      },
+      subscribe() {
+        return () => {};
       }
+    };
+    const sendFn = vi.fn(async (type, payload) => {
       if (type === 'label-add') {
         current = { ...current, labels: [...current.labels, payload.label] };
         return current;
@@ -35,7 +41,7 @@ describe('detail view labels', () => {
       return current;
     });
 
-    const view = createDetailView(mount, sendFn);
+    const view = createDetailView(mount, sendFn, undefined, stores);
     await view.load('UI-5');
 
     // Initial chip present

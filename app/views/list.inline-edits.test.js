@@ -73,20 +73,20 @@ describe('views/list inline edits', () => {
       spy.calls.push({ type, payload });
       // no list-issues requests in push-only mode
       if (type === 'update-priority') {
-        // no-op; list refresh happens via show-issue below
-        return {};
-      }
-      if (type === 'show-issue') {
         const id = payload.id;
         const idx = current.findIndex((x) => x.id === id);
         if (idx >= 0) {
-          // Return an updated item with a different priority to simulate backend
+          // simulate server-side update, then push an upsert to the store
           const updated = { ...current[idx], priority: 4 };
-          // and reflect it into the list that will be rendered after refresh
           current[idx] = updated;
-          return updated;
+          issueStores.getStore('tab:issues').applyPush({
+            type: 'upsert',
+            id: 'tab:issues',
+            revision: 2,
+            issues: [updated]
+          });
         }
-        return null;
+        return {};
       }
       throw new Error('Unexpected');
     });
@@ -117,7 +117,7 @@ describe('views/list inline edits', () => {
     );
     expect(prio.value).toBe('1');
 
-    // Change to a different priority; handler should call update-priority then show-issue
+    // Change to a different priority; handler should call update-priority.
     prio.value = '4';
     prio.dispatchEvent(new Event('change'));
 
@@ -125,7 +125,6 @@ describe('views/list inline edits', () => {
 
     const types = spy.calls.map((c) => c.type);
     expect(types).toContain('update-priority');
-    expect(types).toContain('show-issue');
 
     const prio2 = /** @type {HTMLSelectElement} */ (
       mount.querySelector(

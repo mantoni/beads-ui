@@ -255,26 +255,6 @@ export function createListView(
       if (typeof patch.priority === 'number') {
         await sendFn('update-priority', { id, priority: patch.priority });
       }
-      // Optionally fetch fresh row data while push updates arrive
-      try {
-        /** @type {any} */
-        const full = await sendFn('show-issue', { id });
-        const idx = issues_cache.findIndex((x) => x.id === id);
-        if (idx >= 0 && full && typeof full === 'object') {
-          issues_cache[idx] = /** @type {Issue} */ ({
-            id: full.id,
-            title: full.title,
-            status: full.status,
-            priority: full.priority,
-            issue_type: full.issue_type,
-            assignee: full.assignee,
-            labels: Array.isArray(full.labels) ? full.labels : []
-          });
-          doRender();
-        }
-      } catch {
-        // ignore refresh error; push will update view shortly
-      }
     } catch {
       // ignore failures; UI state remains as-is
     }

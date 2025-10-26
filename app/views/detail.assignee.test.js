@@ -21,10 +21,16 @@ describe('views/detail assignee edit', () => {
       dependents: []
     };
 
-    const send = mockSend(async (type, payload) => {
-      if (type === 'show-issue') {
-        return issue;
+    const stores1 = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-57' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
       }
+    };
+    const send = mockSend(async (type, payload) => {
       if (type === 'update-assignee') {
         expect(payload).toEqual({ id: 'UI-57', assignee: 'max' });
         const next = { ...issue, assignee: 'max' };
@@ -33,7 +39,7 @@ describe('views/detail assignee edit', () => {
       throw new Error('Unexpected');
     });
 
-    const view = createDetailView(mount, send);
+    const view = createDetailView(mount, send, undefined, stores1);
     await view.load('UI-57');
 
     const assigneeSpan = /** @type {HTMLSpanElement} */ (
@@ -76,10 +82,16 @@ describe('views/detail assignee edit', () => {
       dependents: []
     };
 
-    const send = mockSend(async (type, payload) => {
-      if (type === 'show-issue') {
-        return issue;
+    const stores2 = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-88' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
       }
+    };
+    const send = mockSend(async (type, payload) => {
       if (type === 'update-assignee') {
         const next = {
           ...issue,
@@ -90,7 +102,7 @@ describe('views/detail assignee edit', () => {
       throw new Error('Unexpected');
     });
 
-    const view = createDetailView(mount, send);
+    const view = createDetailView(mount, send, undefined, stores2);
     await view.load('UI-88');
 
     const ph = /** @type {HTMLSpanElement} */ (
@@ -122,10 +134,16 @@ describe('views/detail assignee edit', () => {
       dependents: []
     };
 
-    const send = mockSend(async (type, payload) => {
-      if (type === 'show-issue') {
-        return issue;
+    const stores3 = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-31' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
       }
+    };
+    const send = mockSend(async (type, payload) => {
       if (type === 'update-assignee') {
         const next = {
           ...issue,
@@ -136,7 +154,7 @@ describe('views/detail assignee edit', () => {
       throw new Error('Unexpected');
     });
 
-    const view = createDetailView(mount, send);
+    const view = createDetailView(mount, send, undefined, stores3);
     await view.load('UI-31');
 
     const span = /** @type {HTMLSpanElement} */ (

@@ -6,18 +6,9 @@
  * single-issue fetch. List reads have been removed in favor of push-only
  * stores and selectors (see docs/adr/001-push-only-lists.md).
  * @param {(type: MessageType, payload?: unknown) => Promise<unknown>} transport - Request/response function.
- * @returns {{ getIssue: (id: string) => Promise<unknown>, updateIssue: (input: { id: string, title?: string, acceptance?: string, notes?: string, design?: string, status?: 'open'|'in_progress'|'closed', priority?: number, assignee?: string }) => Promise<unknown> }}
+ * @returns {{ updateIssue: (input: { id: string, title?: string, acceptance?: string, notes?: string, design?: string, status?: 'open'|'in_progress'|'closed', priority?: number, assignee?: string }) => Promise<unknown> }}
  */
 export function createDataLayer(transport) {
-  /**
-   * Show a single issue via `bd show <id> --json`.
-   * @param {string} id
-   * @returns {Promise<unknown>}
-   */
-  async function getIssue(id) {
-    return transport('show-issue', { id });
-  }
-
   /**
    * Update issue fields by dispatching specific mutations.
    * Supported fields: title, acceptance, notes, design, status, priority, assignee.
@@ -80,7 +71,6 @@ export function createDataLayer(transport) {
   }
 
   return {
-    getIssue,
     updateIssue
   };
 }
