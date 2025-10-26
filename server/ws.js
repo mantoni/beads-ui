@@ -168,7 +168,6 @@ export function scheduleListRefresh() {
 
 /**
  * @typedef {{
- *   list_filters?: { status?: 'open'|'in_progress'|'closed', ready?: boolean, blocked?: boolean, limit?: number },
  *   show_id?: string | null,
  *   list_subs?: Map<string, { key: string, spec: { type: string, params?: Record<string, string | number | boolean> } }>,
  *   issues_rev?: number,
@@ -231,21 +230,6 @@ export function notifyIssuesChanged(payload, options = {}) {
       if (s.show_id && s.show_id === issue.id) {
         recipients.add(ws);
         continue;
-      }
-      if (s.list_filters) {
-        // Ready/Blocked lists are conservatively invalidated on any change
-        if (s.list_filters.ready === true || s.list_filters.blocked === true) {
-          recipients.add(ws);
-          continue;
-        }
-        // Status lists: invalidate when status matches updated issue
-        if (
-          s.list_filters.status &&
-          String(s.list_filters.status) === String(issue.status || '')
-        ) {
-          recipients.add(ws);
-          continue;
-        }
       }
     }
   } else if (hint_ids.length > 0) {
@@ -615,7 +599,7 @@ export async function handleMessage(ws, data) {
   }
 
   // subscribe-issues: begin push-only envelopes for issues
-  if (req.type === /** @type {MessageType} */ ('subscribe-issues')) {
+  if (req.type === 'subscribe-issues') {
     const s = ensureSubs(ws);
     s.issues_subscribed = true;
     s.issues_rev = 0;
@@ -647,98 +631,7 @@ export async function handleMessage(ws, data) {
     return;
   }
 
-  // list-issues
-  if (req.type === 'list-issues') {
-    const { filters } = /** @type {any} */ (req.payload || {});
-    // When "ready" is requested, use the dedicated bd subcommand
-    if (filters && typeof filters === 'object' && filters.ready === true) {
-      const res = await runBdJson(['ready', '--json']);
-      if (res.code !== 0) {
-        const err = makeError(req, 'bd_error', res.stderr || 'bd failed');
-        ws.send(JSON.stringify(err));
-        return;
-      }
-      // Remember subscription scope for this connection
-      try {
-        const s = ensureSubs(ws);
-        s.list_filters = { ready: true };
-      } catch {
-        // ignore tracking errors
-      }
-      ws.send(JSON.stringify(makeOk(req, res.stdoutJson)));
-      return;
-    }
-
-    // When "blocked" is requested, use the dedicated bd subcommand
-    if (filters && typeof filters === 'object' && filters.blocked === true) {
-      const res = await runBdJson(['blocked', '--json']);
-      if (res.code !== 0) {
-        const err = makeError(req, 'bd_error', res.stderr || 'bd failed');
-        ws.send(JSON.stringify(err));
-        return;
-      }
-      // Remember subscription scope for this connection
-      try {
-        const s = ensureSubs(ws);
-        s.list_filters = { blocked: true };
-      } catch {
-        // ignore tracking errors
-      }
-      ws.send(JSON.stringify(makeOk(req, res.stdoutJson)));
-      return;
-    }
-
-    const args = ['list', '--json'];
-    if (filters && typeof filters === 'object') {
-      if (typeof filters.status === 'string') {
-        // Use long flag for clarity and compatibility
-        args.push('--status', filters.status);
-      }
-      if (typeof filters.priority === 'number') {
-        args.push('--priority', String(filters.priority));
-      }
-      if (typeof filters.limit === 'number' && filters.limit > 0) {
-        args.push('--limit', String(filters.limit));
-      }
-    }
-    const res = await runBdJson(args);
-    if (res.code !== 0) {
-      const err = makeError(req, 'bd_error', res.stderr || 'bd failed');
-      ws.send(JSON.stringify(err));
-      return;
-    }
-    // Remember last non-ready list filter
-    try {
-      const s = ensureSubs(ws);
-      /** @type {{ status?: any, limit?: any }} */
-      const f = filters && typeof filters === 'object' ? filters : {};
-      const st = f.status;
-      const lim = f.limit;
-      s.list_filters = {};
-      if (st === 'open' || st === 'in_progress' || st === 'closed') {
-        s.list_filters.status = st;
-      }
-      if (typeof lim === 'number') {
-        s.list_filters.limit = lim;
-      }
-    } catch {
-      // ignore tracking errors
-    }
-    ws.send(JSON.stringify(makeOk(req, res.stdoutJson)));
-    return;
-  }
-
-  // epic-status
-  if (req.type === 'epic-status') {
-    const res = await runBdJson(['epic', 'status', '--json']);
-    if (res.code !== 0) {
-      const err = makeError(req, 'bd_error', res.stderr || 'bd failed');
-      ws.send(JSON.stringify(err));
-      return;
-    }
-    ws.send(JSON.stringify(makeOk(req, res.stdoutJson)));
-    return;
-  }
+  // list-issues and epic-status were removed in favor of push-only subscriptions
 
   // show-issue
   if (req.type === 'show-issue') {

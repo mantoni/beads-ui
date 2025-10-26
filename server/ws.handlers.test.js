@@ -16,48 +16,7 @@ function makeStubSocket() {
   };
 }
 
-describe('ws handlers: list/show', () => {
-  test('list-issues forwards payload from bd', async () => {
-    const mocked = /** @type {import('vitest').Mock} */ (runBdJson);
-    mocked.mockResolvedValueOnce({ code: 0, stdoutJson: [{ id: 'UI-1' }] });
-    const ws = makeStubSocket();
-    const req = {
-      id: 'r1',
-      type: 'list-issues',
-      payload: { filters: { status: 'open' } }
-    };
-    await handleMessage(
-      /** @type {any} */ (ws),
-      Buffer.from(JSON.stringify(req))
-    );
-    const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
-    expect(obj.ok).toBe(true);
-    expect(Array.isArray(obj.payload)).toBe(true);
-  });
-
-  test('list-issues with filters.ready uses bd "ready"', async () => {
-    const mocked = /** @type {import('vitest').Mock} */ (runBdJson);
-    mocked.mockResolvedValueOnce({ code: 0, stdoutJson: [{ id: 'UI-2' }] });
-    const ws = makeStubSocket();
-    const req = {
-      id: 'r1a',
-      type: 'list-issues',
-      payload: { filters: { ready: true } }
-    };
-    await handleMessage(
-      /** @type {any} */ (ws),
-      Buffer.from(JSON.stringify(req))
-    );
-    // Ensure we called the ready command
-    const call = mocked.mock.calls[mocked.mock.calls.length - 1];
-    expect(Array.isArray(call[0])).toBe(true);
-    expect(call[0][0]).toBe('ready');
-
-    const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
-    expect(obj.ok).toBe(true);
-    expect(Array.isArray(obj.payload)).toBe(true);
-  });
-
+describe('ws handlers: show', () => {
   test('show-issue returns error on missing id', async () => {
     const ws = makeStubSocket();
     const req = { id: 'r2', type: 'show-issue', payload: {} };
@@ -118,51 +77,11 @@ describe('ws handlers: list/show', () => {
     expect(obj.error && obj.error.code).toBe('not_found');
   });
 
-  test('epic-status forwards bd epic status', async () => {
-    const mocked = /** @type {import('vitest').Mock} */ (runBdJson);
-    mocked.mockResolvedValueOnce({ code: 0, stdoutJson: [] });
-    const ws = makeStubSocket();
-    const req = { id: 're', type: /** @type {any} */ ('epic-status') };
-    await handleMessage(
-      /** @type {any} */ (ws),
-      Buffer.from(JSON.stringify(req))
-    );
-    const call = mocked.mock.calls[mocked.mock.calls.length - 1];
-    expect(Array.isArray(call[0])).toBe(true);
-    expect(call[0][0]).toBe('epic');
-    expect(call[0][1]).toBe('status');
-    const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
-    expect(obj.ok).toBe(true);
-    expect(Array.isArray(obj.payload)).toBe(true);
-  });
-
-  test('list-issues supports limit passthrough', async () => {
-    const mocked = /** @type {import('vitest').Mock} */ (runBdJson);
-    mocked.mockResolvedValueOnce({ code: 0, stdoutJson: [] });
-    const ws = makeStubSocket();
-    const req = {
-      id: 'rlim',
-      type: 'list-issues',
-      payload: { filters: { status: 'closed', limit: 10 } }
-    };
-    await handleMessage(
-      /** @type {any} */ (ws),
-      Buffer.from(JSON.stringify(req))
-    );
-    const call = mocked.mock.calls[mocked.mock.calls.length - 1];
-    const args = /** @type {string[]} */ (call[0]);
-    expect(args.includes('--limit')).toBe(true);
-    expect(args.includes('10')).toBe(true);
-    const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
-    expect(obj.ok).toBe(true);
-    expect(Array.isArray(obj.payload)).toBe(true);
-  });
-
-  test('bd error propagates as bd_error reply', async () => {
+  test('bd error propagates as bd_error reply (show-issue)', async () => {
     const mocked = /** @type {import('vitest').Mock} */ (runBdJson);
     mocked.mockResolvedValueOnce({ code: 1, stderr: 'boom' });
     const ws = makeStubSocket();
-    const req = { id: 'r4', type: 'list-issues', payload: {} };
+    const req = { id: 'r4', type: 'show-issue', payload: { id: 'UI-1' } };
     await handleMessage(
       /** @type {any} */ (ws),
       Buffer.from(JSON.stringify(req))

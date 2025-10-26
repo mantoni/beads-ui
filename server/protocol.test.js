@@ -15,7 +15,7 @@ import {
 describe('server/protocol', () => {
   test('isMessageType returns true for known type', () => {
     // execution
-    const res = isMessageType('list-issues');
+    const res = isMessageType('show-issue');
 
     // assertion
     expect(res).toBe(true);
@@ -44,7 +44,7 @@ describe('server/protocol', () => {
 
   test('makeOk and makeError create valid replies', () => {
     // setup
-    const req = makeRequest('list-issues', undefined, 'r-10');
+    const req = makeRequest('show-issue', { id: 'UI-1' }, 'r-10');
 
     // execution
     const ok = makeOk(req, [{ id: 'UI-1' }]);

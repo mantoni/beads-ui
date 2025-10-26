@@ -5,7 +5,8 @@ Note
 - As of 2025-10-25, the UI and server move to a push‑only, breaking protocol for
   issue updates. This document describes the legacy v1 request/response shapes
   and remains for historical reference. For the current push protocol, see
-  `docs/protocol/issues-push-v2.md`.
+  `docs/protocol/issues-push-v2.md`. Legacy read RPCs `list-issues` and
+  `epic-status` are removed from the server.
 
 This document describes the high‑level architecture of beads‑ui and the v1
 WebSocket protocol used between the browser SPA and the local Node.js server.
@@ -73,9 +74,9 @@ Envelope shapes (see `app/protocol.js` for the source of truth):
 - Reply:
   `{ id: string, ok: boolean, type: MessageType, payload?: any, error?: { code, message, details? } }`
 
-Message types implemented by the server today:
+Message types (legacy v1; server now push-only):
 
-- `list-issues` payload: `{ filters?: { status?: string, priority?: number } }`
+- Removed in v2: `list-issues` (use subscriptions + push stores)
 - `show-issue` payload: `{ id: string }`
 - `update-status` payload:
   `{ id: string, status: 'open'|'in_progress'|'closed' }`
@@ -94,7 +95,7 @@ Defined in the spec but not yet handled on the server:
 
 ### Examples
 
-List issues
+List issues (removed in v2; see push protocol)
 
 ```json
 {
@@ -149,7 +150,8 @@ Error reply
 
 ## UI → bd Command Mapping
 
-- List: `bd list --json [--status <s>] [--priority <n>]`
+- Removed in v2: List → use subscriptions and push
+  (`docs/protocol/issues-push-v2.md`)
 - Show: `bd show <id> --json`
 - Update status: `bd update <id> --status <open|in_progress|closed>`
 - Update priority: `bd update <id> --priority <0..4>`

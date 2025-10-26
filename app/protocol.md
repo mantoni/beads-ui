@@ -1,5 +1,13 @@
 # beads-ui WebSocket Protocol (v1.0.0)
 
+Note (2025-10-26)
+
+- The server no longer implements legacy read RPCs `list-issues` and
+  `epic-status`. Clients must use the push-only protocol described in
+  `docs/protocol/issues-push-v2.md` (subscribe-list / list-delta and
+  subscribe-issues / issues). The shapes below are retained for historical
+  reference of v1.
+
 This document defines the JSON messages exchanged between the browser client and
 the local server.
 
@@ -18,7 +26,7 @@ ReplyEnvelope shape with `ok: true` and a generated `id`.
 
 ## Message Types
 
-- `list-issues` payload: `{ filters?: { status?: string, priority?: number } }`
+- Removed in v2: `list-issues` (use subscriptions + push stores)
 - `show-issue` payload: `{ id: string }`
 - `update-status` payload:
   `{ id: string, status: 'open'|'in_progress'|'closed' }`
@@ -40,7 +48,8 @@ ReplyEnvelope shape with `ok: true` and a generated `id`.
 
 ## Mapping to `bd` CLI
 
-- `list-issues` → `bd list --json [--status <s>] [--priority <n>]`
+- Removed in v2: `list-issues` → use subscriptions and push
+  (`docs/protocol/issues-push-v2.md`)
 - `show-issue` → `bd show <id> --json`
 - `update-status` → `bd update <id> --status <status>`
 - `edit-text` → `bd update <id> --title <t>` or `--description <d>` or

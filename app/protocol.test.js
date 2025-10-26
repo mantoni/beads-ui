@@ -17,20 +17,16 @@ describe('protocol', () => {
     expect(typeof PROTOCOL_VERSION).toBe('string');
     expect(Array.isArray(MESSAGE_TYPES)).toBe(true);
     expect(MESSAGE_TYPES.length).toBeGreaterThan(3);
-    expect(isMessageType('list-issues')).toBe(true);
+    expect(isMessageType('show-issue')).toBe(true);
     expect(isMessageType('unknown-type')).toBe(false);
   });
 
   test('makeRequest / isRequest / decodeRequest', () => {
-    const req = makeRequest(
-      'list-issues',
-      { filters: { status: 'open' } },
-      'r-1'
-    );
+    const req = makeRequest('show-issue', { id: 'UI-1' }, 'r-1');
     expect(isRequest(req)).toBe(true);
     const round = decodeRequest(JSON.parse(JSON.stringify(req)));
     expect(round.id).toBe('r-1');
-    expect(round.type).toBe('list-issues');
+    expect(round.type).toBe('show-issue');
   });
 
   test('makeOk / makeError / isReply / decodeReply', () => {
