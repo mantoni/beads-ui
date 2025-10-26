@@ -47,7 +47,7 @@ Owner: agent
 - `epics` → `bd list --type epic` (or equivalent)
 - `issues-for-epic:{epic_id}` → `bd list --epic <id>`
 - `blocked-issues` → `bd list --blocked`
-- `ready-issues` → `bd ready --status open --limit 1000`
+- `ready-issues` → `bd ready --limit 1000`
 - `in-progress-issues` → `bd list --status in_progress`
 - `closed-issues` → `bd list --status closed` (then filter first; see Special
   Cases)

@@ -38,14 +38,7 @@ describe('list adapters for subscription types', () => {
 
   test('mapSubscriptionToBdArgs returns args for ready-issues', () => {
     const args = mapSubscriptionToBdArgs({ type: 'ready-issues' });
-    expect(args).toEqual([
-      'ready',
-      '--status',
-      'open',
-      '--limit',
-      '1000',
-      '--json'
-    ]);
+    expect(args).toEqual(['ready', '--limit', '1000', '--json']);
   });
 
   test('mapSubscriptionToBdArgs returns args for in-progress-issues', () => {
