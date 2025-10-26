@@ -39,7 +39,11 @@ export function createEpicsView(
   // Centralized selection helpers
   const selectors =
     subscriptions && issues_store
-      ? createListSelectors(subscriptions, issues_store, issue_stores)
+      ? createListSelectors(
+          subscriptions,
+          issues_store,
+          /** @type {*} */ (issue_stores)
+        )
       : null;
   // Live re-render on pushes
   if (selectors) {

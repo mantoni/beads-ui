@@ -1,4 +1,3 @@
-/* global NodeListOf */
 import { html, render } from 'lit-html';
 import { createListSelectors } from '../data/list-selectors.js';
 import { ISSUE_TYPES, typeLabel } from '../utils/issue-type.js';
@@ -19,25 +18,30 @@ import { createIssueRowRenderer } from './issue-row.js';
  * @param {(type: string, payload?: unknown) => Promise<unknown>} sendFn - RPC transport.
  * @param {(hash: string) => void} [navigate_fn] - Navigation function (defaults to setting location.hash).
  * @param {{ getState: () => any, setState: (patch: any) => void, subscribe: (fn: (s:any)=>void)=>()=>void }} [store] - Optional state store.
+ * @param {{ subscribe: (fn: () => void) => () => void, getMany: (ids: string[]) => any[] }} [issuesStore]
+ * @param {{ selectors: { getIds: (client_id: string) => string[] } }} [subscriptions]
+ * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void }} [issueStores]
  * @returns {{ load: () => Promise<void>, destroy: () => void }} View API.
  */
 /**
  * Create the Issues List view.
  * @param {HTMLElement} mount_element
  * @param {(type: string, payload?: unknown) => Promise<unknown>} sendFn
- * @param {(hash: string) => void} [navigate_fn]
+ * @param {(hash: string) => void} [navigateFn]
  * @param {{ getState: () => any, setState: (patch: any) => void, subscribe: (fn: (s:any)=>void)=>()=>void }} [store]
- * @param {{ subscribe: (fn: () => void) => () => void, getMany: (ids: string[]) => any[] }} [issuesStore]
+ * @param {{ subscribe: (fn: () => void) => () => void, getMany: (ids: string[]) => any[] }} [issues_store]
  * @param {{ selectors: { getIds: (client_id: string) => string[] } }} [subscriptions]
+ * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void }} [issue_stores]
  * @returns {{ load: () => Promise<void>, destroy: () => void }}
  */
 export function createListView(
   mount_element,
   sendFn,
-  navigate_fn,
+  navigateFn,
   store,
-  issuesStore = undefined,
-  subscriptions = undefined
+  issues_store = undefined,
+  subscriptions = undefined,
+  issue_stores = undefined
 ) {
   /** @type {string} */
   let status_filter = 'all';
@@ -54,7 +58,7 @@ export function createListView(
   // Shared row renderer (used in template below)
   const row_renderer = createIssueRowRenderer({
     navigate: (id) => {
-      const nav = navigate_fn || ((h) => (window.location.hash = h));
+      const nav = navigateFn || ((h) => (window.location.hash = h));
       /** @type {'issues'|'epics'|'board'} */
       const view = store ? store.getState().view : 'issues';
       nav(issueHashFor(view, id));
@@ -77,7 +81,7 @@ export function createListView(
     status_filter = sel.value;
     if (store) {
       store.setState({
-        filters: { status: /** @type {any} */ (status_filter) }
+        filters: { status: status_filter }
       });
     }
     // Always reload on status changes
@@ -91,8 +95,7 @@ export function createListView(
    * @param {Event} ev
    */
   const onSearchInput = (ev) => {
-    /** @type {HTMLInputElement} */
-    const input = /** @type {any} */ (ev.currentTarget);
+    const input = /** @type {HTMLInputElement} */ (ev.currentTarget);
     search_text = input.value;
     if (store) {
       store.setState({ filters: { search: search_text } });
@@ -105,8 +108,7 @@ export function createListView(
    * @param {Event} ev
    */
   const onTypeChange = (ev) => {
-    /** @type {HTMLSelectElement} */
-    const sel = /** @type {any} */ (ev.currentTarget);
+    const sel = /** @type {HTMLSelectElement} */ (ev.currentTarget);
     type_filter = sel.value || '';
     if (store) {
       store.setState({ filters: { type: type_filter } });
@@ -126,15 +128,14 @@ export function createListView(
   // Initial values are reflected via bound `.value` in the template
   // Compose helpers: centralize membership + entity selection + sorting
   const selectors =
-    subscriptions && issuesStore
-      ? createListSelectors(subscriptions, issuesStore)
+    subscriptions && issues_store
+      ? createListSelectors(subscriptions, issues_store, issue_stores)
       : null;
 
   /**
    * Build lit-html template for the list view.
    */
   function template() {
-    /** @type {Issue[]} */
     let filtered = issues_cache;
     if (status_filter !== 'all' && status_filter !== 'ready') {
       filtered = filtered.filter(
@@ -284,8 +285,7 @@ export function createListView(
    */
   async function load() {
     // Preserve scroll position to avoid jarring jumps on live refresh
-    /** @type {HTMLElement|null} */
-    const beforeEl = /** @type {any} */ (
+    const beforeEl = /** @type {HTMLElement|null} */ (
       mount_element.querySelector('#list-root')
     );
     const prevScroll = beforeEl ? beforeEl.scrollTop : 0;
@@ -304,8 +304,7 @@ export function createListView(
     doRender();
     // Restore scroll position if possible
     try {
-      /** @type {HTMLElement|null} */
-      const afterEl = /** @type {any} */ (
+      const afterEl = /** @type {HTMLElement|null} */ (
         mount_element.querySelector('#list-root')
       );
       if (afterEl && prevScroll > 0) {
@@ -322,12 +321,12 @@ export function createListView(
     // Grid cell Up/Down navigation when focus is inside the table and not within
     // an editable control (input/textarea/select). Preserves column position.
     if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
-      /** @type {any} */
-      const tgt = /** @type {any} */ (ev.target);
-      /** @type {HTMLTableElement|null} */
+      const tgt = /** @type {HTMLElement} */ (ev.target);
       const table =
         tgt && typeof tgt.closest === 'function'
-          ? /** @type {any} */ (tgt.closest('#list-root table.table'))
+          ? /** @type {HTMLTableElement} */ (
+              tgt.closest('#list-root table.table')
+            )
           : null;
       if (table) {
         // Do not intercept when inside native editable controls
@@ -339,34 +338,28 @@ export function createListView(
               tgt.closest('select'))
         );
         if (!in_editable) {
-          /** @type {HTMLTableCellElement|null} */
           const cell =
             tgt && typeof tgt.closest === 'function'
-              ? /** @type {any} */ (tgt.closest('td'))
+              ? /** @type {HTMLTableCellElement} */ (tgt.closest('td'))
               : null;
           if (cell && cell.parentElement) {
-            /** @type {HTMLTableRowElement} */
-            const row = /** @type {any} */ (cell.parentElement);
-            /** @type {HTMLTableSectionElement|null} */
-            const tbody = /** @type {any} */ (row.parentElement);
+            const row = /** @type {HTMLTableRowElement} */ (cell.parentElement);
+            const tbody = /** @type {HTMLTableSectionElement|null} */ (
+              row.parentElement
+            );
             if (tbody && tbody.querySelectorAll) {
               const rows = Array.from(tbody.querySelectorAll('tr'));
               const row_idx = Math.max(0, rows.indexOf(row));
-              const col_idx = /** @type {any} */ (cell).cellIndex || 0;
+              const col_idx = cell.cellIndex || 0;
               const next_idx =
                 ev.key === 'ArrowDown'
                   ? Math.min(row_idx + 1, rows.length - 1)
                   : Math.max(row_idx - 1, 0);
-              const next_row = /** @type {HTMLTableRowElement} */ (
-                rows[next_idx]
-              );
-              /** @type {HTMLTableCellElement|null} */
-              const next_cell = /** @type {any} */ (
-                next_row && next_row.cells ? next_row.cells[col_idx] : null
-              );
+              const next_row = rows[next_idx];
+              const next_cell =
+                next_row && next_row.cells ? next_row.cells[col_idx] : null;
               if (next_cell) {
-                /** @type {HTMLElement|null} */
-                const focusable = /** @type {any} */ (
+                const focusable = /** @type {HTMLElement|null} */ (
                   next_cell.querySelector(
                     'button:not([disabled]), [tabindex]:not([tabindex="-1"]), a[href], select:not([disabled]), input:not([disabled]):not([type="hidden"]), textarea:not([disabled])'
                   )
@@ -383,14 +376,10 @@ export function createListView(
       }
     }
 
-    /** @type {HTMLTableSectionElement|null} */
-    const tbody = /** @type {any} */ (
+    const tbody = /** @type {HTMLTableSectionElement|null} */ (
       mount_element.querySelector('#list-root tbody')
     );
-    /** @type {NodeListOf<HTMLTableRowElement>} */
-    const items = tbody
-      ? tbody.querySelectorAll('tr')
-      : /** @type {any} */ ([]);
+    const items = tbody ? tbody.querySelectorAll('tr') : [];
     if (items.length === 0) {
       return;
     }
@@ -430,7 +419,7 @@ export function createListView(
       const current = items[idx];
       const id = current ? current.getAttribute('data-issue-id') : '';
       if (id) {
-        const nav = navigate_fn || ((h) => (window.location.hash = h));
+        const nav = navigateFn || ((h) => (window.location.hash = h));
         /** @type {'issues'|'epics'|'board'} */
         const view = store ? store.getState().view : 'issues';
         nav(issueHashFor(view, id));

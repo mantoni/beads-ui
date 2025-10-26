@@ -226,7 +226,8 @@ export function bootstrap(root_element) {
       },
       store,
       issues_store,
-      subscriptions
+      subscriptions,
+      sub_issue_stores
     );
     // Persist filter changes to localStorage
     store.subscribe((s) => {
