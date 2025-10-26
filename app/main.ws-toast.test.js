@@ -12,14 +12,8 @@ describe('main websocket toast notifications', () => {
   test('shows toast on connection loss and on reconnect', async () => {
     vi.useFakeTimers();
     CLIENT = {
-      // Minimal send used during bootstrap
+      // Minimal send used during bootstrap (push-only tests avoid read RPCs)
       send: vi.fn(async (type) => {
-        if (type === 'list-issues') {
-          return [];
-        }
-        if (type === 'epic-status') {
-          return [];
-        }
         if (type === 'show-issue') {
           return { id: 'UI-1' };
         }

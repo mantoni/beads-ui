@@ -27,8 +27,16 @@ vi.mock('./ws.js', () => ({
      * @param {any} payload
      */
     async send(type, payload) {
-      calls.push({ type, payload });
+      // Record only mutation-related calls; list reads are push-only now
+      if (
+        type === 'create-issue' ||
+        type === 'label-add' ||
+        type === 'show-issue'
+      ) {
+        calls.push({ type, payload });
+      }
       if (type === 'list-issues') {
+        // Provide data for legacy id-discovery path; do not record
         return issues;
       }
       if (type === 'show-issue') {
@@ -132,7 +140,6 @@ describe('UI-106 new issue flow', () => {
     // Expect create call and label-add
     const types = calls.map((c) => c.type);
     expect(types).toContain('create-issue');
-    expect(types).toContain('list-issues');
     expect(types).toContain('label-add');
 
     // Details dialog opened for created id

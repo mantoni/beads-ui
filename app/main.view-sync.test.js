@@ -8,16 +8,7 @@ vi.mock('./ws.js', () => ({
      * @param {string} type
      */
     async send(type) {
-      // Return minimal data for the list view
-      if (type === 'list-issues') {
-        return [];
-      }
-      if (type === 'show-issue') {
-        return null;
-      }
-      if (type === 'epic-status') {
-        return [];
-      }
+      void type;
       return null;
     },
     on() {

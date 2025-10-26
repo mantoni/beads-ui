@@ -26,9 +26,6 @@ vi.mock('./ws.js', () => ({
      * @param {any} payload
      */
     async send(type, payload) {
-      if (type === 'list-issues') {
-        return issues;
-      }
       if (type === 'show-issue') {
         const id = /** @type {any} */ (payload).id;
         const it = issues.find((i) => i.id === id);
