@@ -151,7 +151,6 @@ describe('app/ws client', () => {
       payload: {
         type: 'snapshot',
         id: 'any',
-        schema: 'beads.subscription@v1',
         revision: 1,
         issues: []
       }

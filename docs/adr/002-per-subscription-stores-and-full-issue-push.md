@@ -36,15 +36,11 @@ Message shapes are defined in `types/subscriptions.ts` and documented in
 All envelopes include a version tag and a per‑subscription, strictly monotonic
 `revision` used for ordering and replay protection (see UI‑144).
 
-- `subscribed` `{ id: string, schema: 'beads.subscription@v1' }`
-- `snapshot`
-  `{ id: string, schema: 'beads.subscription@v1', revision: number, issues: Issue[] }`
-- `upsert`
-  `{ id: string, schema: 'beads.subscription@v1', revision: number, issue: Issue }`
-- `delete`
-  `{ id: string, schema: 'beads.subscription@v1', revision: number, issue_id: string }`
-- `error`
-  `{ id?: string, schema: 'beads.subscription@v1', code: string, message: string, details?: object }`
+- `subscribed` `{ id: string }`
+- `snapshot` `{ id: string, revision: number, issues: Issue[] }`
+- `upsert` `{ id: string, revision: number, issue: Issue }`
+- `delete` `{ id: string, revision: number, issue_id: string }`
+- `error` `{ id?: string, code: string, message: string, details?: object }`
 
 Notes
 

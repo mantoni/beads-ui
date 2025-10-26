@@ -34,12 +34,6 @@ let REFRESH_DEBOUNCE_MS = 75;
 let MUTATION_GATE = null;
 
 /**
- * Schema tag for per-subscription envelopes.
- * @type {string}
- */
-const SUBSCRIPTION_SCHEMA = 'beads.subscription@v1';
-
-/**
  * Start a mutation window gate if not already active. The gate resolves on the
  * next watcher event or after `timeout_ms`, then triggers a single refresh run
  * across all active list subscriptions. Watcher-driven refresh scheduling is
@@ -237,7 +231,6 @@ function emitSubscriptionSnapshot(ws, client_id, key, issues) {
   const payload = {
     type: /** @type {const} */ ('snapshot'),
     id: client_id,
-    schema: SUBSCRIPTION_SCHEMA,
     revision,
     issues
   };
@@ -265,7 +258,6 @@ function emitSubscriptionUpsert(ws, client_id, key, issue) {
   const payload = {
     type: 'upsert',
     id: client_id,
-    schema: SUBSCRIPTION_SCHEMA,
     revision,
     issue
   };
@@ -293,7 +285,6 @@ function emitSubscriptionDelete(ws, client_id, key, issue_id) {
   const payload = {
     type: 'delete',
     id: client_id,
-    schema: SUBSCRIPTION_SCHEMA,
     revision,
     issue_id
   };

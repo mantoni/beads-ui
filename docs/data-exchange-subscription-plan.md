@@ -147,8 +147,8 @@ When client requests a change (e.g., update status):
 
 ### Messages: Server → Client (Per‑Subscription)
 
-All envelopes include `schema: 'beads.subscription@v1'`, a per‑subscription
-`revision` (monotonic, starting at 1), and the client subscription `id`.
+All envelopes include a per‑subscription `revision` (monotonic, starting at 1),
+and the client subscription `id`.
 
 - `snapshot` `{ id, schema, revision, issues: Issue[] }`
 - `upsert` `{ id, schema, revision, issue: Issue }`

@@ -86,7 +86,6 @@ describe('push stores integration (board view)', () => {
     client._trigger('snapshot', {
       type: 'snapshot',
       id: 'tab:board:ready',
-      schema: 'beads.subscription@v1',
       revision: 1,
       issues: [
         { id: 'R-1', title: 'ready 1', priority: 1, updated_at: 10_000 },
@@ -96,7 +95,6 @@ describe('push stores integration (board view)', () => {
     client._trigger('snapshot', {
       type: 'snapshot',
       id: 'tab:board:in-progress',
-      schema: 'beads.subscription@v1',
       revision: 1,
       issues: [{ id: 'P-1', title: 'prog 1', updated_at: 20_000 }]
     });
@@ -112,7 +110,6 @@ describe('push stores integration (board view)', () => {
     client._trigger('upsert', {
       type: 'upsert',
       id: 'tab:board:ready',
-      schema: 'beads.subscription@v1',
       revision: 2,
       issue: { id: 'R-3', title: 'ready 3', priority: 1, updated_at: 12_000 }
     });
@@ -128,7 +125,6 @@ describe('push stores integration (board view)', () => {
     client._trigger('delete', {
       type: 'delete',
       id: 'tab:board:in-progress',
-      schema: 'beads.subscription@v1',
       revision: 2,
       issue_id: 'P-1'
     });
@@ -154,7 +150,6 @@ describe('push stores integration (board view)', () => {
     client._trigger('snapshot', {
       type: 'snapshot',
       id: 'tab:board:ready',
-      schema: 'beads.subscription@v1',
       revision: 1,
       issues: [
         { id: 'R-1', title: 'r1', priority: 1, updated_at: 10_000 },
@@ -170,7 +165,6 @@ describe('push stores integration (board view)', () => {
     client._trigger('snapshot', {
       type: 'snapshot',
       id: 'tab:board:ready',
-      schema: 'beads.subscription@v1',
       revision: 1,
       issues: [
         { id: 'R-1', title: 'r1', priority: 1, updated_at: 10_000 },
@@ -185,7 +179,6 @@ describe('push stores integration (board view)', () => {
     client._trigger('upsert', {
       type: 'upsert',
       id: 'tab:board:ready',
-      schema: 'beads.subscription@v1',
       revision: 2,
       issue: { id: 'R-2', title: 'r2!', priority: 2, updated_at: 10_200 }
     });

@@ -84,7 +84,6 @@ describe('issues view — fast filter switching', () => {
     client._trigger('snapshot', {
       type: 'snapshot',
       id: 'tab:issues',
-      schema: 'beads.subscription@v1',
       revision: 1,
       issues: []
     });
@@ -117,7 +116,6 @@ describe('issues view — fast filter switching', () => {
     client._trigger('snapshot', {
       type: 'snapshot',
       id: 'tab:issues',
-      schema: 'beads.subscription@v1',
       revision: 3,
       issues: inProg
     });
@@ -128,7 +126,6 @@ describe('issues view — fast filter switching', () => {
     client._trigger('snapshot', {
       type: 'snapshot',
       id: 'tab:issues',
-      schema: 'beads.subscription@v1',
       revision: 2,
       issues: ready
     });

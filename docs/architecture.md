@@ -134,7 +134,6 @@ Server push (subscriptions)
   "payload": {
     "type": "upsert",
     "id": "tab:issues",
-    "schema": "beads.subscription@v1",
     "revision": 2,
     "issue": { "id": "UI-1", "status": "in_progress" }
   }

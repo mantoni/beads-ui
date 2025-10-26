@@ -4,7 +4,6 @@
 Date: 2025-10-26
 Status: Implemented
 Owner: agent
-Schema: 'beads.subscription@v1'
 ```
 
 This document specifies the push‑only protocol used by beads‑ui to deliver list
@@ -23,12 +22,9 @@ notify‑then‑fetch model. There is no version negotiation or fallback.
 ## Envelopes
 
 ```ts
-type SubscriptionSchema = 'beads.subscription@v1';
-
 export type SnapshotEnvelope = {
   type: 'snapshot';
   id: string; // client subscription id
-  schema: SubscriptionSchema;
   revision: number; // starts at 1 and increments per envelope
   issues: Issue[]; // full list for this subscription
 };
@@ -36,7 +32,6 @@ export type SnapshotEnvelope = {
 export type UpsertEnvelope = {
   type: 'upsert';
   id: string;
-  schema: SubscriptionSchema;
   revision: number;
   issue: Issue; // full issue payload
 };
@@ -44,7 +39,6 @@ export type UpsertEnvelope = {
 export type DeleteEnvelope = {
   type: 'delete';
   id: string;
-  schema: SubscriptionSchema;
   revision: number;
   issue_id: string; // id only
 };
@@ -94,7 +88,6 @@ full list for that subscription `id` with `revision: 1`.
   "payload": {
     "type": "snapshot",
     "id": "ready",
-    "schema": "beads.subscription@v1",
     "revision": 1,
     "issues": [{ "id": "UI-1", "title": "..." }]
   }
@@ -113,7 +106,6 @@ Subsequent refreshes emit `upsert` and `delete` envelopes as the list changes.
   "payload": {
     "type": "upsert",
     "id": "ready",
-    "schema": "beads.subscription@v1",
     "revision": 2,
     "issue": { "id": "UI-2", "status": "in_progress" }
   }
@@ -128,7 +120,6 @@ Subsequent refreshes emit `upsert` and `delete` envelopes as the list changes.
   "payload": {
     "type": "delete",
     "id": "ready",
-    "schema": "beads.subscription@v1",
     "revision": 3,
     "issue_id": "UI-9"
   }

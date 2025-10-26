@@ -52,12 +52,9 @@ export interface UnsubscribeMessage {
 
 export type ClientMessage = SubscribeMessage | UnsubscribeMessage;
 
-export type SubscriptionSchema = 'beads.subscription@v1';
-
 export interface SnapshotMessage {
   kind: 'snapshot';
   id: string; // client subscription id
-  schema: SubscriptionSchema;
   revision: number; // strictly increasing per subscription
   issues: Issue[];
 }
@@ -65,7 +62,6 @@ export interface SnapshotMessage {
 export interface UpsertMessage {
   kind: 'upsert';
   id: string;
-  schema: SubscriptionSchema;
   revision: number;
   issue: Issue;
 }
@@ -73,7 +69,6 @@ export interface UpsertMessage {
 export interface DeleteMessage {
   kind: 'delete';
   id: string;
-  schema: SubscriptionSchema;
   revision: number;
   issue_id: string;
 }

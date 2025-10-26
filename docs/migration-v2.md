@@ -23,8 +23,8 @@ npm i -g beads-ui@latest
 
 ## What Changed
 
-- New protocol: `snapshot` / `upsert` / `delete` envelopes tagged with
-  `schema: 'beads.subscription@v1'` and a per‑subscription `revision`.
+- New protocol: `snapshot` / `upsert` / `delete` envelopes and a
+  per‑subscription `revision`.
 - One store per list: views render from a `SubscriptionIssueStore` created for
   each active subscription id.
 - Removed: central issues store and delta fan‑out.

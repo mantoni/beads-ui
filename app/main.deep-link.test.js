@@ -65,7 +65,6 @@ describe('deep link on initial load (UI-44)', () => {
     client._trigger('snapshot', {
       type: 'snapshot',
       id: 'tab:issues',
-      schema: 'beads.subscription@v1',
       revision: 1,
       issues
     });
