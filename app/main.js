@@ -331,16 +331,18 @@ export function bootstrap(root_element) {
       const showing_detail = Boolean(s.selected_id);
 
       // If a top-level view is visible (and not detail), refresh minimally.
-      // Push-only philosophy: avoid network fetches on push; rely on
-      // subscriptions and local stores for Epics/Board. The Issues view uses
+      // Push-only philosophy: avoid network fetches on push. Issues view uses
       // a local transport that reads from the store, so load() is safe here.
+      // Epics/Board recompose from local stores; calling load() is safe and
+      // does not fetch (it only reads from stores/selectors).
       if (!showing_detail) {
         if (s.view === 'issues') {
           void issues_view.load();
+        } else if (s.view === 'epics') {
+          void epics_view.load();
+        } else if (s.view === 'board') {
+          void board_view.load();
         }
-        // Epics and Board views recompose from stores on pushes without
-        // triggering load() (which may fetch). Their stores are already wired
-        // to re-render on issues/subscription updates.
       }
 
       // If a detail is visible, re-fetch it when relevant or when hints are absent
@@ -512,6 +514,9 @@ export function bootstrap(root_element) {
         board_root.hidden = s.view !== 'board';
         // detail_mount visibility handled in subscription above
       }
+      // Ensure subscriptions for the active tab before loading the view to
+      // avoid empty initial renders due to racing list-delta.
+      ensureTabSubscriptions(s);
       if (!s.selected_id && s.view === 'epics') {
         void epics_view.load();
       }
@@ -523,9 +528,6 @@ export function bootstrap(root_element) {
       } catch {
         // ignore
       }
-
-      // Tab-level subscription management
-      ensureTabSubscriptions(s);
     };
     store.subscribe(onRouteChange);
     // Ensure initial state is reflected (fixes reload on #/epics)

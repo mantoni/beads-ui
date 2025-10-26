@@ -205,77 +205,50 @@ export function createEpicsView(
   return {
     async load() {
       /**
-       * Preferred: fetch epic status via RPC (`bd epic status --json`).
-       * Fallback: derive groups from local store + subscriptions when RPC
-       * isn't available (e.g., during tests with minimal data layer).
+       * Compose groups based on subscription membership for `epics`.
+       * Falls back to deriving from the local store when membership is not
+       * available (e.g., tests that do not wire subscriptions).
        */
-      /** @type {any[]} */
-      let next_groups = [];
-      let used_rpc = false;
-      try {
-        if (
-          data &&
-          typeof (/** @type {any} */ (data).getEpicStatus) === 'function'
-        ) {
-          /** @type {unknown} */
-          const res = await /** @type {any} */ (data).getEpicStatus();
-          if (Array.isArray(res)) {
-            // Expect objects like { epic: { id, title, ... }, total_children, closed_children }
-            next_groups = res
-              .map((g) => (g && typeof g === 'object' ? g : null))
-              .filter(Boolean);
-            used_rpc = true;
-          }
+      /** @type {string[]} */
+      let epic_ids = [];
+      if (subscriptions && subscriptions.selectors) {
+        try {
+          epic_ids = subscriptions.selectors.getIds('tab:epics');
+        } catch {
+          epic_ids = [];
         }
-      } catch {
-        // ignore RPC errors and fall back
+      }
+      if (epic_ids.length === 0 && issuesStore) {
+        // Test-friendly fallback: derive epics from all issues when no
+        // membership is available yet.
+        const all = issuesStore.getAll();
+        epic_ids = all
+          .filter((it) => String(it.issue_type || '') === 'epic')
+          .map((it) => String(it.id || ''))
+          .filter((id) => !!id);
       }
 
-      if (!used_rpc) {
-        // Derive groups from local issues store
-        /** @type {any[]} */
-        const derived = [];
-        if (issuesStore) {
-          /** @type {string[]} */
-          let epic_ids = [];
-          if (subscriptions && subscriptions.selectors) {
-            try {
-              epic_ids = subscriptions.selectors.getIds('tab:epics');
-            } catch {
-              epic_ids = [];
+      /** @type {any[]} */
+      const next_groups = [];
+      if (issuesStore) {
+        for (const id of epic_ids) {
+          const epic = issuesStore.getById(id) || { id };
+          const dependents = Array.isArray(epic.dependents)
+            ? epic.dependents
+            : [];
+          const total = dependents.length;
+          let closed = 0;
+          for (const d of dependents) {
+            if (String(d.status || '') === 'closed') {
+              closed++;
             }
           }
-          if (epic_ids.length === 0) {
-            // Fallback: derive from all issues
-            const all = issuesStore.getAll();
-            epic_ids = all
-              .filter((it) => String(it.issue_type || '') === 'epic')
-              .map((it) => String(it.id || ''))
-              .filter((id) => !!id);
-          }
-          for (const id of epic_ids) {
-            const epic = issuesStore.getById(id);
-            if (!epic) {
-              continue;
-            }
-            const dependents = Array.isArray(epic.dependents)
-              ? epic.dependents
-              : [];
-            const total = dependents.length;
-            let closed = 0;
-            for (const d of dependents) {
-              if (String(d.status || '') === 'closed') {
-                closed++;
-              }
-            }
-            derived.push({
-              epic,
-              total_children: total,
-              closed_children: closed
-            });
-          }
+          next_groups.push({
+            epic,
+            total_children: total,
+            closed_children: closed
+          });
         }
-        next_groups = derived;
       }
 
       groups = next_groups;
