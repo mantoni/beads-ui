@@ -1,4 +1,6 @@
 import { describe, expect, test } from 'vitest';
+import { createIssuesStore } from '../data/issues-store.js';
+import { createSubscriptionStore } from '../data/subscriptions-store.js';
 import { createBoardView } from './board.js';
 
 describe('views/board persisted closed filter via store', () => {
@@ -9,21 +11,29 @@ describe('views/board persisted closed filter via store', () => {
     const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
 
-    const data = {
-      async getReady() {
-        return [];
-      },
-      async getInProgress() {
-        return [];
-      },
-      async getClosed() {
-        return [
-          { id: 'A', closed_at: new Date(now - 8 * oneDay).toISOString() },
-          { id: 'B', closed_at: new Date(now - 2 * oneDay).toISOString() },
-          { id: 'C', closed_at: new Date(now).toISOString() }
-        ];
-      }
-    };
+    const issues = [
+      { id: 'A', closed_at: new Date(now - 8 * oneDay).toISOString() },
+      { id: 'B', closed_at: new Date(now - 2 * oneDay).toISOString() },
+      { id: 'C', closed_at: new Date(now).toISOString() }
+    ];
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    await subscriptions.subscribeList('tab:board:closed', {
+      type: 'closed-issues'
+    });
+    subscriptions._applyDelta('closed-issues', {
+      added: issues.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: issues,
+      updated: [],
+      removed: []
+    });
 
     /** @type {{ state: any, subs: ((s:any)=>void)[], getState: () => any, setState: (patch:any)=>void, subscribe: (fn:(s:any)=>void)=>()=>void }} */
     const store = {
@@ -58,9 +68,11 @@ describe('views/board persisted closed filter via store', () => {
 
     const view = createBoardView(
       mount,
-      /** @type {any} */ (data),
+      null,
       () => {},
-      store
+      store,
+      issuesStore,
+      subscriptions
     );
     await view.load();
 

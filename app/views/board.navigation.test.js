@@ -1,4 +1,6 @@
 import { describe, expect, test } from 'vitest';
+import { createIssuesStore } from '../data/issues-store.js';
+import { createSubscriptionStore } from '../data/subscriptions-store.js';
 import { createBoardView } from './board.js';
 
 describe('views/board keyboard navigation', () => {
@@ -6,23 +8,37 @@ describe('views/board keyboard navigation', () => {
     document.body.innerHTML = '<div id="m"></div>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
 
-    /** @type {{ getReady: () => Promise<any[]>, getInProgress: () => Promise<any[]>, getClosed: () => Promise<any[]> }} */
-    const data = {
-      async getReady() {
-        return [];
-      },
-      async getInProgress() {
-        return [
-          { id: 'P-1', title: 'p1', updated_at: '2025-10-23T10:00:00.000Z' },
-          { id: 'P-2', title: 'p2', updated_at: '2025-10-23T09:00:00.000Z' }
-        ];
-      },
-      async getClosed() {
-        return [];
-      }
-    };
+    const issues = [
+      { id: 'P-1', title: 'p1', updated_at: '2025-10-23T10:00:00.000Z' },
+      { id: 'P-2', title: 'p2', updated_at: '2025-10-23T09:00:00.000Z' }
+    ];
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    await subscriptions.subscribeList('tab:board:in-progress', {
+      type: 'in-progress-issues'
+    });
+    subscriptions._applyDelta('in-progress-issues', {
+      added: issues.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: issues,
+      updated: [],
+      removed: []
+    });
 
-    const view = createBoardView(mount, /** @type {any} */ (data), () => {});
+    const view = createBoardView(
+      mount,
+      null,
+      () => {},
+      undefined,
+      issuesStore,
+      subscriptions
+    );
     await view.load();
 
     const first = /** @type {HTMLElement} */ (
@@ -49,32 +65,54 @@ describe('views/board keyboard navigation', () => {
     document.body.innerHTML = '<div id="m"></div>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
 
-    const data = {
-      async getReady() {
-        // Empty column should be skipped on ArrowRight
-        return [];
-      },
-      async getBlocked() {
-        return [
-          { id: 'B-1', title: 'b1', updated_at: '2025-10-23T10:00:00.000Z' }
-        ];
-      },
-      async getInProgress() {
-        return [
-          { id: 'P-1', title: 'p1', updated_at: '2025-10-23T10:00:00.000Z' },
-          { id: 'P-2', title: 'p2', updated_at: '2025-10-23T09:00:00.000Z' }
-        ];
-      },
-      async getClosed() {
-        return [];
-      }
-    };
+    const issues = [
+      { id: 'B-1', title: 'b1', updated_at: '2025-10-23T10:00:00.000Z' },
+      { id: 'P-1', title: 'p1', updated_at: '2025-10-23T10:00:00.000Z' },
+      { id: 'P-2', title: 'p2', updated_at: '2025-10-23T09:00:00.000Z' }
+    ];
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    await subscriptions.subscribeList('tab:board:ready', {
+      type: 'ready-issues'
+    });
+    await subscriptions.subscribeList('tab:board:blocked', {
+      type: 'blocked-issues'
+    });
+    await subscriptions.subscribeList('tab:board:in-progress', {
+      type: 'in-progress-issues'
+    });
+    subscriptions._applyDelta('blocked-issues', {
+      added: ['B-1'],
+      updated: [],
+      removed: []
+    });
+    subscriptions._applyDelta('in-progress-issues', {
+      added: ['P-1', 'P-2'],
+      updated: [],
+      removed: []
+    });
+    // ready remains empty (skipped)
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: issues,
+      updated: [],
+      removed: []
+    });
 
     /** @type {string[]} */
     const opened = [];
-    const view = createBoardView(mount, /** @type {any} */ (data), (id) => {
-      opened.push(id);
-    });
+    const view = createBoardView(
+      mount,
+      null,
+      (id) => {
+        opened.push(id);
+      },
+      undefined,
+      issuesStore,
+      subscriptions
+    );
     await view.load();
 
     const open_first = /** @type {HTMLElement} */ (

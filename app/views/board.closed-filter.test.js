@@ -1,4 +1,6 @@
 import { describe, expect, test } from 'vitest';
+import { createIssuesStore } from '../data/issues-store.js';
+import { createSubscriptionStore } from '../data/subscriptions-store.js';
 import { createBoardView } from './board.js';
 
 describe('views/board closed filter', () => {
@@ -9,36 +11,46 @@ describe('views/board closed filter', () => {
     const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
 
-    /** @type {{ getReady: () => Promise<any[]>, getInProgress: () => Promise<any[]>, getClosed: () => Promise<any[]> }} */
-    const data = {
-      async getReady() {
-        return [];
+    const issues = [
+      {
+        id: 'C-1',
+        title: 'four days',
+        closed_at: new Date(now - 4 * oneDay).toISOString()
       },
-      async getInProgress() {
-        return [];
+      {
+        id: 'C-2',
+        title: 'yesterday',
+        closed_at: new Date(now - 1 * oneDay).toISOString()
       },
-      async getClosed() {
-        return [
-          {
-            id: 'C-1',
-            title: 'four days',
-            closed_at: new Date(now - 4 * oneDay).toISOString()
-          },
-          {
-            id: 'C-2',
-            title: 'yesterday',
-            closed_at: new Date(now - 1 * oneDay).toISOString()
-          },
-          {
-            id: 'C-3',
-            title: 'today',
-            closed_at: new Date(now).toISOString()
-          }
-        ];
-      }
-    };
+      { id: 'C-3', title: 'today', closed_at: new Date(now).toISOString() }
+    ];
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    await subscriptions.subscribeList('tab:board:closed', {
+      type: 'closed-issues'
+    });
+    subscriptions._applyDelta('closed-issues', {
+      added: issues.map((i) => i.id),
+      updated: [],
+      removed: []
+    });
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: issues,
+      updated: [],
+      removed: []
+    });
 
-    const view = createBoardView(mount, /** @type {any} */ (data), () => {});
+    const view = createBoardView(
+      mount,
+      null,
+      () => {},
+      undefined,
+      issuesStore,
+      subscriptions
+    );
     await view.load();
 
     // Default filter: Today → only C-3 visible

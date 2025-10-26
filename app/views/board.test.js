@@ -1,4 +1,6 @@
 import { describe, expect, test } from 'vitest';
+import { createIssuesStore } from '../data/issues-store.js';
+import { createSubscriptionStore } from '../data/subscriptions-store.js';
 import { createBoardView } from './board.js';
 
 describe('views/board', () => {
@@ -6,95 +8,129 @@ describe('views/board', () => {
     document.body.innerHTML = '<div id="m"></div>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
 
-    /** @type {{ getBlocked: () => Promise<any[]>, getReady: () => Promise<any[]>, getInProgress: () => Promise<any[]>, getClosed: () => Promise<any[]> }} */
-    const data = {
-      async getBlocked() {
-        return [
-          {
-            id: 'B-2',
-            title: 'b2',
-            priority: 1,
-            updated_at: '2025-10-22T07:00:00.000Z',
-            issue_type: 'task'
-          },
-          {
-            id: 'B-1',
-            title: 'b1',
-            priority: 0,
-            updated_at: '2025-10-21T07:00:00.000Z',
-            issue_type: 'bug'
-          }
-        ];
+    const now = Date.now();
+    const issues = [
+      // Blocked
+      {
+        id: 'B-2',
+        title: 'b2',
+        priority: 1,
+        updated_at: '2025-10-22T07:00:00.000Z',
+        issue_type: 'task'
       },
-      async getReady() {
-        return [
-          {
-            id: 'R-2',
-            title: 'r2',
-            priority: 1,
-            updated_at: '2025-10-20T08:00:00.000Z',
-            issue_type: 'task'
-          },
-          {
-            id: 'R-1',
-            title: 'r1',
-            priority: 0,
-            updated_at: '2025-10-21T08:00:00.000Z',
-            issue_type: 'bug'
-          },
-          {
-            id: 'R-3',
-            title: 'r3',
-            priority: 1,
-            updated_at: '2025-10-22T08:00:00.000Z',
-            issue_type: 'feature'
-          }
-        ];
+      {
+        id: 'B-1',
+        title: 'b1',
+        priority: 0,
+        updated_at: '2025-10-21T07:00:00.000Z',
+        issue_type: 'bug'
       },
-      async getInProgress() {
-        return [
-          {
-            id: 'P-1',
-            title: 'p1',
-            updated_at: '2025-10-23T09:00:00.000Z',
-            issue_type: 'task'
-          },
-          {
-            id: 'P-2',
-            title: 'p2',
-            updated_at: '2025-10-22T09:00:00.000Z',
-            issue_type: 'feature'
-          }
-        ];
+      // Ready
+      {
+        id: 'R-2',
+        title: 'r2',
+        priority: 1,
+        updated_at: '2025-10-20T08:00:00.000Z',
+        issue_type: 'task'
       },
-      async getClosed() {
-        const now = Date.now();
-        return [
-          {
-            id: 'C-2',
-            title: 'c2',
-            updated_at: '2025-10-20T09:00:00.000Z',
-            // Closed just now → appears first for default 'today' filter
-            closed_at: new Date(now).toISOString(),
-            issue_type: 'task'
-          },
-          {
-            id: 'C-1',
-            title: 'c1',
-            updated_at: '2025-10-21T09:00:00.000Z',
-            // Closed one hour ago today → second
-            closed_at: new Date(now - 60 * 60 * 1000).toISOString(),
-            issue_type: 'bug'
-          }
-        ];
+      {
+        id: 'R-1',
+        title: 'r1',
+        priority: 0,
+        updated_at: '2025-10-21T08:00:00.000Z',
+        issue_type: 'bug'
+      },
+      {
+        id: 'R-3',
+        title: 'r3',
+        priority: 1,
+        updated_at: '2025-10-22T08:00:00.000Z',
+        issue_type: 'feature'
+      },
+      // In progress
+      {
+        id: 'P-1',
+        title: 'p1',
+        updated_at: '2025-10-23T09:00:00.000Z',
+        issue_type: 'task'
+      },
+      {
+        id: 'P-2',
+        title: 'p2',
+        updated_at: '2025-10-22T09:00:00.000Z',
+        issue_type: 'feature'
+      },
+      // Closed
+      {
+        id: 'C-2',
+        title: 'c2',
+        updated_at: '2025-10-20T09:00:00.000Z',
+        closed_at: new Date(now).toISOString(),
+        issue_type: 'task'
+      },
+      {
+        id: 'C-1',
+        title: 'c1',
+        updated_at: '2025-10-21T09:00:00.000Z',
+        closed_at: new Date(now - 60 * 60 * 1000).toISOString(),
+        issue_type: 'bug'
       }
-    };
+    ];
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    await subscriptions.subscribeList('tab:board:blocked', {
+      type: 'blocked-issues'
+    });
+    await subscriptions.subscribeList('tab:board:ready', {
+      type: 'ready-issues'
+    });
+    await subscriptions.subscribeList('tab:board:in-progress', {
+      type: 'in-progress-issues'
+    });
+    await subscriptions.subscribeList('tab:board:closed', {
+      type: 'closed-issues'
+    });
+    subscriptions._applyDelta('blocked-issues', {
+      added: ['B-2', 'B-1'],
+      updated: [],
+      removed: []
+    });
+    subscriptions._applyDelta('ready-issues', {
+      added: ['R-2', 'R-1', 'R-3'],
+      updated: [],
+      removed: []
+    });
+    subscriptions._applyDelta('in-progress-issues', {
+      added: ['P-1', 'P-2'],
+      updated: [],
+      removed: []
+    });
+    subscriptions._applyDelta('closed-issues', {
+      added: ['C-2', 'C-1'],
+      updated: [],
+      removed: []
+    });
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: issues,
+      updated: [],
+      removed: []
+    });
 
     /** @type {string[]} */
     const navigations = [];
-    const view = createBoardView(mount, /** @type {any} */ (data), (id) => {
-      navigations.push(id);
-    });
+    const view = createBoardView(
+      mount,
+      null,
+      (id) => {
+        navigations.push(id);
+      },
+      undefined,
+      issuesStore,
+      subscriptions
+    );
 
     await view.load();
 
@@ -134,42 +170,60 @@ describe('views/board', () => {
     document.body.innerHTML = '<div id="m"></div>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
 
-    /** @type {{ getReady: () => Promise<any[]>, getInProgress: () => Promise<any[]>, getClosed: () => Promise<any[]> }} */
-    const data = {
-      async getReady() {
-        return [
-          {
-            id: 'X-1',
-            title: 'x1',
-            priority: 1,
-            updated_at: '2025-10-23T10:00:00.000Z',
-            issue_type: 'task'
-          },
-          {
-            id: 'X-2',
-            title: 'x2',
-            priority: 1,
-            updated_at: '2025-10-23T09:00:00.000Z',
-            issue_type: 'task'
-          }
-        ];
+    const issues = [
+      {
+        id: 'X-1',
+        title: 'x1',
+        priority: 1,
+        updated_at: '2025-10-23T10:00:00.000Z',
+        issue_type: 'task'
       },
-      async getInProgress() {
-        return [
-          {
-            id: 'X-2',
-            title: 'x2',
-            updated_at: '2025-10-23T11:00:00.000Z',
-            issue_type: 'task'
-          }
-        ];
-      },
-      async getClosed() {
-        return [];
+      {
+        id: 'X-2',
+        title: 'x2',
+        priority: 1,
+        updated_at: '2025-10-23T09:00:00.000Z',
+        issue_type: 'task'
       }
-    };
+    ];
+    const issuesStore = createIssuesStore();
+    const subscriptions = createSubscriptionStore(async () => {});
+    await subscriptions.subscribeList('tab:board:ready', {
+      type: 'ready-issues'
+    });
+    await subscriptions.subscribeList('tab:board:in-progress', {
+      type: 'in-progress-issues'
+    });
+    await subscriptions.subscribeList('tab:board:closed', {
+      type: 'closed-issues'
+    });
+    subscriptions._applyDelta('ready-issues', {
+      added: ['X-1', 'X-2'],
+      updated: [],
+      removed: []
+    });
+    subscriptions._applyDelta('in-progress-issues', {
+      added: ['X-2'],
+      updated: [],
+      removed: []
+    });
+    issuesStore._applyEnvelope({
+      topic: 'issues',
+      revision: 1,
+      snapshot: true,
+      added: issues,
+      updated: [],
+      removed: []
+    });
 
-    const view = createBoardView(mount, /** @type {any} */ (data), () => {});
+    const view = createBoardView(
+      mount,
+      null,
+      () => {},
+      undefined,
+      issuesStore,
+      subscriptions
+    );
 
     await view.load();
 

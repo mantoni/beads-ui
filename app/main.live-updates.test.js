@@ -222,8 +222,9 @@ describe('live updates: issues-changed handling', () => {
     await Promise.resolve();
 
     const calls = CLIENT.send.mock.calls.map(/** @param {any} c */ (c) => c[0]);
-    // Board loads multiple list-issues, assert at least one
-    expect(calls.length > 0).toBe(true);
-    expect(new Set(calls).has('list-issues')).toBe(true);
+    // Push-only path: board does not fetch list-issues on push
+    expect(
+      calls.filter(/** @param {any} t */ (t) => t === 'list-issues').length
+    ).toBe(0);
   });
 });

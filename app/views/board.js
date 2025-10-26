@@ -17,19 +17,28 @@ import { createTypeBadge } from '../utils/type-badge.js';
 
 /**
  * Create the Board view with Blocked, Ready, In progress, Closed.
- * Data providers are expected to return raw arrays; this view applies sorting.
+ * Push-only: derives items from subscriptions membership and issues store.
  *
  * Sorting rules:
  * - Ready/Blocked: priority asc, then updated_at desc when present
  * - In progress: updated_at desc
  * - Closed: closed_at desc (fallback to updated_at)
  * @param {HTMLElement} mount_element
- * @param {{ getReady: () => Promise<any[]>, getBlocked?: () => Promise<any[]>, getInProgress: () => Promise<any[]>, getClosed: (limit?: number) => Promise<any[]> }} data
+ * @param {unknown} _data - Unused (legacy param retained for call-compat)
  * @param {(id: string) => void} gotoIssue - Navigate to issue detail.
  * @param {{ getState: () => any, setState: (patch: any) => void, subscribe?: (fn: (s:any)=>void)=>()=>void }} [store]
+ * @param {{ subscribe: (fn: () => void) => () => void, getMany: (ids: string[]) => any[] }} [issuesStore]
+ * @param {{ selectors: { getIds: (client_id: string) => string[] } }} [subscriptions]
  * @returns {{ load: () => Promise<void>, clear: () => void }}
  */
-export function createBoardView(mount_element, data, gotoIssue, store) {
+export function createBoardView(
+  mount_element,
+  _data,
+  gotoIssue,
+  store,
+  issuesStore = undefined,
+  subscriptions = undefined
+) {
   /** @type {IssueLite[]} */
   let list_ready = [];
   /** @type {IssueLite[]} */
@@ -419,58 +428,80 @@ export function createBoardView(mount_element, data, gotoIssue, store) {
     }
   }
 
-  return {
-    async load() {
-      /** @type {IssueLite[]} */
-      let r = [];
-      /** @type {IssueLite[]} */
-      let b = [];
-      /** @type {IssueLite[]} */
-      let p = [];
-      /** @type {IssueLite[]} */
-      let c = [];
-      try {
-        r = /** @type {any} */ (await data.getReady());
-      } catch {
-        r = [];
-      }
-      try {
-        // getBlocked is optional for backward compatibility in tests
-        const fn = /** @type {any} */ (data).getBlocked;
-        b = typeof fn === 'function' ? /** @type {any} */ (await fn()) : [];
-      } catch {
-        b = [];
-      }
-      try {
-        p = /** @type {any} */ (await data.getInProgress());
-      } catch {
-        p = [];
-      }
-      try {
-        c = /** @type {any} */ (await data.getClosed());
-      } catch {
-        c = [];
-      }
+  /**
+   * Compose lists from subscriptions + issues store and render.
+   */
+  function refreshFromStores() {
+    try {
+      const ids_ready =
+        subscriptions && subscriptions.selectors
+          ? subscriptions.selectors.getIds('tab:board:ready')
+          : [];
+      const ids_blocked =
+        subscriptions && subscriptions.selectors
+          ? subscriptions.selectors.getIds('tab:board:blocked')
+          : [];
+      const ids_in_progress =
+        subscriptions && subscriptions.selectors
+          ? subscriptions.selectors.getIds('tab:board:in-progress')
+          : [];
+      const ids_closed =
+        subscriptions && subscriptions.selectors
+          ? subscriptions.selectors.getIds('tab:board:closed')
+          : [];
+
+      const r = issuesStore ? issuesStore.getMany(ids_ready) : [];
+      const b = issuesStore ? issuesStore.getMany(ids_blocked) : [];
+      const p = issuesStore ? issuesStore.getMany(ids_in_progress) : [];
+      const c = issuesStore ? issuesStore.getMany(ids_closed) : [];
 
       // Remove items from Ready that are already In Progress by id
-      if (r.length > 0 && p.length > 0) {
-        /** @type {Set<string>} */
-        const in_progress_ids = new Set(p.map((it) => it.id));
-        r = r.filter((it) => !in_progress_ids.has(it.id));
+      /** @type {IssueLite[]} */
+      let ready = Array.isArray(r) ? [...r] : [];
+      /** @type {Set<string>} */
+      const in_progress_ids = new Set(
+        Array.isArray(p) ? p.map((it) => it.id) : []
+      );
+      if (ready.length > 0 && in_progress_ids.size > 0) {
+        ready = ready.filter((it) => !in_progress_ids.has(it.id));
       }
 
       // Sort lists for display
-      sortReady(r);
+      sortReady(ready);
       sortReady(b);
       sortByUpdatedDesc(p);
       // Closed handled separately to use closed_at and filtering
 
-      list_ready = r;
-      list_blocked = b;
-      list_in_progress = p;
-      list_closed_raw = c;
+      list_ready = ready;
+      list_blocked = Array.isArray(b) ? b : [];
+      list_in_progress = Array.isArray(p) ? p : [];
+      list_closed_raw = Array.isArray(c) ? c : [];
       applyClosedFilter();
       doRender();
+    } catch {
+      list_ready = [];
+      list_blocked = [];
+      list_in_progress = [];
+      list_closed = [];
+      doRender();
+    }
+  }
+
+  // Live updates: recompose on issues envelopes
+  if (issuesStore && typeof issuesStore.subscribe === 'function') {
+    issuesStore.subscribe(() => {
+      try {
+        refreshFromStores();
+      } catch {
+        // ignore
+      }
+    });
+  }
+
+  return {
+    async load() {
+      // Compose lists from subscriptions + issues store
+      refreshFromStores();
     },
     clear() {
       mount_element.replaceChildren();
