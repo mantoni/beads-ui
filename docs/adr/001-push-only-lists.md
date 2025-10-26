@@ -77,7 +77,7 @@ export function createListSelectors(issueStores) {
 
 Sorting rules:
 
-- Issues list: priority asc (0..4), then `updated_at` desc, then id asc.
+- Issues list: priority asc (0..4), then `created_at` desc, then id asc.
 - Board columns: preserve existing view rules (ready → priority asc, then
   `updated_at` desc; in‑progress → `updated_at` desc; closed → `closed_at`
   desc).

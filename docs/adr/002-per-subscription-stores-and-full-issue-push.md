@@ -106,7 +106,7 @@ export type DeleteMsg = {
 
 - Stores maintain stable item identity across updates (same object ref for the
   same `id` when only fields change) and expose a deterministic sort order
-  suitable for the owning view (e.g., Issues: priority asc, then `updated_at`
+  suitable for the owning view (e.g., Issues: priority asc, then `created_at`
   desc, then id asc).
 
 ### Error handling and reconnect
@@ -146,7 +146,7 @@ function applyPush(msg) {
 ```
 
 The sort function must be deterministic and view‑specific (e.g., priority asc,
-then `updated_at` desc, then `id` asc). Stores keep object identity stable for
+then `created_at` desc, then `id` asc). Stores keep object identity stable for
 the same `id` whenever fields change.
 
 ## Migration

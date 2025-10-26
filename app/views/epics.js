@@ -4,7 +4,7 @@ import { createIssueIdRenderer } from '../utils/issue-id-renderer.js';
 import { createIssueRowRenderer } from './issue-row.js';
 
 /**
- * @typedef {{ id: string, title?: string, status?: string, priority?: number, issue_type?: string, assignee?: string, updated_at?: number }} IssueLite
+ * @typedef {{ id: string, title?: string, status?: string, priority?: number, issue_type?: string, assignee?: string, created_at?: number, updated_at?: number }} IssueLite
  */
 
 /**

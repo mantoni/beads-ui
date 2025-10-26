@@ -36,6 +36,7 @@ describe('detail view via subscription push', () => {
           title: 'A title',
           status: 'open',
           priority: 2,
+          created_at: 1700000000000,
           updated_at: 1700000000000,
           closed_at: 0
         }

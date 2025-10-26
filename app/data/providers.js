@@ -15,9 +15,7 @@ export function createDataLayer(transport) {
    * @returns {Promise<unknown>}
    */
   async function getIssue(id) {
-    /** @type {unknown} */
-    const res = await transport('show-issue', { id });
-    return res;
+    return transport('show-issue', { id });
   }
 
   /**

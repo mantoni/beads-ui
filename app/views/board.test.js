@@ -54,6 +54,7 @@ describe('views/board', () => {
         id: 'B-2',
         title: 'b2',
         priority: 1,
+        created_at: new Date('2025-10-22T07:00:00.000Z').getTime(),
         updated_at: new Date('2025-10-22T07:00:00.000Z').getTime(),
         issue_type: 'task'
       },
@@ -61,6 +62,7 @@ describe('views/board', () => {
         id: 'B-1',
         title: 'b1',
         priority: 0,
+        created_at: new Date('2025-10-21T07:00:00.000Z').getTime(),
         updated_at: new Date('2025-10-21T07:00:00.000Z').getTime(),
         issue_type: 'bug'
       },
@@ -69,6 +71,7 @@ describe('views/board', () => {
         id: 'R-2',
         title: 'r2',
         priority: 1,
+        created_at: new Date('2025-10-20T08:00:00.000Z').getTime(),
         updated_at: new Date('2025-10-20T08:00:00.000Z').getTime(),
         issue_type: 'task'
       },
@@ -76,6 +79,7 @@ describe('views/board', () => {
         id: 'R-1',
         title: 'r1',
         priority: 0,
+        created_at: new Date('2025-10-21T08:00:00.000Z').getTime(),
         updated_at: new Date('2025-10-21T08:00:00.000Z').getTime(),
         issue_type: 'bug'
       },
@@ -83,6 +87,7 @@ describe('views/board', () => {
         id: 'R-3',
         title: 'r3',
         priority: 1,
+        created_at: new Date('2025-10-22T08:00:00.000Z').getTime(),
         updated_at: new Date('2025-10-22T08:00:00.000Z').getTime(),
         issue_type: 'feature'
       },
@@ -90,12 +95,14 @@ describe('views/board', () => {
       {
         id: 'P-1',
         title: 'p1',
+        created_at: new Date('2025-10-23T09:00:00.000Z').getTime(),
         updated_at: new Date('2025-10-23T09:00:00.000Z').getTime(),
         issue_type: 'task'
       },
       {
         id: 'P-2',
         title: 'p2',
+        created_at: new Date('2025-10-22T09:00:00.000Z').getTime(),
         updated_at: new Date('2025-10-22T09:00:00.000Z').getTime(),
         issue_type: 'feature'
       },
@@ -156,19 +163,19 @@ describe('views/board', () => {
 
     await view.load();
 
-    // Blocked: priority asc, then updated_at desc for equal priority
+    // Blocked: priority asc, then created_at desc for equal priority
     const blocked_ids = Array.from(
       mount.querySelectorAll('#blocked-col .board-card .mono')
     ).map((el) => el.textContent?.trim());
     expect(blocked_ids).toEqual(['#1', '#2']);
 
-    // Ready: priority asc, then updated_at desc for equal priority
+    // Ready: priority asc, then created_at desc for equal priority
     const ready_ids = Array.from(
       mount.querySelectorAll('#ready-col .board-card .mono')
     ).map((el) => el.textContent?.trim());
     expect(ready_ids).toEqual(['#1', '#3', '#2']);
 
-    // In progress: updated_at desc
+    // In progress: priority asc (default), then created_at desc
     const prog_ids = Array.from(
       mount.querySelectorAll('#in-progress-col .board-card .mono')
     ).map((el) => el.textContent?.trim());
@@ -197,6 +204,7 @@ describe('views/board', () => {
         id: 'X-1',
         title: 'x1',
         priority: 1,
+        created_at: '2025-10-23T10:00:00.000Z',
         updated_at: '2025-10-23T10:00:00.000Z',
         issue_type: 'task'
       },
@@ -204,6 +212,7 @@ describe('views/board', () => {
         id: 'X-2',
         title: 'x2',
         priority: 1,
+        created_at: '2025-10-23T09:00:00.000Z',
         updated_at: '2025-10-23T09:00:00.000Z',
         issue_type: 'task'
       }

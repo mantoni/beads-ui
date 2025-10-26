@@ -76,11 +76,29 @@ describe('list view — fast filter switches', () => {
     statusSelect.dispatchEvent(new Event('change'));
 
     const inProg = [
-      { id: 'P-1', title: 'prog 1', status: 'in_progress', updated_at: 200 },
-      { id: 'P-2', title: 'prog 2', status: 'in_progress', updated_at: 210 }
+      {
+        id: 'P-1',
+        title: 'prog 1',
+        status: 'in_progress',
+        created_at: 200,
+        updated_at: 200
+      },
+      {
+        id: 'P-2',
+        title: 'prog 2',
+        status: 'in_progress',
+        created_at: 210,
+        updated_at: 210
+      }
     ];
     const ready = [
-      { id: 'R-1', title: 'ready 1', status: 'open', updated_at: 100 }
+      {
+        id: 'R-1',
+        title: 'ready 1',
+        status: 'open',
+        created_at: 100,
+        updated_at: 100
+      }
     ];
 
     // Newer revision first

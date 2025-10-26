@@ -11,6 +11,7 @@ import { createTypeBadge } from '../utils/type-badge.js';
  *   status?: 'open'|'in_progress'|'closed',
  *   priority?: number,
  *   issue_type?: string,
+ *   created_at?: number,
  *   updated_at?: number,
  *   closed_at?: number
  * }} IssueLite
@@ -21,9 +22,8 @@ import { createTypeBadge } from '../utils/type-badge.js';
  * Push-only: derives items from per-subscription stores.
  *
  * Sorting rules:
- * - Ready/Blocked: priority asc, then updated_at desc when present
- * - In progress: updated_at desc
- * - Closed: closed_at desc (fallback to updated_at)
+ * - Ready/Blocked/In progress: priority asc, then created_at desc
+ * - Closed: closed_at desc
  * @param {HTMLElement} mount_element
  * @param {unknown} _data - Unused (legacy param retained for call-compat)
  * @param {(id: string) => void} gotoIssue - Navigate to issue detail.

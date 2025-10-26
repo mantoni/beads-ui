@@ -9,8 +9,20 @@ describe('subscription issue store', () => {
       id: 's1',
       revision: 1,
       issues: [
-        { id: 'B', priority: 2, updated_at: 10_000, closed_at: null },
-        { id: 'A', priority: 1, updated_at: 20_000, closed_at: null }
+        {
+          id: 'B',
+          priority: 2,
+          created_at: 10_000,
+          updated_at: 10_000,
+          closed_at: null
+        },
+        {
+          id: 'A',
+          priority: 1,
+          created_at: 20_000,
+          updated_at: 20_000,
+          closed_at: null
+        }
       ]
     });
     const snap = /** @type {any[]} */ (store.snapshot());
@@ -25,7 +37,15 @@ describe('subscription issue store', () => {
       type: 'snapshot',
       id: 's1',
       revision: 1,
-      issues: [{ id: 'X', title: 'x', updated_at: 10_000, closed_at: null }]
+      issues: [
+        {
+          id: 'X',
+          title: 'x',
+          created_at: 10_000,
+          updated_at: 10_000,
+          closed_at: null
+        }
+      ]
     });
     const before = store.getById('X');
     expect(before?.title).toBe('x');
@@ -36,6 +56,7 @@ describe('subscription issue store', () => {
       issue: {
         id: 'X',
         title: 'X!',
+        created_at: 10_000,
         updated_at: 10_060,
         closed_at: null
       }
@@ -51,7 +72,15 @@ describe('subscription issue store', () => {
       type: 'snapshot',
       id: 's1',
       revision: 5,
-      issues: [{ id: 'X', title: 'x', updated_at: 10_600, closed_at: null }]
+      issues: [
+        {
+          id: 'X',
+          title: 'x',
+          created_at: 10_000,
+          updated_at: 10_600,
+          closed_at: null
+        }
+      ]
     });
     // stale revision
     store.applyPush({
@@ -61,6 +90,7 @@ describe('subscription issue store', () => {
       issue: {
         id: 'X',
         title: 'old',
+        created_at: 10_000,
         updated_at: 10_540,
         closed_at: null
       }
@@ -74,6 +104,7 @@ describe('subscription issue store', () => {
       issue: {
         id: 'X',
         title: 'same',
+        created_at: 10_000,
         updated_at: 10_660,
         closed_at: null
       }
@@ -87,6 +118,7 @@ describe('subscription issue store', () => {
       issue: {
         id: 'X',
         title: 'stale',
+        created_at: 10_000,
         updated_at: 10_000,
         closed_at: null
       }
@@ -101,8 +133,8 @@ describe('subscription issue store', () => {
       id: 's1',
       revision: 1,
       issues: [
-        { id: 'A', updated_at: 10_000, closed_at: null },
-        { id: 'B', updated_at: 10_000, closed_at: null }
+        { id: 'A', created_at: 10_000, updated_at: 10_000, closed_at: null },
+        { id: 'B', created_at: 10_000, updated_at: 10_000, closed_at: null }
       ]
     });
     store.applyPush({ type: 'delete', id: 's1', revision: 2, issue_id: 'A' });
@@ -122,7 +154,9 @@ describe('subscription issue store', () => {
       type: 'snapshot',
       id: 's1',
       revision: 1,
-      issues: [{ id: 'A', updated_at: 10_000, closed_at: null }]
+      issues: [
+        { id: 'A', created_at: 10_000, updated_at: 10_000, closed_at: null }
+      ]
     });
     store.applyPush({
       type: 'upsert',
@@ -131,6 +165,7 @@ describe('subscription issue store', () => {
       issue: {
         id: 'A',
         title: 't',
+        created_at: 10_000,
         updated_at: 10_060,
         closed_at: null
       }
@@ -149,7 +184,9 @@ describe('subscription issue store', () => {
       type: 'snapshot',
       id: 's1',
       revision: 1,
-      issues: [{ id: 'A', updated_at: 10_000, closed_at: null }]
+      issues: [
+        { id: 'A', created_at: 10_000, updated_at: 10_000, closed_at: null }
+      ]
     });
     expect(hit).toBe(0);
     expect(store.size()).toBe(0);

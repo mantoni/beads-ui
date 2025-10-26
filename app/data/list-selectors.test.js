@@ -67,27 +67,45 @@ describe('list-selectors', () => {
     expect(selectors.selectBoardColumn('tab:board:ready', 'ready')).toEqual([]);
   });
 
-  test('selectIssuesFor returns priority asc then updated desc', async () => {
+  test('selectIssuesFor returns priority asc then created desc', async () => {
     const { issueStores, selectors } = setup();
     const store = issueStores.getStore('tab:issues');
-    // Apply snapshot with items of varying priority and updated_at
+    // Apply snapshot with items of varying priority and created_at
     store.applyPush({
       type: 'snapshot',
       id: 'tab:issues',
       revision: 1,
       issues: [
-        { id: 'A', priority: 2, updated_at: 10_000, closed_at: null },
-        { id: 'B', priority: 1, updated_at: 9_000, closed_at: null },
-        { id: 'C', priority: 1, updated_at: 11_000, closed_at: null }
+        {
+          id: 'A',
+          priority: 2,
+          created_at: 10_000,
+          updated_at: 10_000,
+          closed_at: null
+        },
+        {
+          id: 'B',
+          priority: 1,
+          created_at: 9_000,
+          updated_at: 9_000,
+          closed_at: null
+        },
+        {
+          id: 'C',
+          priority: 1,
+          created_at: 11_000,
+          updated_at: 11_000,
+          closed_at: null
+        }
       ]
     });
 
     const out = selectors.selectIssuesFor('tab:issues').map((x) => x.id);
-    // priority asc: B,C first (1), then A (2); within same priority sort by updated desc
+    // priority asc: B,C first (1), then A (2); within same priority sort by created desc
     expect(out).toEqual(['C', 'B', 'A']);
   });
 
-  test('selectBoardColumn sorts ready like list, in_progress by updated desc, closed by closed_at desc', async () => {
+  test('selectBoardColumn sorts ready/blocked/in_progress by priority→created, closed by closed_at desc', async () => {
     const { issueStores, selectors } = setup();
     // Ready
     issueStores.getStore('tab:board:ready').applyPush({
@@ -95,9 +113,27 @@ describe('list-selectors', () => {
       id: 'tab:board:ready',
       revision: 1,
       issues: [
-        { id: 'R1', priority: 2, updated_at: 10_000, closed_at: null },
-        { id: 'R2', priority: 1, updated_at: 9_000, closed_at: null },
-        { id: 'R3', priority: 1, updated_at: 11_000, closed_at: null }
+        {
+          id: 'R1',
+          priority: 2,
+          created_at: 10_000,
+          updated_at: 10_000,
+          closed_at: null
+        },
+        {
+          id: 'R2',
+          priority: 1,
+          created_at: 9_000,
+          updated_at: 9_000,
+          closed_at: null
+        },
+        {
+          id: 'R3',
+          priority: 1,
+          created_at: 11_000,
+          updated_at: 11_000,
+          closed_at: null
+        }
       ]
     });
     // In progress
@@ -106,9 +142,9 @@ describe('list-selectors', () => {
       id: 'tab:board:in-progress',
       revision: 1,
       issues: [
-        { id: 'P1', updated_at: 8_000, closed_at: null },
-        { id: 'P2', updated_at: 9_000, closed_at: null },
-        { id: 'P3', updated_at: 7_000, closed_at: null }
+        { id: 'P1', created_at: 8_000, updated_at: 8_000, closed_at: null },
+        { id: 'P2', created_at: 9_000, updated_at: 9_000, closed_at: null },
+        { id: 'P3', created_at: 7_000, updated_at: 7_000, closed_at: null }
       ]
     });
     // Closed
@@ -117,9 +153,9 @@ describe('list-selectors', () => {
       id: 'tab:board:closed',
       revision: 1,
       issues: [
-        { id: 'C1', closed_at: 5_000, updated_at: 20_000 },
-        { id: 'C2', closed_at: 6_000, updated_at: 20_000 },
-        { id: 'C3', closed_at: 4_000, updated_at: 7_300 }
+        { id: 'C1', created_at: 1_000, closed_at: 5_000, updated_at: 20_000 },
+        { id: 'C2', created_at: 1_100, closed_at: 6_000, updated_at: 20_000 },
+        { id: 'C3', created_at: 900, closed_at: 4_000, updated_at: 7_300 }
       ]
     });
 
@@ -140,15 +176,27 @@ describe('list-selectors', () => {
     expect(closed).toEqual(['C2', 'C1', 'C3']);
   });
 
-  test('selectEpicChildren uses epic:{id} client id and list sorting', async () => {
+  test('selectEpicChildren uses epic:{id} client id and list sorting (priority→created)', async () => {
     const { issueStores, selectors } = setup();
     issueStores.getStore('epic:42').applyPush({
       type: 'snapshot',
       id: 'epic:42',
       revision: 1,
       issues: [
-        { id: 'E1', priority: 1, updated_at: 10_000, closed_at: null },
-        { id: 'E2', priority: 1, updated_at: 9_000, closed_at: null }
+        {
+          id: 'E1',
+          priority: 1,
+          created_at: 10_000,
+          updated_at: 10_000,
+          closed_at: null
+        },
+        {
+          id: 'E2',
+          priority: 1,
+          created_at: 9_000,
+          updated_at: 9_000,
+          closed_at: null
+        }
       ]
     });
     const out = selectors.selectEpicChildren('42').map((x) => x.id);

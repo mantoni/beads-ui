@@ -101,7 +101,7 @@ export function ListView({ store }) {
 
 ## Ordering and Identity
 
-- Default sort: priority asc, then `updated_at` desc, then id asc.
+- Default sort: priority asc, then `created_at` desc, then id asc.
 - When upserting, the store preserves object identity for existing ids by
   mutating fields in place. This reduces unnecessary re‑renders.
 

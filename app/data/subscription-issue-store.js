@@ -8,11 +8,11 @@
  */
 
 /**
- * Compare by priority asc, then updated_at desc, then id asc.
+ * Compare by priority asc, then created_at desc, then id asc.
  * @param {any} a
  * @param {any} b
  */
-function cmpPriorityThenUpdated(a, b) {
+function cmpPriorityThenCreated(a, b) {
   const pa = Number.isFinite(a?.priority)
     ? /** @type {number} */ (a.priority)
     : 2;
@@ -22,14 +22,14 @@ function cmpPriorityThenUpdated(a, b) {
   if (pa !== pb) {
     return pa - pb;
   }
-  const ua = Number.isFinite(a?.updated_at)
-    ? /** @type {number} */ (a.updated_at)
+  const ca = Number.isFinite(a?.created_at)
+    ? /** @type {number} */ (a.created_at)
     : 0;
-  const ub = Number.isFinite(b?.updated_at)
-    ? /** @type {number} */ (b.updated_at)
+  const cb = Number.isFinite(b?.created_at)
+    ? /** @type {number} */ (b.created_at)
     : 0;
-  if (ua !== ub) {
-    return ua < ub ? 1 : -1;
+  if (ca !== cb) {
+    return ca < cb ? 1 : -1;
   }
   const ida = String(a?.id || '');
   const idb = String(b?.id || '');
@@ -54,7 +54,7 @@ export function createSubscriptionIssueStore(id, options = {}) {
   /** @type {boolean} */
   let is_disposed = false;
   /** @type {(a:any,b:any)=>number} */
-  const sort = options.sort || cmpPriorityThenUpdated;
+  const sort = options.sort || cmpPriorityThenCreated;
 
   function emit() {
     for (const fn of Array.from(listeners)) {

@@ -114,7 +114,7 @@ describe('views/epics', () => {
     expect(navCalls[0]).toBe('UI-2');
   });
 
-  test('sorts children by priority then updated_at', async () => {
+  test('sorts children by priority then created_at', async () => {
     document.body.innerHTML = '<div id="m"></div>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
     const data = {
@@ -197,6 +197,7 @@ describe('views/epics', () => {
           status: 'open',
           priority: 1,
           issue_type: 'task',
+          created_at: '2025-10-22T10:00:00.000Z',
           updated_at: '2025-10-22T10:00:00.000Z'
         },
         {
@@ -205,6 +206,7 @@ describe('views/epics', () => {
           status: 'open',
           priority: 1,
           issue_type: 'task',
+          created_at: '2025-10-20T10:00:00.000Z',
           updated_at: '2025-10-20T10:00:00.000Z'
         },
         {
@@ -213,6 +215,7 @@ describe('views/epics', () => {
           status: 'open',
           priority: 2,
           issue_type: 'task',
+          created_at: '2025-10-23T10:00:00.000Z',
           updated_at: '2025-10-23T10:00:00.000Z'
         }
       ]

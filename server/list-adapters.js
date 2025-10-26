@@ -55,19 +55,20 @@ export function mapSubscriptionToBdArgs(spec) {
  * - Coerces timestamps to numbers
  * - `closed_at` defaults to null when missing or invalid
  * @param {unknown} value
- * @returns {Array<{ id: string, updated_at: number, closed_at: number | null } & Record<string, unknown>>}
+ * @returns {Array<{ id: string, created_at: number, updated_at: number, closed_at: number | null } & Record<string, unknown>>}
  */
 export function normalizeIssueList(value) {
   if (!Array.isArray(value)) {
     return [];
   }
-  /** @type {Array<{ id: string, updated_at: number, closed_at: number | null } & Record<string, unknown>>} */
+  /** @type {Array<{ id: string, created_at: number, updated_at: number, closed_at: number | null } & Record<string, unknown>>} */
   const out = [];
   for (const it of value) {
     const id = String(it.id ?? '');
     if (id.length === 0) {
       continue;
     }
+    const created_at = parseTimestamp(/** @type {any} */ (it).created_at);
     const updated_at = parseTimestamp(it.updated_at);
     const closed_raw = it.closed_at;
     /** @type {number | null} */
@@ -79,6 +80,7 @@ export function normalizeIssueList(value) {
     out.push({
       ...it,
       id,
+      created_at: Number.isFinite(created_at) ? created_at : 0,
       updated_at: Number.isFinite(updated_at) ? updated_at : 0,
       closed_at
     });

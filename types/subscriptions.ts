@@ -5,6 +5,7 @@
 
 export interface IssueRef {
   id: string;
+  created_at: number; // epoch ms
   updated_at: number; // epoch ms
   closed_at: number | null; // epoch ms or null
 }

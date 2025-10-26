@@ -150,6 +150,23 @@ export function createListView(
         (it) => String(it.issue_type || '') === String(type_filter)
       );
     }
+    // Sorting: closed list is a special case → sort by closed_at desc only
+    if (status_filter === 'closed') {
+      filtered = filtered.slice().sort((a, b) => {
+        const ca = Number.isFinite(/** @type {any} */ (a).closed_at)
+          ? /** @type {number} */ (/** @type {any} */ (a).closed_at)
+          : 0;
+        const cb = Number.isFinite(/** @type {any} */ (b).closed_at)
+          ? /** @type {number} */ (/** @type {any} */ (b).closed_at)
+          : 0;
+        if (ca !== cb) {
+          return ca < cb ? 1 : -1;
+        }
+        const ida = String(/** @type {any} */ (a).id || '');
+        const idb = String(/** @type {any} */ (b).id || '');
+        return ida < idb ? -1 : ida > idb ? 1 : 0;
+      });
+    }
 
     return html`
       <div class="panel__header">
