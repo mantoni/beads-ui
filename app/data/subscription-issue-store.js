@@ -85,7 +85,14 @@ export function createSubscriptionIssueStore(id, options = {}) {
       return;
     }
     const rev = Number(msg.revision) || 0;
+    // Ignore stale messages for all types, including snapshots
+    if (rev <= last_revision && msg.type !== 'snapshot') {
+      return; // stale or duplicate non-snapshot
+    }
     if (msg.type === 'snapshot') {
+      if (rev <= last_revision) {
+        return; // ignore stale snapshot
+      }
       items_by_id.clear();
       const items = Array.isArray(msg.issues) ? msg.issues : [];
       for (const it of items) {
@@ -97,9 +104,6 @@ export function createSubscriptionIssueStore(id, options = {}) {
       last_revision = rev;
       emit();
       return;
-    }
-    if (rev <= last_revision) {
-      return; // stale or duplicate
     }
     if (msg.type === 'upsert') {
       const it = msg.issue;
