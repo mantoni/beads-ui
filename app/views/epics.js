@@ -7,35 +7,38 @@ import { createIssueRowRenderer } from './issue-row.js';
  */
 
 /**
- * Epics view: grouped table using `bd epic status --json`. Expanding a group loads
- * the epic via `getIssue(id)` and then loads each dependent issue to filter out
- * closed items. Provides inline editing for type, title, priority, status, assignee.
+ * Epics view (push-only):
+ * - Derives epic groups from the local issues store (no RPC reads)
+ * - Subscribes to `tab:epics` for top-level membership and per-epic children
+ * - Renders children from `issuesStore.getMany(ids)` via `subscriptions.selectors.getIds()`
+ * - Provides inline edits via mutations; UI re-renders on push
  * @param {HTMLElement} mount_element
- * @param {{ getEpicStatus: () => Promise<any[]>, getIssue: (id: string) => Promise<any>, updateIssue: (input: any) => Promise<any> }} data
+ * @param {{ getIssue: (id: string) => Promise<any>, updateIssue: (input: any) => Promise<any> }} data
  * @param {(id: string) => void} goto_issue - Navigate to issue detail.
- */
-/**
- * @param {HTMLElement} mount_element
- * @param {{ getEpicStatus: () => Promise<any[]>, getIssue: (id: string) => Promise<any>, updateIssue: (input: any) => Promise<any> }} data
- * @param {(id: string) => void} goto_issue
- * @param {{ subscribeList?: (client_id: string, spec: { type: string, params?: Record<string, string|number|boolean> }) => Promise<() => Promise<void>> }} [subscriptions]
+ * @param {{ subscribe: (fn: () => void) => () => void, getMany: (ids: string[]) => any[], getAll: () => any[], getById: (id: string) => any|null }} [issuesStore]
+ * @param {{ subscribeList?: (client_id: string, spec: { type: string, params?: Record<string, string|number|boolean> }) => Promise<() => Promise<void>>, selectors?: { getIds: (client_id: string) => string[], count?: (client_id: string) => number } }} [subscriptions]
  */
 export function createEpicsView(
   mount_element,
   data,
   goto_issue,
-  subscriptions
+  issuesStore = undefined,
+  subscriptions = undefined
 ) {
   /** @type {any[]} */
   let groups = [];
   /** @type {Set<string>} */
   const expanded = new Set();
-  /** @type {Map<string, IssueLite[]>} */
-  const children = new Map();
   /** @type {Set<string>} */
   const loading = new Set();
   /** @type {Map<string, () => Promise<void>>} */
   const epic_unsubs = new Map();
+  // Live re-render on issues pushes
+  if (issuesStore && typeof issuesStore.subscribe === 'function') {
+    issuesStore.subscribe(() => {
+      doRender();
+    });
+  }
 
   // Shared row renderer used for children rows
   const renderRow = createIssueRowRenderer({
@@ -64,7 +67,41 @@ export function createEpicsView(
     const epic = g.epic || {};
     const id = String(epic.id || '');
     const is_open = expanded.has(id);
-    const list = children.get(id) || [];
+    // Compose children live from subscriptions + issues store
+    /** @type {IssueLite[]} */
+    let list = [];
+    if (
+      subscriptions &&
+      subscriptions.selectors &&
+      typeof subscriptions.selectors.getIds === 'function' &&
+      issuesStore &&
+      typeof issuesStore.getMany === 'function'
+    ) {
+      const ids = subscriptions.selectors.getIds(`epic:${id}`);
+      const many = issuesStore.getMany(ids);
+      list = many
+        .filter((it) => String(it.status || '') !== 'closed')
+        .map((full) => ({
+          id: full.id,
+          title: full.title,
+          status: full.status,
+          priority: full.priority,
+          issue_type: full.issue_type,
+          assignee: full.assignee,
+          updated_at: /** @type {any} */ (full).updated_at
+        }));
+      // Sort by priority, then updated_at desc
+      list.sort((a, b) => {
+        const pa = a.priority ?? 2;
+        const pb = b.priority ?? 2;
+        if (pa !== pb) {
+          return pa - pb;
+        }
+        const ua = a.updated_at || '';
+        const ub = b.updated_at || '';
+        return ua < ub ? 1 : ua > ub ? -1 : 0;
+      });
+    }
     const is_loading = loading.has(id);
     return html`
       <div class="epic-group" data-epic-id=${id}>
@@ -134,24 +171,7 @@ export function createEpicsView(
   async function updateInline(id, patch) {
     try {
       await data.updateIssue({ id, ...patch });
-      // Opportunistic refresh for that row
-      const full = await data.getIssue(id);
-      /** @type {IssueLite} */
-      const lite = {
-        id: full.id,
-        title: full.title,
-        status: full.status,
-        priority: full.priority,
-        issue_type: full.issue_type,
-        assignee: full.assignee
-      };
-      // Replace in children map
-      for (const arr of children.values()) {
-        const idx = arr.findIndex((x) => x.id === id);
-        if (idx >= 0) {
-          arr[idx] = lite;
-        }
-      }
+      // Re-render; view will update on subsequent push
       doRender();
     } catch {
       // swallow; UI remains
@@ -164,70 +184,22 @@ export function createEpicsView(
   async function toggle(epic_id) {
     if (!expanded.has(epic_id)) {
       expanded.add(epic_id);
-      // Load children if not present
-      if (!children.has(epic_id)) {
-        loading.add(epic_id);
-        doRender();
-        // Subscribe to issues-for-epic deltas for this epic (best-effort)
-        if (
-          subscriptions &&
-          typeof subscriptions.subscribeList === 'function'
-        ) {
-          try {
-            const u = await subscriptions.subscribeList(`epic:${epic_id}`, {
-              type: 'issues-for-epic',
-              params: { epic: epic_id }
-            });
-            epic_unsubs.set(epic_id, u);
-          } catch {
-            // ignore subscription failures
-          }
-        }
+      loading.add(epic_id);
+      doRender();
+      // Subscribe to issues-for-epic deltas for this epic (best-effort)
+      if (subscriptions && typeof subscriptions.subscribeList === 'function') {
         try {
-          const epic = await data.getIssue(epic_id);
-          // Children for the Epics view come from dependents: issues that list
-          // the epic as a dependency. This matches how progress is tracked.
-          /** @type {{ id: string }[]} */
-          const deps = Array.isArray(epic.dependents) ? epic.dependents : [];
-          /** @type {IssueLite[]} */
-          const list = [];
-          for (const d of deps) {
-            try {
-              const full = await data.getIssue(d.id);
-              if (full.status !== 'closed') {
-                list.push({
-                  id: full.id,
-                  title: full.title,
-                  status: full.status,
-                  priority: full.priority,
-                  issue_type: full.issue_type,
-                  assignee: full.assignee,
-                  // include updated_at for secondary sort within same priority
-                  updated_at: /** @type {any} */ (full).updated_at
-                });
-              }
-            } catch {
-              // ignore individual failures
-            }
-          }
-          // Sort by priority then updated_at (if present)
-          list.sort((a, b) => {
-            const pa = a.priority ?? 2;
-            const pb = b.priority ?? 2;
-            if (pa !== pb) {
-              return pa - pb;
-            }
-            // @ts-ignore optional updated_at if present
-            const ua = a.updated_at || '';
-            // @ts-ignore
-            const ub = b.updated_at || '';
-            return ua < ub ? 1 : ua > ub ? -1 : 0;
+          const u = await subscriptions.subscribeList(`epic:${epic_id}`, {
+            type: 'issues-for-epic',
+            params: { epic_id: epic_id }
           });
-          children.set(epic_id, list);
-        } finally {
-          loading.delete(epic_id);
+          epic_unsubs.set(epic_id, u);
+        } catch {
+          // ignore subscription failures
         }
       }
+      // Mark as not loading after subscribe attempt; membership will stream in
+      loading.delete(epic_id);
     } else {
       expanded.delete(epic_id);
       // Unsubscribe when collapsing
@@ -248,8 +220,50 @@ export function createEpicsView(
 
   return {
     async load() {
-      const res = await data.getEpicStatus();
-      groups = Array.isArray(res) ? res : [];
+      // Derive groups from local issues store
+      /** @type {any[]} */
+      const derived = [];
+      if (issuesStore) {
+        /** @type {string[]} */
+        let epic_ids = [];
+        if (subscriptions && subscriptions.selectors) {
+          try {
+            epic_ids = subscriptions.selectors.getIds('tab:epics');
+          } catch {
+            epic_ids = [];
+          }
+        }
+        if (epic_ids.length === 0) {
+          // Fallback: derive from all issues
+          const all = issuesStore.getAll();
+          epic_ids = all
+            .filter((it) => String(it.issue_type || '') === 'epic')
+            .map((it) => String(it.id || ''))
+            .filter((id) => !!id);
+        }
+        for (const id of epic_ids) {
+          const epic = issuesStore.getById(id);
+          if (!epic) {
+            continue;
+          }
+          const dependents = Array.isArray(epic.dependents)
+            ? epic.dependents
+            : [];
+          const total = dependents.length;
+          let closed = 0;
+          for (const d of dependents) {
+            if (String(d.status || '') === 'closed') {
+              closed++;
+            }
+          }
+          derived.push({
+            epic,
+            total_children: total,
+            closed_children: closed
+          });
+        }
+      }
+      groups = derived;
       doRender();
       // Auto-expand first epic on screen
       try {

@@ -135,7 +135,7 @@ describe('live updates: issues-changed handling', () => {
     expect(calls).toEqual(['show-issue']);
   });
 
-  test('refreshes epics when epics view visible', async () => {
+  test('does not fetch epics on push when epics view visible (push-only)', async () => {
     CLIENT = {
       send: vi.fn(async (type) => {
         if (type === 'epic-status') {
@@ -176,7 +176,10 @@ describe('live updates: issues-changed handling', () => {
     await Promise.resolve();
 
     const calls = CLIENT.send.mock.calls.map(/** @param {any} c */ (c) => c[0]);
-    expect(calls).toEqual(['epic-status']);
+    // Push-only path: epics view does not fetch epic-status on push
+    expect(
+      calls.filter(/** @param {any} t */ (t) => t === 'epic-status').length
+    ).toBe(0);
   });
 
   test('refreshes board when board view visible', async () => {

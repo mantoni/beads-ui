@@ -364,6 +364,7 @@ export function bootstrap(root_element) {
       epics_root,
       data,
       (id) => router.gotoIssue(id),
+      issuesStore,
       subscriptions
     );
     const board_view = createBoardView(
