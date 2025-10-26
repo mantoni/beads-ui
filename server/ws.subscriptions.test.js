@@ -6,7 +6,7 @@ import { attachWsServer, handleMessage, notifyIssuesChanged } from './ws.js';
 vi.mock('./bd.js', () => ({ runBdJson: vi.fn(), runBd: vi.fn() }));
 
 describe('ws subscriptions + targeted fanout', () => {
-  test('subscribe-updates ack and targeted issues-changed by show id', async () => {
+  test('targeted issues-changed by show id without subscribe-updates', async () => {
     const mJson = /** @type {import('vitest').Mock} */ (runBdJson);
     // show-issue → return object with id
     mJson.mockImplementation(async (args) => {
@@ -45,15 +45,7 @@ describe('ws subscriptions + targeted fanout', () => {
     wss.clients.add(/** @type {any} */ (a));
     wss.clients.add(/** @type {any} */ (b));
 
-    // Subscribe both and set show-issue for A
-    await handleMessage(
-      /** @type {any} */ (a),
-      Buffer.from(JSON.stringify({ id: 's1', type: 'subscribe-updates' }))
-    );
-    await handleMessage(
-      /** @type {any} */ (b),
-      Buffer.from(JSON.stringify({ id: 's2', type: 'subscribe-updates' }))
-    );
+    // Set show-issue for A (no subscription required in v2)
     await handleMessage(
       /** @type {any} */ (a),
       Buffer.from(
@@ -92,25 +84,5 @@ describe('ws subscriptions + targeted fanout', () => {
     expect(bHas).toBe(false);
   });
 
-  test('subscribe-updates handler replies ok for bare ws', async () => {
-    const ws = {
-      sent: /** @type {string[]} */ ([]),
-      readyState: 1,
-      OPEN: 1,
-      /** @param {string} msg */
-      send(msg) {
-        this.sent.push(String(msg));
-      }
-    };
-    const req = { id: 'sub1', type: 'subscribe-updates', payload: {} };
-    await handleMessage(
-      /** @type {any} */ (ws),
-      Buffer.from(JSON.stringify(req))
-    );
-    const last = ws.sent[ws.sent.length - 1];
-    const obj = JSON.parse(last);
-    expect(obj.ok).toBe(true);
-    expect(obj.type).toBe('subscribe-updates');
-    expect(obj.payload && obj.payload.subscribed).toBe(true);
-  });
+  // subscribe-updates removed in v2; no ack test
 });

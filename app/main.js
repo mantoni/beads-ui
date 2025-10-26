@@ -387,12 +387,7 @@ export function bootstrap(root_element) {
         }
       }
     };
-    // Legacy list-delta removed in vNext; no handler needed.
-    // Trigger lightweight re-render on legacy issues envelopes as well
-    client.on('issues', () => {
-      // Avoid heavy refetch; our list transport reads from local store
-      void issues_view.load();
-    });
+    // Legacy list-delta and 'issues' envelopes removed; rely on issues-changed.
     client.on('issues-changed', onPushLike);
 
     // Toggle route shells on view/detail change and persist

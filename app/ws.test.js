@@ -110,7 +110,7 @@ describe('app/ws client', () => {
     await expect(p1).resolves.toEqual([{ id: 'UI-1' }]);
   });
 
-  test('reconnects and resubscribes after close', async () => {
+  test('reconnects after close', async () => {
     vi.useFakeTimers();
     const sockets = setupFakeWebSocket();
     const client = createWsClient({
@@ -119,9 +119,6 @@ describe('app/ws client', () => {
 
     // First connection opens
     sockets[0].openNow();
-    // subscribe-updates should be first frame
-    const firstFrame = JSON.parse(sockets[0].sent[0]);
-    expect(firstFrame.type).toBe('subscribe-updates');
 
     // Close the socket to trigger reconnect
     sockets[0].close();
@@ -131,8 +128,8 @@ describe('app/ws client', () => {
     // Second socket should exist and open
     expect(sockets.length).toBeGreaterThan(1);
     sockets[1].openNow();
-    const sub = JSON.parse(sockets[1].sent[0]);
-    expect(sub.type).toBe('subscribe-updates');
+    // No automatic subscribe frames in v2; just ensure reconnect occurred
+    expect(Array.isArray(sockets[1].sent)).toBe(true);
 
     vi.useRealTimers();
     client.close();
@@ -165,4 +162,6 @@ describe('app/ws client', () => {
     expect(logger.warn).toHaveBeenCalled();
     client.close();
   });
+
+  // Removed: subscription ack frames; no warnings to test
 });

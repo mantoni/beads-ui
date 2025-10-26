@@ -90,8 +90,7 @@ Message types (legacy v1; server now push-only):
 
 Defined in the spec but not yet handled on the server:
 
-- `create-issue`, `list-ready`, `subscribe-updates` (client sends on connect;
-  ignored safely)
+- `create-issue`, `list-ready`
 
 ### Examples
 

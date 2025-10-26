@@ -123,10 +123,6 @@ export function createWsClient(options = {}) {
     state = 'open';
     notifyConnection(state);
     attempts = 0;
-    // subscribe first
-    sendRaw(makeRequest('subscribe-updates', {}));
-    // v2 issues push subscription (coexists with legacy updates)
-    sendRaw(makeRequest('subscribe-issues', {}));
     // flush queue
     while (queue.length) {
       const req = queue.shift();

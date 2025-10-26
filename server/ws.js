@@ -175,8 +175,6 @@ export function scheduleListRefresh() {
  * @typedef {{
  *   show_id?: string | null,
  *   list_subs?: Map<string, { key: string, spec: { type: string, params?: Record<string, string | number | boolean> } }>,
- *   issues_rev?: number,
- *   issues_subscribed?: boolean,
  *   list_revisions?: Map<string, number>
  * }} ConnectionSubs
  */
@@ -198,8 +196,6 @@ function ensureSubs(ws) {
     s = {
       show_id: null,
       list_subs: new Map(),
-      issues_rev: 0,
-      issues_subscribed: false,
       list_revisions: new Map()
     };
     SUBS.set(ws, s);
@@ -380,44 +376,6 @@ export function notifyIssuesChanged(payload, options = {}) {
 }
 
 /**
- * Push a single-issue update envelope to all sockets subscribed to issues push.
- * @param {any} issue
- */
-function pushIssueUpdateToSubscribers(issue) {
-  try {
-    const wss = CURRENT_WSS;
-    if (!wss) return;
-    for (const ws of wss.clients) {
-      if (ws.readyState !== ws.OPEN) continue;
-      const s = ensureSubs(ws);
-      if (!s.issues_subscribed) continue;
-      s.issues_rev = (s.issues_rev || 0) + 1;
-      const env = {
-        topic: 'issues',
-        revision: s.issues_rev,
-        snapshot: false,
-        added: [],
-        updated: [issue],
-        removed: []
-      };
-      const msg = JSON.stringify({
-        id: `evt-${Date.now()}`,
-        ok: true,
-        type: /** @type {MessageType} */ ('issues'),
-        payload: env
-      });
-      try {
-        ws.send(msg);
-      } catch {
-        // ignore per-socket errors
-      }
-    }
-  } catch {
-    // ignore
-  }
-}
-
-/**
  * Refresh a subscription spec: fetch via adapter, apply to registry and emit
  * per-subscription full-issue envelopes to subscribers. Serialized per key.
  * @param {{ type: string, params?: Record<string, string|number|boolean> }} spec
@@ -503,7 +461,7 @@ function applyClosedIssuesFilter(spec, items) {
  * Attach a WebSocket server to an existing HTTP server.
  * @param {Server} http_server
  * @param {{ path?: string, heartbeat_ms?: number, refresh_debounce_ms?: number }} [options]
- * @returns {{ wss: WebSocketServer, broadcast: (type: MessageType, payload?: unknown) => void, notifyIssuesChanged: (payload: { ts?: number, hint?: { ids?: string[] } }) => void, scheduleListRefresh: () => void, pushIssuesRefreshAll: () => Promise<void> }}
+ * @returns {{ wss: WebSocketServer, broadcast: (type: MessageType, payload?: unknown) => void, notifyIssuesChanged: (payload: { ts?: number, hint?: { ids?: string[] } }) => void, scheduleListRefresh: () => void }}
  */
 export function attachWsServer(http_server, options = {}) {
   const path = options.path || '/ws';
@@ -582,56 +540,12 @@ export function attachWsServer(http_server, options = {}) {
     }
   }
 
-  /**
-   * Fetch all issues and push a non-snapshot issues envelope to all subscribed clients.
-   */
-  async function pushIssuesRefreshAll() {
-    try {
-      const res = await runBdJson(['list', '--json']);
-      if (!res || res.code !== 0 || !('stdoutJson' in res)) {
-        return;
-      }
-      const issues = Array.isArray(res.stdoutJson) ? res.stdoutJson : [];
-      for (const ws of wss.clients) {
-        if (ws.readyState !== ws.OPEN) {
-          continue;
-        }
-        const s = ensureSubs(ws);
-        if (!s.issues_subscribed) {
-          continue;
-        }
-        s.issues_rev = (s.issues_rev || 0) + 1;
-        const env = {
-          topic: 'issues',
-          revision: s.issues_rev,
-          snapshot: false,
-          added: [],
-          updated: issues,
-          removed: []
-        };
-        const msg = JSON.stringify({
-          id: `evt-${Date.now()}`,
-          ok: true,
-          type: /** @type {MessageType} */ ('issues'),
-          payload: env
-        });
-        try {
-          ws.send(msg);
-        } catch {
-          // ignore send errors per socket
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }
-
   return {
     wss,
     broadcast,
     notifyIssuesChanged: (p) => notifyIssuesChanged(p),
-    scheduleListRefresh,
-    pushIssuesRefreshAll
+    scheduleListRefresh
+    // v2: list subscription refresh handles updates
   };
 }
 
@@ -743,45 +657,7 @@ export async function handleMessage(ws, data) {
     return;
   }
 
-  // subscribe-updates: mark this connection as event subscriber
-  if (req.type === 'subscribe-updates') {
-    ensureSubs(ws);
-    ws.send(JSON.stringify(makeOk(req, { subscribed: true })));
-    return;
-  }
-
-  // subscribe-issues: begin push-only envelopes for issues
-  if (req.type === 'subscribe-issues') {
-    const s = ensureSubs(ws);
-    s.issues_subscribed = true;
-    s.issues_rev = 0;
-    ws.send(JSON.stringify(makeOk(req, { subscribed: 'issues' })));
-    // Send initial snapshot envelope with all issues in `added`
-    try {
-      const res = await runBdJson(['list', '--json']);
-      if (res && res.code === 0 && Array.isArray(res.stdoutJson)) {
-        s.issues_rev = 1;
-        const env = {
-          topic: 'issues',
-          revision: s.issues_rev,
-          snapshot: true,
-          added: res.stdoutJson,
-          updated: [],
-          removed: []
-        };
-        const msg = JSON.stringify({
-          id: `evt-${Date.now()}`,
-          ok: true,
-          type: /** @type {MessageType} */ ('issues'),
-          payload: env
-        });
-        ws.send(msg);
-      }
-    } catch {
-      // ignore snapshot retrieval errors
-    }
-    return;
-  }
+  // Removed: subscribe-updates and subscribe-issues. No-ops in v2.
 
   // list-issues and epic-status were removed in favor of push-only subscriptions
 
@@ -860,11 +736,6 @@ export async function handleMessage(ws, data) {
     }
     ws.send(JSON.stringify(makeOk(req, shown.stdoutJson)));
     try {
-      pushIssueUpdateToSubscribers(shown.stdoutJson);
-    } catch {
-      // ignore
-    }
-    try {
       triggerMutationRefreshOnce();
     } catch {
       // ignore
@@ -908,11 +779,6 @@ export async function handleMessage(ws, data) {
       return;
     }
     ws.send(JSON.stringify(makeOk(req, shown.stdoutJson)));
-    try {
-      pushIssueUpdateToSubscribers(shown.stdoutJson);
-    } catch {
-      // ignore
-    }
     // Push targeted invalidation with updated issue context
     try {
       notifyIssuesChanged({ hint: { ids: [id] } }, { issue: shown.stdoutJson });
@@ -964,11 +830,6 @@ export async function handleMessage(ws, data) {
       return;
     }
     ws.send(JSON.stringify(makeOk(req, shown.stdoutJson)));
-    try {
-      pushIssueUpdateToSubscribers(shown.stdoutJson);
-    } catch {
-      // ignore
-    }
     try {
       notifyIssuesChanged({ hint: { ids: [id] } }, { issue: shown.stdoutJson });
     } catch {
@@ -1037,11 +898,6 @@ export async function handleMessage(ws, data) {
       return;
     }
     ws.send(JSON.stringify(makeOk(req, shown.stdoutJson)));
-    try {
-      pushIssueUpdateToSubscribers(shown.stdoutJson);
-    } catch {
-      /* ignore */ void 0;
-    }
     try {
       notifyIssuesChanged({ hint: { ids: [id] } }, { issue: shown.stdoutJson });
     } catch {
@@ -1143,11 +999,6 @@ export async function handleMessage(ws, data) {
       return;
     }
     ws.send(JSON.stringify(makeOk(req, shown.stdoutJson)));
-    try {
-      pushIssueUpdateToSubscribers(shown.stdoutJson);
-    } catch {
-      // ignore
-    }
     try {
       // Dependencies can affect readiness; conservatively target by issue id
       notifyIssuesChanged({ hint: { ids: [id] } }, { issue: shown.stdoutJson });

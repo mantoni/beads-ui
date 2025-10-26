@@ -1,12 +1,12 @@
-# beads-ui WebSocket Protocol (v1.0.0)
+# beads-ui WebSocket Protocol (v2.0.0)
 
 Note (2025-10-26)
 
 - The server no longer implements legacy read RPCs `list-issues` and
   `epic-status`. Clients must use the push-only protocol described in
   `docs/protocol/issues-push-v2.md` (subscribe-list with per-subscription events
-  snapshot/upsert/delete, and subscribe-issues / issues). The shapes below are
-  retained for historical reference of v1.
+  snapshot/upsert/delete). The shapes below are retained for historical
+  reference of v1.
 
 This document defines the JSON messages exchanged between the browser client and
 the local server.
@@ -36,8 +36,8 @@ ReplyEnvelope shape with `ok: true` and a generated `id`.
 - `create-issue` payload:
   `{ title: string, type?: 'bug'|'feature'|'task'|'epic'|'chore', priority?: 0|1|2|3|4, description?: string }`
 - `list-ready` payload: `{}`
-- `subscribe-updates` payload: `{}` (server responds with `ok` and begins
-  emitting events)
+- Removed in v2: `subscribe-updates` (server now emits `issues-changed` to
+  relevant clients without a prior subscribe)
 - `issues-changed` payload: `{ ts: number, hint?: { ids?: string[] } }`
 - `dep-add` payload: `{ a: string, b: string, view_id?: string }` where `a`
   depends on `b` (i.e., `a` is blocked by `b`). Reply payload is the updated
