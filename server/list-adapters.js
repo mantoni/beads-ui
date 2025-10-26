@@ -35,6 +35,14 @@ export function mapSubscriptionToBdArgs(spec) {
     case 'closed-issues': {
       return ['list', '--json', '--status', 'closed'];
     }
+    case 'issue-detail': {
+      const p = spec.params || {};
+      const id = String(p.id || '').trim();
+      if (id.length === 0) {
+        throw badRequest('Missing param: params.id');
+      }
+      return ['show', id, '--json'];
+    }
     default: {
       throw badRequest(`Unknown subscription type: ${t}`);
     }
@@ -118,7 +126,13 @@ export async function fetchListForSubscription(spec) {
         }
       };
     }
-    const items = normalizeIssueList(res.stdoutJson);
+    // bd show may return a single object; normalize to an array first
+    const raw = Array.isArray(res.stdoutJson)
+      ? res.stdoutJson
+      : res.stdoutJson && typeof res.stdoutJson === 'object'
+        ? [res.stdoutJson]
+        : [];
+    const items = normalizeIssueList(raw);
     return { ok: true, items };
   } catch (err) {
     return {

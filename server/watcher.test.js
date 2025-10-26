@@ -33,7 +33,7 @@ afterEach(() => {
 describe('watchDb', () => {
   test('debounces rapid change events', () => {
     const calls = [];
-    const handle = watchDb('/repo', (p) => calls.push(p), {
+    const handle = watchDb('/repo', () => calls.push(null), {
       debounce_ms: 100,
       explicit_db: '/repo/.beads/ui.db'
     });
@@ -58,7 +58,7 @@ describe('watchDb', () => {
 
   test('ignores other filenames', () => {
     const calls = [];
-    const handle = watchDb('/repo', (p) => calls.push(p), {
+    const handle = watchDb('/repo', () => calls.push(null), {
       debounce_ms: 50,
       explicit_db: '/repo/.beads/ui.db'
     });
@@ -71,7 +71,7 @@ describe('watchDb', () => {
 
   test('rebind attaches to new db path', () => {
     const calls = [];
-    const handle = watchDb('/repo', (p) => calls.push(p), {
+    const handle = watchDb('/repo', () => calls.push(null), {
       debounce_ms: 50,
       explicit_db: '/repo/.beads/ui.db'
     });

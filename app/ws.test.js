@@ -143,14 +143,20 @@ describe('app/ws client', () => {
 
     /** @type {any[]} */
     const events = [];
-    client.on('issues-changed', (p) => events.push(p));
+    client.on('snapshot', (p) => events.push(p));
     sockets[0].emitMessage({
       id: 'evt-1',
       ok: true,
-      type: 'issues-changed',
-      payload: { ids: ['UI-1'] }
+      type: 'snapshot',
+      payload: {
+        type: 'snapshot',
+        id: 'any',
+        schema: 'beads.subscription@v1',
+        revision: 1,
+        issues: []
+      }
     });
-    expect(events).toEqual([{ ids: ['UI-1'] }]);
+    expect(events.length).toBe(1);
 
     // No handler registered for create-issue -> warn
     sockets[0].emitMessage({

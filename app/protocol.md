@@ -21,8 +21,9 @@ the local server.
 - ReplyEnvelope:
   `{ id: string, ok: boolean, type: string, payload?: any, error?: { code: string, message: string, details?: any } }`
 
-Server may send unsolicited events (e.g., `issues-changed`) using the
-ReplyEnvelope shape with `ok: true` and a generated `id`.
+Server may send unsolicited events (e.g., subscription
+`snapshot`/`upsert`/`delete`) using the ReplyEnvelope shape with `ok: true` and
+a generated `id`.
 
 ## Message Types
 
@@ -36,9 +37,9 @@ ReplyEnvelope shape with `ok: true` and a generated `id`.
 - `create-issue` payload:
   `{ title: string, type?: 'bug'|'feature'|'task'|'epic'|'chore', priority?: 0|1|2|3|4, description?: string }`
 - `list-ready` payload: `{}`
-- Removed in v2: `subscribe-updates` (server now emits `issues-changed` to
-  relevant clients without a prior subscribe)
-- `issues-changed` payload: `{ ts: number, hint?: { ids?: string[] } }`
+- Removed in v2: `subscribe-updates` and the `issues-changed` event. All list
+  and detail updates flow via per-subscription push envelopes
+  (`snapshot`/`upsert`/`delete`).
 - `dep-add` payload: `{ a: string, b: string, view_id?: string }` where `a`
   depends on `b` (i.e., `a` is blocked by `b`). Reply payload is the updated
   issue for `view_id` (or `a` when omitted).

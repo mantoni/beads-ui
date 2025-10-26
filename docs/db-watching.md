@@ -1,7 +1,8 @@
 # DB Watching and Resolution
 
 The server watches the active beads SQLite database file for changes and
-broadcasts an `issues-changed` event to connected clients.
+schedules a refresh of active list subscriptions. Clients receive
+`snapshot`/`upsert`/`delete` envelopes for their active subscriptions.
 
 ## Resolution Order
 

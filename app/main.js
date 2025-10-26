@@ -295,12 +295,17 @@ export function bootstrap(root_element) {
     /** @type {ReturnType<typeof createDetailView> | null} */
     let detail = null;
     // Mount details into the dialog body only
-    detail = createDetailView(dialog.getMount(), transport, (hash) => {
-      const id = parseHash(hash);
-      if (id) {
-        router.gotoIssue(id);
-      }
-    });
+    detail = createDetailView(
+      dialog.getMount(),
+      transport,
+      (hash) => {
+        const id = parseHash(hash);
+        if (id) {
+          router.gotoIssue(id);
+        }
+      },
+      sub_issue_stores
+    );
 
     // If router already set a selected id (deep-link), open dialog now
     const initial_id = store.getState().selected_id;
@@ -310,9 +315,20 @@ export function bootstrap(root_element) {
       if (detail) {
         void detail.load(initial_id);
       }
+      // Ensure detail subscription is active on initial deep-link
+      const client_id = `detail:${initial_id}`;
+      const spec = { type: 'issue-detail', params: { id: initial_id } };
+      void subscriptions.subscribeList(client_id, spec).catch(() => {});
+      try {
+        sub_issue_stores.register(client_id, spec);
+      } catch {
+        // ignore
+      }
     }
 
     // Open/close dialog based on selected_id (always dialog; no page variant)
+    /** @type {null | (() => Promise<void>)} */
+    let unsub_detail = null;
     store.subscribe((s) => {
       const id = s.selected_id;
       if (id) {
@@ -320,6 +336,26 @@ export function bootstrap(root_element) {
         dialog.open(id);
         if (detail) {
           void detail.load(id);
+        }
+        // Wire per-issue subscription for detail
+        const client_id = `detail:${id}`;
+        const spec = { type: 'issue-detail', params: { id } };
+        // Subscribe server-side
+        void subscriptions
+          .subscribeList(client_id, spec)
+          .then((unsub) => {
+            // Unsubscribe previous if any
+            if (unsub_detail) {
+              void unsub_detail().catch(() => {});
+            }
+            unsub_detail = unsub;
+          })
+          .catch(() => {});
+        // Ensure per-subscription issue store exists
+        try {
+          sub_issue_stores.register(client_id, spec);
+        } catch {
+          // ignore
         }
       } else {
         try {
@@ -331,64 +367,15 @@ export function bootstrap(root_element) {
           detail.clear();
         }
         detail_mount.hidden = true;
+        if (unsub_detail) {
+          void unsub_detail().catch(() => {});
+          unsub_detail = null;
+        }
       }
     });
 
-    // Refresh views on push updates (target minimally and avoid flicker)
-    // UI-114: Coalesce near-simultaneous events. When an ID-scoped update
-    // arrives, suppress a trailing watcher-only full refresh for a short
-    // window to avoid duplicate work and flicker.
-    let suppress_full_until = 0;
-    /**
-     * Shared handler to refresh visible views on push or list-delta.
-     * @param {any} payload
-     */
-    const onPushLike = (payload) => {
-      const s = store.getState();
-      const hint_ids =
-        payload && payload.hint && Array.isArray(payload.hint.ids)
-          ? /** @type {string[]} */ (payload.hint.ids)
-          : null;
-
-      const now = Date.now();
-      if (!hint_ids || hint_ids.length === 0) {
-        if (now <= suppress_full_until) {
-          // Drop redundant full refresh that follows a targeted update.
-          return;
-        }
-      } else {
-        // Prefer ID-scoped updates for a brief window.
-        suppress_full_until = now + 500;
-      }
-
-      const showing_detail = Boolean(s.selected_id);
-
-      // If a top-level view is visible (and not detail), refresh minimally.
-      // Push-only philosophy: avoid network fetches on push. Issues view uses
-      // a local transport that reads from the store, so load() is safe here.
-      // Epics/Board recompose from local stores; calling load() is safe and
-      // does not fetch (it only reads from stores/selectors).
-      if (!showing_detail) {
-        if (s.view === 'issues') {
-          void issues_view.load();
-        } else if (s.view === 'epics') {
-          void epics_view.load();
-        } else if (s.view === 'board') {
-          void board_view.load();
-        }
-      }
-
-      // If a detail is visible, re-fetch it when relevant or when hints are absent
-      if (showing_detail && s.selected_id) {
-        if (!hint_ids || hint_ids.includes(s.selected_id)) {
-          if (detail) {
-            void detail.load(s.selected_id);
-          }
-        }
-      }
-    };
-    // Legacy list-delta and 'issues' envelopes removed; rely on issues-changed.
-    client.on('issues-changed', onPushLike);
+    // Removed: issues-changed handling. All views re-render from
+    // per-subscription stores which are updated by snapshot/upsert/delete.
 
     // Toggle route shells on view/detail change and persist
     const data = createDataLayer(transport);

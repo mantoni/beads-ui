@@ -47,15 +47,19 @@ function defaultNavigateFn(hash) {
  * @param {HTMLElement} mount_element - Element to render into.
  * @param {(type: string, payload?: unknown) => Promise<unknown>} sendFn - RPC transport.
  * @param {(hash: string) => void} [navigateFn] - Navigation function; defaults to setting location.hash.
+ * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void }} [issue_stores] - Optional issue stores for live updates.
  * @returns {{ load: (id: string) => Promise<void>, clear: () => void, destroy: () => void }} View API.
  */
 export function createDetailView(
   mount_element,
   sendFn,
-  navigateFn = defaultNavigateFn
+  navigateFn = defaultNavigateFn,
+  issue_stores = undefined
 ) {
   /** @type {IssueDetail | null} */
   let current = null;
+  /** @type {string | null} */
+  let current_id = null;
   /** @type {boolean} */
   let pending = false;
   /** @type {boolean} */
@@ -96,6 +100,46 @@ export function createDetailView(
       `,
       mount_element
     );
+  }
+
+  /**
+   * Refresh current from subscription store snapshot if available.
+   */
+  function refreshFromStore() {
+    if (
+      !current_id ||
+      !issue_stores ||
+      typeof issue_stores.snapshotFor !== 'function'
+    ) {
+      return;
+    }
+    const arr = /** @type {IssueDetail[]} */ (
+      issue_stores.snapshotFor(`detail:${current_id}`)
+    );
+    if (Array.isArray(arr) && arr.length > 0) {
+      // First item is the issue for this subscription
+      const found =
+        arr.find((it) => String(it.id) === String(current_id)) || arr[0];
+      current = /** @type {IssueDetail} */ (found);
+    }
+  }
+
+  // Live updates: re-render when issue stores change
+  if (issue_stores && typeof issue_stores.subscribe === 'function') {
+    issue_stores.subscribe(() => {
+      try {
+        const prev_id = current && current.id ? String(current.id) : null;
+        refreshFromStore();
+        // Only re-render when the current entity changed or when we were loading
+        if (!prev_id || (current && String(current.id) === prev_id)) {
+          doRender();
+        } else {
+          doRender();
+        }
+      } catch {
+        // ignore
+      }
+    });
   }
 
   // Handlers
@@ -1018,7 +1062,7 @@ export function createDetailView(
 
   function doRender() {
     if (!current) {
-      renderPlaceholder('No issue selected');
+      renderPlaceholder(current_id ? 'Issue not found' : 'No issue selected');
       return;
     }
     render(detailTemplate(current), mount_element);
@@ -1184,28 +1228,38 @@ export function createDetailView(
         renderPlaceholder('No issue selected');
         return;
       }
-      /** @type {unknown} */
-      let result;
-      try {
-        result = await sendFn('show-issue', { id });
-      } catch {
-        result = null;
+      current_id = String(id);
+      // Try from store first; show placeholder while waiting for snapshot
+      current = null;
+      refreshFromStore();
+      if (!current) {
+        renderPlaceholder('Loading…');
       }
-      if (!result || typeof result !== 'object') {
-        renderPlaceholder('Issue not found');
-        return;
+      // Fallback: seed from RPC when store has no data yet
+      if (!current) {
+        /** @type {unknown} */
+        let result = null;
+        try {
+          result = await sendFn('show-issue', { id: current_id });
+        } catch {
+          result = null;
+        }
+        if (result && typeof result === 'object') {
+          const issue = /** @type {IssueDetail} */ (result);
+          if (
+            issue &&
+            String(issue.id || '').toLowerCase() ===
+              String(current_id).toLowerCase()
+          ) {
+            current = issue;
+          } else {
+            renderPlaceholder('Issue not found');
+          }
+        } else if (!current) {
+          renderPlaceholder('Issue not found');
+        }
       }
-      const issue = /** @type {IssueDetail} */ (result);
-      // Some backends may normalize ID casing (e.g., UI-1 vs ui-1).
-      // Treat IDs case-insensitively to avoid false negatives on deep links.
-      if (
-        !issue ||
-        String(issue.id || '').toLowerCase() !== String(id || '').toLowerCase()
-      ) {
-        renderPlaceholder('Issue not found');
-        return;
-      }
-      current = issue;
+      // Render from current (if available) or keep placeholder until push arrives
       pending = false;
       doRender();
     },

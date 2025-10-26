@@ -6,7 +6,7 @@ import { resolveDbPath } from './db.js';
  * Watch the resolved beads SQLite DB file and invoke a callback after a debounce window.
  * The DB path is resolved following beads precedence and can be overridden via options.
  * @param {string} root_dir - Project root directory (starting point for resolution).
- * @param {(payload: { ts: number }) => void} onChange - Called when changes are detected.
+ * @param {() => void} onChange - Called when changes are detected.
  * @param {{ debounce_ms?: number, explicit_db?: string }} [options]
  * @returns {{ close: () => void, rebind: (opts?: { root_dir?: string, explicit_db?: string }) => void, path: string }}
  */
@@ -26,7 +26,7 @@ export function watchDb(root_dir, onChange, options = {}) {
       clearTimeout(timer);
     }
     timer = setTimeout(() => {
-      onChange({ ts: Date.now() });
+      onChange();
     }, debounce_ms);
     timer.unref();
   };

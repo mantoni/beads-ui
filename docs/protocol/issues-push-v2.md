@@ -169,6 +169,13 @@ stateDiagram-v2
 - Render list components from `store.snapshot()` (deterministic order).
 - Dispose stores on route/tab changes.
 
+Detail view
+
+- Detail pages use the same mechanism with a single‑item subscription, e.g.
+  `{ type: 'issue-detail', params: { id: 'UI-1' } }` under a client id like
+  `detail:UI-1`. The server returns a one‑element list for `snapshot` and
+  `upsert` events.
+
 ## Rollout and Compatibility
 
 - Breaking change: no flags and no compatibility layer with the legacy

@@ -310,70 +310,7 @@ function emitSubscriptionDelete(ws, client_id, key, issue_id) {
   }
 }
 
-/**
- * Emit an issues-changed event to relevant clients when possible, or broadcast to all.
- * Targeting rules:
- * - If `issue` is provided, send to clients that currently show the same id or whose
- *   last list filter likely includes the issue (status match or ready=true).
- * - If only `hint` is provided, but contains ids, send to clients that show one of those ids.
- * - Otherwise, send to all open clients.
- * @param {{ ts?: number, hint?: { ids?: string[] } }} payload
- * @param {{ issue?: any }} [options]
- */
-export function notifyIssuesChanged(payload, options = {}) {
-  const wss = CURRENT_WSS;
-  if (!wss) {
-    return;
-  }
-  /** @type {Set<WebSocket>} */
-  const recipients = new Set();
-
-  const issue = options.issue;
-  const hint_ids = payload.hint?.ids ?? [];
-
-  if (issue && typeof issue === 'object' && issue.id) {
-    for (const ws of wss.clients) {
-      if (ws.readyState !== ws.OPEN) {
-        continue;
-      }
-      const s = ensureSubs(ws);
-      if (s.show_id && s.show_id === issue.id) {
-        recipients.add(ws);
-        continue;
-      }
-    }
-  } else if (hint_ids.length > 0) {
-    for (const ws of wss.clients) {
-      if (ws.readyState !== ws.OPEN) {
-        continue;
-      }
-      const s = ensureSubs(ws);
-      if (s.show_id && hint_ids.includes(s.show_id)) {
-        recipients.add(ws);
-      }
-    }
-  }
-
-  const msg = JSON.stringify({
-    id: `evt-${Date.now()}`,
-    ok: true,
-    type: /** @type {MessageType} */ ('issues-changed'),
-    payload: { ts: Date.now(), ...(payload || {}) }
-  });
-
-  if (recipients.size > 0) {
-    for (const ws of recipients) {
-      ws.send(msg);
-    }
-  } else {
-    // Fallback: full broadcast to keep clients consistent
-    for (const ws of wss.clients) {
-      if (ws.readyState === ws.OPEN) {
-        ws.send(msg);
-      }
-    }
-  }
-}
+// issues-changed removed in v2: detail and lists are pushed via subscriptions
 
 /**
  * Refresh a subscription spec: fetch via adapter, apply to registry and emit
@@ -461,7 +398,7 @@ function applyClosedIssuesFilter(spec, items) {
  * Attach a WebSocket server to an existing HTTP server.
  * @param {Server} http_server
  * @param {{ path?: string, heartbeat_ms?: number, refresh_debounce_ms?: number }} [options]
- * @returns {{ wss: WebSocketServer, broadcast: (type: MessageType, payload?: unknown) => void, notifyIssuesChanged: (payload: { ts?: number, hint?: { ids?: string[] } }) => void, scheduleListRefresh: () => void }}
+ * @returns {{ wss: WebSocketServer, broadcast: (type: MessageType, payload?: unknown) => void, scheduleListRefresh: () => void }}
  */
 export function attachWsServer(http_server, options = {}) {
   const path = options.path || '/ws';
@@ -543,7 +480,6 @@ export function attachWsServer(http_server, options = {}) {
   return {
     wss,
     broadcast,
-    notifyIssuesChanged: (p) => notifyIssuesChanged(p),
     scheduleListRefresh
     // v2: list subscription refresh handles updates
   };
@@ -779,12 +715,6 @@ export async function handleMessage(ws, data) {
       return;
     }
     ws.send(JSON.stringify(makeOk(req, shown.stdoutJson)));
-    // Push targeted invalidation with updated issue context
-    try {
-      notifyIssuesChanged({ hint: { ids: [id] } }, { issue: shown.stdoutJson });
-    } catch {
-      // ignore fanout errors
-    }
     // After mutation, refresh active subscriptions once (watcher or timeout)
     try {
       triggerMutationRefreshOnce();
@@ -830,11 +760,6 @@ export async function handleMessage(ws, data) {
       return;
     }
     ws.send(JSON.stringify(makeOk(req, shown.stdoutJson)));
-    try {
-      notifyIssuesChanged({ hint: { ids: [id] } }, { issue: shown.stdoutJson });
-    } catch {
-      // ignore fanout errors
-    }
     try {
       triggerMutationRefreshOnce();
     } catch {
@@ -898,11 +823,6 @@ export async function handleMessage(ws, data) {
       return;
     }
     ws.send(JSON.stringify(makeOk(req, shown.stdoutJson)));
-    try {
-      notifyIssuesChanged({ hint: { ids: [id] } }, { issue: shown.stdoutJson });
-    } catch {
-      // ignore fanout errors
-    }
     try {
       triggerMutationRefreshOnce();
     } catch {
@@ -1000,12 +920,6 @@ export async function handleMessage(ws, data) {
     }
     ws.send(JSON.stringify(makeOk(req, shown.stdoutJson)));
     try {
-      // Dependencies can affect readiness; conservatively target by issue id
-      notifyIssuesChanged({ hint: { ids: [id] } }, { issue: shown.stdoutJson });
-    } catch {
-      // ignore fanout errors
-    }
-    try {
       triggerMutationRefreshOnce();
     } catch {
       // ignore
@@ -1050,11 +964,6 @@ export async function handleMessage(ws, data) {
     }
     ws.send(JSON.stringify(makeOk(req, shown.stdoutJson)));
     try {
-      notifyIssuesChanged({ hint: { ids: [id] } }, { issue: shown.stdoutJson });
-    } catch {
-      // ignore fanout errors
-    }
-    try {
       triggerMutationRefreshOnce();
     } catch {
       // ignore
@@ -1098,11 +1007,6 @@ export async function handleMessage(ws, data) {
     }
     ws.send(JSON.stringify(makeOk(req, shown.stdoutJson)));
     try {
-      notifyIssuesChanged({ hint: { ids: [id] } }, { issue: shown.stdoutJson });
-    } catch {
-      // ignore
-    }
-    try {
       triggerMutationRefreshOnce();
     } catch {
       // ignore
@@ -1145,11 +1049,6 @@ export async function handleMessage(ws, data) {
       return;
     }
     ws.send(JSON.stringify(makeOk(req, shown.stdoutJson)));
-    try {
-      notifyIssuesChanged({ hint: { ids: [id] } }, { issue: shown.stdoutJson });
-    } catch {
-      // ignore
-    }
     try {
       triggerMutationRefreshOnce();
     } catch {

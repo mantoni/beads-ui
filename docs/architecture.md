@@ -53,7 +53,7 @@ WebSocket protocol used between the browser SPA and the local Node.js server.
   - bd bridge: `server/bd.js` (spawn `bd`, inject `--db` consistently, JSON
     helpers)
   - DB resolution/watch: `server/db.js` (resolve active DB path),
-    `server/watcher.js` (emit `issues-changed`)
+    `server/watcher.js` (schedule list refresh)
   - Config: `server/config.js` (bind to `127.0.0.1`, default port 3000)
 
 ## Data Flow
@@ -63,8 +63,8 @@ WebSocket protocol used between the browser SPA and the local Node.js server.
 2. Server validates and maps the request to a `bd` command (no shell; args array
    only).
 3. Server replies with `{ id, ok, type, payload }` or `{ id, ok:false, error }`.
-4. Independent of requests, the DB watcher sends `issues-changed` events to all
-   clients.
+4. Independent of requests, the DB watcher schedules a refresh for active list
+   subscriptions; clients receive `snapshot`/`upsert`/`delete` envelopes.
 
 ## Protocol (v1.0.0)
 
@@ -84,9 +84,8 @@ Message types (legacy v1; server now push-only):
   `{ id: string, field: 'title'|'description'|'acceptance', value: string }`
 - `update-priority` payload: `{ id: string, priority: 0|1|2|3|4 }`
 - `dep-add` payload: `{ a: string, b: string, view_id?: string }`
-- `dep-remove` payload: `{ a: string, b: string, view_id?: string }`
-- `issues-changed` (server push) payload:
-  `{ ts: number, hint?: { ids?: string[] } }`
+- `dep-remove` payload: `{ a: string, b: string, view_id?: string }` Removed in
+  v2: legacy `issues-changed` server push event.
 
 Defined in the spec but not yet handled on the server:
 
@@ -125,14 +124,20 @@ Update status
 }
 ```
 
-Server push (watcher)
+Server push (subscriptions)
 
 ```json
 {
   "id": "evt-1732212345000",
   "ok": true,
-  "type": "issues-changed",
-  "payload": { "ts": 1732212345000 }
+  "type": "upsert",
+  "payload": {
+    "type": "upsert",
+    "id": "tab:issues",
+    "schema": "beads.subscription@v1",
+    "revision": 2,
+    "issue": { "id": "UI-1", "status": "in_progress" }
+  }
 }
 ```
 
@@ -222,8 +227,8 @@ Notes
 
 - The server resolves the active beads SQLite DB path (see
   `docs/db-watching.md`).
-- File watcher emits `issues-changed` events with a timestamp; UI refreshes
-  list/detail as needed.
+- File watcher schedules list refresh; the server publishes subscription
+  envelopes. UI re-renders from local per-subscription stores.
 
 ## Risks & Open Questions
 

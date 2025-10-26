@@ -7,20 +7,18 @@ import { attachWsServer } from './ws.js';
 const config = getConfig();
 const app = createApp(config);
 const server = createServer(app);
-const { notifyIssuesChanged, scheduleListRefresh } = attachWsServer(server, {
+const { scheduleListRefresh } = attachWsServer(server, {
   path: '/ws',
   heartbeat_ms: 30000,
   // Coalesce DB change bursts into one refresh run
   refresh_debounce_ms: 75
 });
 
-// Watch the active beads DB and push invalidation (targeted when possible)
-watchDb(config.root_dir, (payload) => {
-  // Push targeted invalidation for legacy flows
-  notifyIssuesChanged(payload);
+// Watch the active beads DB and schedule subscription refresh for active lists
+watchDb(config.root_dir, () => {
   // Schedule subscription list refresh run for active subscriptions
   scheduleListRefresh();
-  // v2: list subscriptions get refreshed via scheduleListRefresh only
+  // v2: all updates flow via subscription push envelopes only
 });
 
 server.listen(config.port, config.host, () => {
