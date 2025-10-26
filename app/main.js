@@ -361,7 +361,7 @@ export function bootstrap(root_element) {
     client.on('issues-changed', onPushLike);
 
     // Toggle route shells on view/detail change and persist
-    const data = createDataLayer(transport, client.on);
+    const data = createDataLayer(transport);
     const epics_view = createEpicsView(
       epics_root,
       data,
