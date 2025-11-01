@@ -995,6 +995,33 @@ export async function handleMessage(ws, data) {
     return;
   }
 
+  // dep-tree: payload { id: string, reverse?: boolean }
+  if (req.type === 'dep-tree') {
+    const { id, reverse } = /** @type {any} */ (req.payload || {});
+    if (typeof id !== 'string' || id.length === 0) {
+      ws.send(
+        JSON.stringify(
+          makeError(req, 'bad_request', 'payload requires { id: string }')
+        )
+      );
+      return;
+    }
+    const args = ['dep', 'tree', id, '--format', 'mermaid', '--show-all-paths'];
+    if (reverse === true) {
+      args.push('--reverse');
+    }
+    const res = await runBd(args);
+    if (res.code !== 0) {
+      ws.send(
+        JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
+      );
+      return;
+    }
+    log('dep-tree response: %d chars, reverse=%s', res.stdout.length, reverse);
+    ws.send(JSON.stringify(makeOk(req, { diagram: res.stdout })));
+    return;
+  }
+
   // label-add: payload { id: string, label: string }
   if (req.type === 'label-add') {
     const { id, label } = /** @type {any} */ (req.payload || {});
