@@ -1,5 +1,8 @@
 // Issue Detail view implementation (lit-html based)
 import { html, render } from 'lit-html';
+import { ref } from 'lit-html/directives/ref.js';
+import mermaid from 'mermaid';
+import svgPanZoom from 'svg-pan-zoom';
 import { parseView } from '../router.js';
 import { issueHashFor } from '../utils/issue-url.js';
 import { debug } from '../utils/logging.js';
@@ -78,12 +81,304 @@ export function createDetailView(
   let edit_assignee = false;
   /** @type {string} */
   let new_label_text = '';
+  /** @type {'overview'|'dependencies'} */
+  let active_tab = 'overview';
+  /** @type {'list'|'graph'} */
+  let deps_view_mode = 'list';
+  /** @type {string | null} */
+  let graph_diagram = null;
+  /** @type {boolean} */
+  let graph_loading = false;
+  /** @type {HTMLElement | null} */
+  let graph_container = null;
 
   /** @param {string} id */
   function issueHref(id) {
     /** @type {'issues'|'epics'|'board'} */
     const view = parseView(window.location.hash || '');
     return issueHashFor(view, id);
+  }
+
+  /**
+   * @param {'overview'|'dependencies'} tab
+   */
+  function onTabClick(tab) {
+    return (/** @type {Event} */ e) => {
+      e.preventDefault();
+      active_tab = tab;
+      if (
+        tab === 'dependencies' &&
+        deps_view_mode === 'graph' &&
+        !graph_diagram
+      ) {
+        void fetchAndRenderGraph();
+      }
+      doRender();
+    };
+  }
+
+  /**
+   * @param {'list'|'graph'} mode
+   */
+  function onViewModeClick(mode) {
+    return (/** @type {Event} */ e) => {
+      e.preventDefault();
+      deps_view_mode = mode;
+      if (mode === 'graph' && !graph_diagram && !graph_loading) {
+        void fetchAndRenderGraph();
+      }
+      doRender();
+    };
+  }
+
+  /**
+   * @param {Element | undefined} el
+   */
+  function graphContainerRef(el) {
+    if (el && el !== graph_container) {
+      graph_container = /** @type {HTMLElement} */ (el);
+      if (graph_diagram && graph_container) {
+        // Defer rendering to avoid conflicts with lit-html's update cycle
+        queueMicrotask(() => {
+          void renderMermaid();
+        });
+      }
+    }
+  }
+
+  async function renderMermaid() {
+    if (!graph_container || !graph_diagram) {
+      return;
+    }
+    // Match application theme
+    const isDark =
+      getComputedStyle(document.documentElement)
+        .getPropertyValue('--bg')
+        .trim() === '#0f1419';
+
+    try {
+      await mermaid.initialize({
+        startOnLoad: false,
+        theme: 'base',
+        themeVariables: {
+          primaryColor: isDark ? '#1a1f2e' : '#fafafa',
+          primaryTextColor: isDark ? '#e5e7eb' : '#222',
+          primaryBorderColor: isDark ? '#374151' : '#e5e7eb',
+          lineColor: isDark ? '#6b7280' : '#9ca3af',
+          secondaryColor: isDark ? '#1e293b' : '#f9fafb',
+          tertiaryColor: isDark ? '#0f172a' : '#ffffff',
+          background: isDark ? '#0f1419' : '#ffffff',
+          mainBkg: isDark ? '#1a1f2e' : '#fafafa',
+          secondBkg: isDark ? '#1e293b' : '#f3f4f6',
+          textColor: isDark ? '#e5e7eb' : '#222',
+          border1: isDark ? '#374151' : '#e5e7eb',
+          border2: isDark ? '#4b5563' : '#d1d5db',
+          fontSize: '14px',
+          fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
+        }
+      });
+      // Use unique ID to avoid caching issues
+      const graphId = `dep-graph-${Date.now()}`;
+      // Render the merged diagram (already in TB direction)
+      const { svg } = await mermaid.render(graphId, graph_diagram);
+      graph_container.innerHTML = svg;
+
+      // Get the SVG element
+      const svgElement = graph_container.querySelector('svg');
+      if (svgElement) {
+        // Keep viewBox but remove fixed width/height so SVG can be responsive
+        svgElement.removeAttribute('width');
+        svgElement.removeAttribute('height');
+        svgElement.removeAttribute('style');
+
+        // Make SVG responsive and fill container
+        svgElement.style.display = 'block';
+        svgElement.style.width = '100%';
+        svgElement.style.height = '100%';
+
+        // Wait for container to have dimensions before initializing pan/zoom
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            // Check if SVG has valid dimensions
+            const bbox = svgElement.getBoundingClientRect();
+            if (bbox.width === 0 || bbox.height === 0) {
+              debug('SVG has no dimensions, skipping pan/zoom initialization');
+              return;
+            }
+
+            // Enable pan & zoom after SVG is properly sized
+            const panZoom = svgPanZoom(svgElement, {
+              zoomEnabled: true,
+              controlIconsEnabled: true,
+              fit: true,
+              center: true,
+              minZoom: 0.1,
+              maxZoom: 10,
+              refreshRate: 'auto'
+            });
+
+            // Ensure it resizes to fill container
+            panZoom.resize();
+            panZoom.fit();
+            panZoom.center();
+          });
+        });
+
+        // Add click handlers to nodes (prevent navigation during drag)
+        svgElement.querySelectorAll('.node').forEach((node) => {
+          const text = node.textContent?.trim();
+          if (text) {
+            // Extract issue ID from text like "☑ UI-1: Title"
+            const match = text.match(/\b(UI-[a-z0-9]+)\b/i);
+            if (match) {
+              const issueId = match[1];
+              /** @type {HTMLElement} */ (node).style.cursor = 'pointer';
+
+              // Highlight the current issue
+              if (issueId === current_id) {
+                const rect = node.querySelector('rect');
+                if (rect) {
+                  rect.style.stroke = isDark ? '#3b82f6' : '#2563eb';
+                  rect.style.strokeWidth = '3px';
+                  rect.style.filter =
+                    'drop-shadow(0 0 8px rgba(59, 130, 246, 0.5))';
+                }
+              }
+
+              let mouseDownPos = { x: 0, y: 0 };
+              let isDragging = false;
+
+              node.addEventListener('mousedown', (e) => {
+                const me = /** @type {MouseEvent} */ (e);
+                mouseDownPos = { x: me.clientX, y: me.clientY };
+                isDragging = false;
+              });
+
+              node.addEventListener('mousemove', (e) => {
+                const me = /** @type {MouseEvent} */ (e);
+                const deltaX = Math.abs(me.clientX - mouseDownPos.x);
+                const deltaY = Math.abs(me.clientY - mouseDownPos.y);
+                if (deltaX > 5 || deltaY > 5) {
+                  isDragging = true;
+                }
+              });
+
+              node.addEventListener('click', (e) => {
+                if (!isDragging) {
+                  e.stopPropagation();
+                  const href = issueHref(issueId);
+                  navigateFn(href);
+                }
+              });
+            }
+          }
+        });
+      }
+    } catch (err) {
+      log('mermaid render error %o', err);
+      if (graph_container) {
+        graph_container.innerHTML =
+          '<p class="muted">Failed to render graph</p>';
+      }
+    }
+  }
+
+  /**
+   * Merge two mermaid flowchart diagrams into one.
+   *
+   * @param {string} deps - Dependencies diagram (will reverse arrows)
+   * @param {string} dependents - Dependents diagram (keep arrows as-is)
+   * @returns {string} - Merged diagram
+   */
+  function mergeMermaidDiagrams(deps, dependents) {
+    const nodes = new Set();
+    const edges = new Set();
+
+    // Extract nodes and edges from dependencies (reverse arrows)
+    const depsLines = deps.split('\n');
+    depsLines.forEach((line) => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('flowchart')) {
+        return;
+      }
+      if (trimmed.length > 0) {
+        // Edge pattern: A --> B becomes B --> A
+        if (trimmed.includes('-->')) {
+          const reversed = trimmed.replace(/(\S+)\s+-->\s+(\S+)/, '$2 --> $1');
+          edges.add(reversed);
+        } else {
+          // Node definition
+          nodes.add(trimmed);
+        }
+      }
+    });
+
+    // Extract nodes and edges from dependents (keep arrows as-is)
+    const dependentsLines = dependents.split('\n');
+    dependentsLines.forEach((line) => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('flowchart')) {
+        return;
+      }
+      if (trimmed.length > 0) {
+        // Edge pattern: A --> B (no reversal)
+        if (trimmed.includes('-->')) {
+          edges.add(trimmed);
+        } else {
+          // Node definition
+          nodes.add(trimmed);
+        }
+      }
+    });
+
+    // Build merged diagram
+    const merged = ['flowchart TB'];
+    nodes.forEach((node) => merged.push(node));
+    edges.forEach((edge) => merged.push(edge));
+    return merged.join('\n');
+  }
+
+  async function fetchAndRenderGraph() {
+    if (!current_id || graph_loading) {
+      return;
+    }
+    graph_loading = true;
+    graph_diagram = null;
+    doRender();
+
+    try {
+      // Fetch both dependency and dependent trees
+      const [depsResponse, dependentsResponse] = await Promise.all([
+        sendFn('dep-tree', { id: current_id, reverse: false }),
+        sendFn('dep-tree', { id: current_id, reverse: true })
+      ]);
+
+      const depsPayload = /** @type {any} */ (depsResponse);
+      const dependentsPayload = /** @type {any} */ (dependentsResponse);
+
+      if (
+        depsPayload &&
+        typeof depsPayload.diagram === 'string' &&
+        dependentsPayload &&
+        typeof dependentsPayload.diagram === 'string'
+      ) {
+        // Merge both diagrams into one
+        graph_diagram = mergeMermaidDiagrams(
+          depsPayload.diagram,
+          dependentsPayload.diagram
+        );
+        log('merged graph: %d chars', graph_diagram.length);
+        if (graph_container) {
+          await renderMermaid();
+        }
+      }
+    } catch (err) {
+      log('fetch graph error %o', err);
+      graph_diagram = null;
+    } finally {
+      graph_loading = false;
+      doRender();
+    }
   }
 
   /**
@@ -981,13 +1276,61 @@ export function createDetailView(
           })()}
         </div>`;
 
+    // Tabs UI for main area (below title and description)
+    const tabs_ui = html`<div class="detail-tabs">
+      <button
+        class="tab ${active_tab === 'overview' ? 'active' : ''}"
+        @click=${onTabClick('overview')}
+      >
+        Overview
+      </button>
+      <button
+        class="tab ${active_tab === 'dependencies' ? 'active' : ''}"
+        @click=${onTabClick('dependencies')}
+      >
+        Dependencies
+      </button>
+    </div>`;
+
+    // Tab content based on active tab
+    const tab_content =
+      active_tab === 'overview'
+        ? html`${desc_block} ${design_block} ${notes_block} ${accept_block}`
+        : html`<div class="dependencies-content">
+            <div class="deps-controls">
+              <div class="deps-view-toggle">
+                <button
+                  class="${deps_view_mode === 'list' ? 'active' : ''}"
+                  @click=${onViewModeClick('list')}
+                >
+                  List
+                </button>
+                <button
+                  class="${deps_view_mode === 'graph' ? 'active' : ''}"
+                  @click=${onViewModeClick('graph')}
+                >
+                  Graph
+                </button>
+              </div>
+            </div>
+            ${deps_view_mode === 'list'
+              ? html`${depsSection('Dependencies', issue.dependencies || [])}
+                ${depsSection('Dependents', issue.dependents || [])}`
+              : html`${graph_loading
+                  ? html`<p class="muted">Loading graph...</p>`
+                  : html`<div
+                      class="dep-graph-container"
+                      ${ref(graphContainerRef)}
+                    ></div>`}`}
+          </div>`;
+
     return html`
       <div class="panel__body" id="detail-root">
-        <div style="position:relative">
+        <div class="detail-root-inner">
           <div class="detail-layout">
             <div class="detail-main">
-              ${title_zone} ${desc_block} ${design_block} ${notes_block}
-              ${accept_block}
+              ${title_zone} ${tabs_ui}
+              <div class="tab-content-wrapper">${tab_content}</div>
             </div>
             <div class="detail-side">
               <div class="props-card">
@@ -1063,8 +1406,6 @@ export function createDetailView(
                 </div>
                 ${labels_block}
               </div>
-              ${depsSection('Dependencies', issue.dependencies || [])}
-              ${depsSection('Dependents', issue.dependents || [])}
             </div>
           </div>
         </div>
@@ -1244,6 +1585,9 @@ export function createDetailView(
         return;
       }
       current_id = String(id);
+      // Reset graph state when loading new issue
+      graph_diagram = null;
+      graph_loading = false;
       // Try from store first; show placeholder while waiting for snapshot
       current = null;
       refreshFromStore();
@@ -1253,6 +1597,10 @@ export function createDetailView(
       // Render from current (if available) or keep placeholder until push arrives
       pending = false;
       doRender();
+      // If already on Dependencies tab with Graph view, auto-fetch for new issue
+      if (active_tab === 'dependencies' && deps_view_mode === 'graph') {
+        void fetchAndRenderGraph();
+      }
     },
     clear() {
       renderPlaceholder('Select an issue to view details');
