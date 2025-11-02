@@ -118,7 +118,7 @@ describe('views/board', () => {
         id: 'C-1',
         title: 'c1',
         updated_at: new Date('2025-10-21T09:00:00.000Z').getTime(),
-        closed_at: new Date(now - 60 * 60 * 1000).getTime(),
+        closed_at: new Date(now - 1000).getTime(),
         issue_type: 'bug'
       }
     ];
