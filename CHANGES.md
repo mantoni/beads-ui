@@ -1,5 +1,15 @@
 # Changes
 
+## 0.4.4
+
+- [`d0f8d1d`](https://github.com/mantoni/beads-ui/commit/d0f8d1d088eda78da14d35ac4fd898cbeb68b534)
+  Make labels a separate section in the sidebar
+- [`c44fd34`](https://github.com/mantoni/beads-ui/commit/c44fd3484ade8ef7ea56eb608d11bb07ebbf665b)
+  Fix flaky board test due to time-sensitive closed filter (Nikolai
+  Prokoschenko)
+
+_Released by [Maximilian Antoni](https://github.com/mantoni) on 2025-11-13._
+
 ## 0.4.3
 
 - [`4a5b4cd`](https://github.com/mantoni/beads-ui/commit/4a5b4cda8b22437eac2636c0a5556d0b52897f5f)
