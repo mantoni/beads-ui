@@ -909,13 +909,15 @@ export function createDetailView(
 
     // Labels section
     const labels = Array.isArray(issue.labels) ? issue.labels : [];
-    const labels_block = html`<div class="prop labels">
-      <div class="label">Labels</div>
-      <div class="value">
-        <div>
-          ${labels.map(
-            (l) =>
-              html`<span class="badge" title=${l}
+    const labels_block = html`<div class="props-card labels">
+      <div>
+        <div class="props-card__title">Labels</div>
+      </div>
+      <ul>
+        ${labels.map(
+          (l) =>
+            html`<li>
+              <span class="badge" title=${l}
                 >${l}
                 <button
                   class="icon-button"
@@ -926,18 +928,20 @@ export function createDetailView(
                 >
                   ×
                 </button></span
-              >`
-          )}
-          <input
-            type="text"
-            aria-label="Add label"
-            placeholder="Add label"
-            .value=${new_label_text}
-            @input=${onLabelInput}
-            @keydown=${onLabelKeydown}
-            size=${Math.max(12, Math.min(28, new_label_text.length + 3))}
-          />
-        </div>
+              >
+            </li>`
+        )}
+      </ul>
+      <div class="props-card__footer">
+        <input
+          type="text"
+          placeholder="Label"
+          size="12"
+          .value=${new_label_text}
+          @input=${onLabelInput}
+          @keydown=${onLabelKeydown}
+        />
+        <button @click=${onAddLabel}>Add</button>
       </div>
     </div>`;
 
@@ -1061,8 +1065,8 @@ export function createDetailView(
                         })()}`}
                   </div>
                 </div>
-                ${labels_block}
               </div>
+              ${labels_block}
               ${depsSection('Dependencies', issue.dependencies || [])}
               ${depsSection('Dependents', issue.dependents || [])}
             </div>

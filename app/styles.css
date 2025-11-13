@@ -497,6 +497,9 @@ button:disabled {
   vertical-align: middle;
   user-select: none;
   border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  text-wrap: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .badge + .badge,
 .status-badge + .status-badge,
@@ -1324,20 +1327,20 @@ html[data-theme='dark'] {
   gap: 10px;
   padding: 8px 0;
   border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-}
-.prop:first-of-type {
-  border-top: none;
-}
-.prop .label {
-  color: var(--muted);
-  font-size: 12px;
-  min-width: 80px;
-}
-.prop .value {
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  &:first-of-type {
+    border-top: none;
+  }
+  & .label {
+    color: var(--muted);
+    font-size: 12px;
+    min-width: 80px;
+  }
+  & .value {
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 }
 
 /* --- Issue Details Dialog (UI-104) --- */
@@ -1435,18 +1438,6 @@ html[data-theme='dark'] {
   padding: 4px 8px;
   min-width: 28px;
   line-height: 1.2;
-}
-
-.prop.labels {
-  align-items: start;
-}
-.prop.labels .value > div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.prop.labels .value > div input {
-  flex: 1;
 }
 
 /* Sidebar control aesthetics */

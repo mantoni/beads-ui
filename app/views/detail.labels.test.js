@@ -45,11 +45,11 @@ describe('detail view labels', () => {
     await view.load('UI-5');
 
     // Initial chip present
-    expect(mount.querySelectorAll('.prop.labels .badge').length).toBe(1);
+    expect(mount.querySelectorAll('.labels .badge').length).toBe(1);
 
     // Add a label via input + Enter
     const input = /** @type {HTMLInputElement} */ (
-      mount.querySelector('.prop.labels input')
+      mount.querySelector('.labels input')
     );
     input.value = 'backend';
     input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -62,11 +62,11 @@ describe('detail view labels', () => {
       id: 'UI-5',
       label: 'backend'
     });
-    expect(mount.querySelectorAll('.prop.labels .badge').length).toBe(2);
+    expect(mount.querySelectorAll('.labels .badge').length).toBe(2);
 
     // Remove the first label by clicking the × button
     const removeBtn = /** @type {HTMLButtonElement} */ (
-      mount.querySelector('.prop.labels .badge button')
+      mount.querySelector('.labels .badge button')
     );
     removeBtn.click();
     await Promise.resolve();
@@ -74,6 +74,6 @@ describe('detail view labels', () => {
       id: 'UI-5',
       label: 'frontend'
     });
-    expect(mount.querySelectorAll('.prop.labels .badge').length).toBe(1);
+    expect(mount.querySelectorAll('.labels .badge').length).toBe(1);
   });
 });
