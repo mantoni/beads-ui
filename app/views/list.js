@@ -321,10 +321,10 @@ export function createListView(
         // Do not intercept when inside native editable controls
         const in_editable = Boolean(
           tgt &&
-            typeof tgt.closest === 'function' &&
-            (tgt.closest('input') ||
-              tgt.closest('textarea') ||
-              tgt.closest('select'))
+          typeof tgt.closest === 'function' &&
+          (tgt.closest('input') ||
+            tgt.closest('textarea') ||
+            tgt.closest('select'))
         );
         if (!in_editable) {
           const cell =
