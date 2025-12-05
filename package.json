@@ -49,16 +49,16 @@
     "@types/express": "^5.0.3",
     "@types/node": "^22.7.4",
     "@types/ws": "^8.18.1",
-    "esbuild": "^0.25.11",
+    "esbuild": "^0.27.1",
     "eslint": "^9.39.1",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-jsdoc": "^61.4.1",
     "eslint-plugin-n": "^17.9.0",
     "globals": "^16.5.0",
-    "jsdom": "^27.0.1",
+    "jsdom": "^27.2.0",
     "prettier": "^3.7.4",
     "typescript": "^5.6.3",
-    "vitest": "^4.0.6"
+    "vitest": "^4.0.15"
   },
   "files": [
     "app/index.html",
