@@ -36,7 +36,7 @@
   "dependencies": {
     "debug": "^4.4.3",
     "dompurify": "^3.3.0",
-    "express": "^5.1.0",
+    "express": "^5.2.1",
     "lit-html": "^3.3.1",
     "marked": "^16.4.1",
     "ws": "^8.18.3"
@@ -46,8 +46,8 @@
     "@studio/changes": "^3.0.0",
     "@trivago/prettier-plugin-sort-imports": "^6.0.0",
     "@types/debug": "^4.1.12",
-    "@types/express": "^5.0.3",
-    "@types/node": "^22.7.4",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.19.1",
     "@types/ws": "^8.18.1",
     "esbuild": "^0.27.1",
     "eslint": "^9.39.1",
