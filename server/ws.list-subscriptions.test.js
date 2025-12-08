@@ -134,6 +134,50 @@ describe('ws list subscriptions', () => {
     expect(before_size).toBeGreaterThanOrEqual(1);
   });
 
+  test('subscribe-list returns bd_error payload when adapter fails', async () => {
+    const mock = /** @type {import('vitest').Mock} */ (
+      fetchListForSubscription
+    );
+    mock.mockResolvedValueOnce({
+      ok: false,
+      error: {
+        code: 'bd_error',
+        message: 'bd failed: out of sync',
+        details: { exit_code: 1 }
+      }
+    });
+
+    const sock = {
+      sent: /** @type {string[]} */ ([]),
+      readyState: 1,
+      OPEN: 1,
+      /** @param {string} msg */
+      send(msg) {
+        this.sent.push(String(msg));
+      }
+    };
+
+    const req = {
+      id: 'sub-error',
+      type: /** @type {any} */ ('subscribe-list'),
+      payload: { id: 'c-err', type: 'all-issues' }
+    };
+
+    await handleMessage(
+      /** @type {any} */ (sock),
+      Buffer.from(JSON.stringify(req))
+    );
+
+    const last = sock.sent[sock.sent.length - 1];
+    const reply = JSON.parse(last);
+    expect(reply && reply.ok).toBe(false);
+    expect(reply && reply.error && reply.error.code).toBe('bd_error');
+    expect(reply && reply.error && reply.error.message).toContain(
+      'out of sync'
+    );
+    expect(reply && reply.error && reply.error.details.exit_code).toBe(1);
+  });
+
   test('unsubscribe-list detaches and disconnect sweep evicts entry', async () => {
     const sock = {
       sent: /** @type {string[]} */ ([]),

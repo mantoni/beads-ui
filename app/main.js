@@ -13,6 +13,7 @@ import { showToast } from './utils/toast.js';
 import { createBoardView } from './views/board.js';
 import { createDetailView } from './views/detail.js';
 import { createEpicsView } from './views/epics.js';
+import { createFatalErrorDialog } from './views/fatal-error-dialog.js';
 import { createIssueDialog } from './views/issue-dialog.js';
 import { createListView } from './views/list.js';
 import { createTopNav } from './views/nav.js';
@@ -53,6 +54,48 @@ export function bootstrap(root_element) {
   /** @type {HTMLElement|null} */
   const detail_mount = document.getElementById('detail-panel');
   if (list_mount && issues_root && epics_root && board_root && detail_mount) {
+    const fatal_dialog = createFatalErrorDialog(root_element);
+
+    /**
+     * Show a blocking dialog when a backend command fails.
+     *
+     * @param {unknown} err
+     * @param {string} context
+     */
+    function showFatalFromError(err, context) {
+      /** @type {string} */
+      let message = 'Request failed';
+      /** @type {string} */
+      let detail = '';
+
+      if (err && typeof err === 'object') {
+        const any = /** @type {{ message?: unknown, details?: unknown }} */ (
+          err
+        );
+        if (typeof any.message === 'string' && any.message.length > 0) {
+          message = any.message;
+        }
+        if (typeof any.details === 'string') {
+          detail = any.details;
+        } else if (any.details && typeof any.details === 'object') {
+          try {
+            detail = JSON.stringify(any.details, null, 2);
+          } catch {
+            detail = '';
+          }
+        }
+      } else if (typeof err === 'string' && err.length > 0) {
+        message = err;
+      }
+
+      const title =
+        context && context.length > 0
+          ? `Failed to load ${context}`
+          : 'Request failed';
+
+      fatal_dialog.open(title, message, detail);
+    }
+
     const client = createWsClient();
     // Subscriptions: wire client events and expose subscribe/unsubscribe helpers
     const subscriptions = createSubscriptionStore((type, payload) =>
@@ -323,7 +366,10 @@ export function bootstrap(root_element) {
       } catch (err) {
         log('register detail store failed: %o', err);
       }
-      void subscriptions.subscribeList(client_id, spec).catch(() => {});
+      void subscriptions.subscribeList(client_id, spec).catch((err) => {
+        log('detail subscribe failed: %o', err);
+        showFatalFromError(err, 'issue details');
+      });
     }
 
     // Open/close dialog based on selected_id (always dialog; no page variant)
@@ -356,7 +402,10 @@ export function bootstrap(root_element) {
             }
             unsub_detail = unsub;
           })
-          .catch(() => {});
+          .catch((err) => {
+            log('detail subscribe failed: %o', err);
+            showFatalFromError(err, 'issue details');
+          });
       } else {
         try {
           dialog.close();
@@ -461,6 +510,7 @@ export function bootstrap(root_element) {
             })
             .catch((err) => {
               log('subscribe issues failed: %o', err);
+              showFatalFromError(err, 'issues list');
             });
         }
       } else if (unsub_issues_tab) {
@@ -487,7 +537,10 @@ export function bootstrap(root_element) {
           .then((unsub) => {
             unsub_epics_tab = unsub;
           })
-          .catch(() => {});
+          .catch((err) => {
+            log('subscribe epics failed: %o', err);
+            showFatalFromError(err, 'epics');
+          });
       } else if (unsub_epics_tab) {
         void unsub_epics_tab().catch(() => {});
         unsub_epics_tab = null;
@@ -511,7 +564,10 @@ export function bootstrap(root_element) {
           void subscriptions
             .subscribeList('tab:board:ready', { type: 'ready-issues' })
             .then((u) => (unsub_board_ready = u))
-            .catch(() => {});
+            .catch((err) => {
+              log('subscribe board ready failed: %o', err);
+              showFatalFromError(err, 'board (Ready)');
+            });
         }
         if (!unsub_board_in_progress) {
           try {
@@ -526,7 +582,10 @@ export function bootstrap(root_element) {
               type: 'in-progress-issues'
             })
             .then((u) => (unsub_board_in_progress = u))
-            .catch(() => {});
+            .catch((err) => {
+              log('subscribe board in-progress failed: %o', err);
+              showFatalFromError(err, 'board (In Progress)');
+            });
         }
         if (!unsub_board_closed) {
           try {
@@ -539,7 +598,10 @@ export function bootstrap(root_element) {
           void subscriptions
             .subscribeList('tab:board:closed', { type: 'closed-issues' })
             .then((u) => (unsub_board_closed = u))
-            .catch(() => {});
+            .catch((err) => {
+              log('subscribe board closed failed: %o', err);
+              showFatalFromError(err, 'board (Closed)');
+            });
         }
         if (!unsub_board_blocked) {
           try {
@@ -552,7 +614,10 @@ export function bootstrap(root_element) {
           void subscriptions
             .subscribeList('tab:board:blocked', { type: 'blocked-issues' })
             .then((u) => (unsub_board_blocked = u))
-            .catch(() => {});
+            .catch((err) => {
+              log('subscribe board blocked failed: %o', err);
+              showFatalFromError(err, 'board (Blocked)');
+            });
         }
       } else {
         // Unsubscribe all board lists when leaving the board view

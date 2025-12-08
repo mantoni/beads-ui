@@ -1,7 +1,7 @@
 /**
  * @import { MessageType } from '../protocol.js'
  */
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { createSubscriptionStore } from './subscriptions-store.js';
 
 describe('client subscription store', () => {
@@ -71,5 +71,21 @@ describe('client subscription store', () => {
     await unsub();
     expect(store.selectors.count('sZ')).toBe(0);
     expect(store.selectors.getIds('sZ')).toEqual([]);
+  });
+
+  test('subscribeList rejects and cleans up on transport error', async () => {
+    const send = vi.fn(async () => {
+      throw { code: 'bd_error', message: 'boom', details: { exit_code: 1 } };
+    });
+    const store = createSubscriptionStore(send);
+    const spec = { type: 'all-issues' };
+
+    await expect(store.subscribeList('err-1', spec)).rejects.toMatchObject({
+      message: 'boom'
+    });
+
+    expect(store.selectors.count('err-1')).toBe(0);
+    expect(store.selectors.getIds('err-1')).toEqual([]);
+    expect(send).toHaveBeenCalledTimes(1);
   });
 });

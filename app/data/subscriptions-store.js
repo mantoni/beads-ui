@@ -142,8 +142,19 @@ export function createSubscriptionStore(send) {
         type: spec.type,
         params: spec.params
       });
-    } catch {
-      // keep local mapping to allow retries; caller may unsubscribe or retry
+    } catch (err) {
+      const entry = subs_by_id.get(client_id) || null;
+      if (entry) {
+        const subscribers = ids_by_key.get(entry.key);
+        if (subscribers) {
+          subscribers.delete(client_id);
+          if (subscribers.size === 0) {
+            ids_by_key.delete(entry.key);
+          }
+        }
+      }
+      subs_by_id.delete(client_id);
+      throw err;
     }
 
     return async () => {
