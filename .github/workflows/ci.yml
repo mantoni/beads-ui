@@ -30,9 +30,9 @@ jobs:
         run: npm run lint
       - name: Types
         if: matrix.node-version == '24.x'
-        run: npm run typecheck
+        run: npm run tsc
       - name: Prettier
         if: matrix.node-version == '24.x'
-        run: npm run format:check
+        run: npm run prettier:check
       - name: Test
         run: npm test
