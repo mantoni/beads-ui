@@ -1,5 +1,34 @@
 # Changes
 
+## 0.5.0
+
+- [`76964c1`](https://github.com/mantoni/beads-ui/commit/76964c1daf133dded6b8f335cfe9d3184ac96a18)
+  Show badge with number of cards per column
+- [`155316c`](https://github.com/mantoni/beads-ui/commit/155316c975a93edc806379e769b538c213ee5ed8)
+  Add loading indicator
+- [`80a837a`](https://github.com/mantoni/beads-ui/commit/80a837a0ef9702fbb7cbbf168526a5a5e3e80d54)
+  Show fatal errors in UI
+- [`06e8fd9`](https://github.com/mantoni/beads-ui/commit/06e8fd9293b226c88d8b395c7bc28b9c7f4c9610)
+  Beads metadata
+- [`233c70a`](https://github.com/mantoni/beads-ui/commit/233c70aa9b6ed6e2d7fef487c7b241ffe721cecd)
+  npm audit
+- [`37b3476`](https://github.com/mantoni/beads-ui/commit/37b3476bc7a0061484de913bee00f285a073ea24)
+  Upgrade marked
+- [`a1362c9`](https://github.com/mantoni/beads-ui/commit/a1362c97fc770cb18764305453b18f71830bdbef)
+  Update express and types
+- [`8efc40d`](https://github.com/mantoni/beads-ui/commit/8efc40dadc051a826c64474a1254641294337a81)
+  Update vitest, jsdom and esbuild
+- [`89cac0f`](https://github.com/mantoni/beads-ui/commit/89cac0ff438a7f1d8b790f339064f2b49ef8ab13)
+  Update eslint and plugins
+- [`0d7e33e`](https://github.com/mantoni/beads-ui/commit/0d7e33e55259d11c39820c1576db74b7fec26b5e)
+  Update prettier and format files
+- [`356a201`](https://github.com/mantoni/beads-ui/commit/356a201af8cfce75d82a7f942b5d04698400715c)
+  Rename npm scripts for prettier and tsc
+- [`31b25d4`](https://github.com/mantoni/beads-ui/commit/31b25d42d23e60c4b30b29281c392179104bf813)
+  Upgrade @trivago/prettier-plugin-sort-imports
+
+_Released by [Maximilian Antoni](https://github.com/mantoni) on 2025-12-08._
+
 ## 0.4.4
 
 - [`d0f8d1d`](https://github.com/mantoni/beads-ui/commit/d0f8d1d088eda78da14d35ac4fd898cbeb68b534)
