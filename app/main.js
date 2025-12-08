@@ -8,6 +8,7 @@ import { createSubscriptionIssueStores } from './data/subscription-issue-stores.
 import { createSubscriptionStore } from './data/subscriptions-store.js';
 import { createHashRouter, parseHash } from './router.js';
 import { createStore } from './state.js';
+import { createActivityIndicator } from './utils/activity-indicator.js';
 import { debug } from './utils/logging.js';
 import { showToast } from './utils/toast.js';
 import { createBoardView } from './views/board.js';
@@ -54,6 +55,9 @@ export function bootstrap(root_element) {
   /** @type {HTMLElement|null} */
   const detail_mount = document.getElementById('detail-panel');
   if (list_mount && issues_root && epics_root && board_root && detail_mount) {
+    /** @type {HTMLElement|null} */
+    const header_loading = document.getElementById('header-loading');
+    const activity = createActivityIndicator(header_loading);
     const fatal_dialog = createFatalErrorDialog(root_element);
 
     /**
@@ -97,10 +101,11 @@ export function bootstrap(root_element) {
     }
 
     const client = createWsClient();
-    // Subscriptions: wire client events and expose subscribe/unsubscribe helpers
-    const subscriptions = createSubscriptionStore((type, payload) =>
+    const tracked_send = activity.wrapSend((type, payload) =>
       client.send(type, payload)
     );
+    // Subscriptions: wire client events and expose subscribe/unsubscribe helpers
+    const subscriptions = createSubscriptionStore(tracked_send);
     // Per-subscription stores (source of truth)
     const sub_issue_stores = createSubscriptionIssueStores();
     // Route per-subscription push envelopes to the owning store
@@ -242,7 +247,7 @@ export function bootstrap(root_element) {
      */
     const transport = async (type, payload) => {
       try {
-        return await client.send(/** @type {MessageType} */ (type), payload);
+        return await tracked_send(/** @type {MessageType} */ (type), payload);
       } catch {
         return [];
       }
@@ -255,7 +260,7 @@ export function bootstrap(root_element) {
     // Global New Issue dialog (UI-106) mounted at root so it is always visible
     const new_issue_dialog = createNewIssueDialog(
       root_element,
-      (type, payload) => client.send(type, payload),
+      (type, payload) => tracked_send(type, payload),
       router,
       store
     );
