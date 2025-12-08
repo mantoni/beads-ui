@@ -95,6 +95,8 @@ export function createBoardView(
    * @param {IssueLite[]} items
    */
   function columnTemplate(title, id, items) {
+    const item_count = Array.isArray(items) ? items.length : 0;
+    const count_label = item_count === 1 ? '1 issue' : `${item_count} issues`;
     return html`
       <section class="board-column" id=${id}>
         <header
@@ -103,7 +105,12 @@ export function createBoardView(
           role="heading"
           aria-level="2"
         >
-          <span>${title}</span>
+          <div class="board-column__title">
+            <span class="board-column__title-text">${title}</span>
+            <span class="badge board-column__count" aria-label=${count_label}>
+              ${item_count}
+            </span>
+          </div>
           ${id === 'closed-col'
             ? html`<label class="board-closed-filter">
                 <span class="visually-hidden">Filter closed issues</span>

@@ -989,6 +989,23 @@ input.inline-edit:focus {
   background: inherit;
   backdrop-filter: saturate(140%) blur(4px);
 }
+.board-column__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.board-column__title-text {
+  font-weight: inherit;
+}
+.board-column__count {
+  background: color-mix(in srgb, var(--panel-bg) 88%, var(--muted));
+  color: color-mix(in srgb, var(--muted) 82%, #000);
+  border-color: color-mix(in srgb, var(--muted) 28%, transparent);
+  min-width: 28px;
+  text-align: center;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
 /* Small, unobtrusive select for closed filter */
 .board-closed-filter {
   margin: calc(var(--space-4) * -1) 0;

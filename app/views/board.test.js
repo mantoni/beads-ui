@@ -195,6 +195,125 @@ describe('views/board', () => {
     expect(navigations[0]).toBe('R-1');
   });
 
+  test('shows column count badges next to titles', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+
+    const now = Date.now();
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:board:blocked').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:blocked',
+      revision: 1,
+      issues: [
+        {
+          id: 'B-1',
+          title: 'blocked 1',
+          created_at: now - 5,
+          updated_at: now - 5,
+          issue_type: 'task'
+        },
+        {
+          id: 'B-2',
+          title: 'blocked 2',
+          created_at: now - 4,
+          updated_at: now - 4,
+          issue_type: 'task'
+        }
+      ]
+    });
+    issueStores.getStore('tab:board:ready').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:ready',
+      revision: 1,
+      issues: [
+        {
+          id: 'R-1',
+          title: 'ready 1',
+          created_at: now - 3,
+          updated_at: now - 3,
+          issue_type: 'feature'
+        },
+        {
+          id: 'R-2',
+          title: 'ready 2',
+          created_at: now - 2,
+          updated_at: now - 2,
+          issue_type: 'task'
+        },
+        {
+          id: 'R-3',
+          title: 'ready 3',
+          created_at: now - 1,
+          updated_at: now - 1,
+          issue_type: 'task'
+        }
+      ]
+    });
+    issueStores.getStore('tab:board:in-progress').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:in-progress',
+      revision: 1,
+      issues: [
+        {
+          id: 'P-1',
+          title: 'progress 1',
+          created_at: now,
+          updated_at: now,
+          issue_type: 'feature'
+        }
+      ]
+    });
+    issueStores.getStore('tab:board:closed').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:closed',
+      revision: 1,
+      issues: [
+        {
+          id: 'C-1',
+          title: 'closed 1',
+          updated_at: now,
+          closed_at: now,
+          issue_type: 'chore'
+        }
+      ]
+    });
+
+    const view = createBoardView(
+      mount,
+      null,
+      () => {},
+      undefined,
+      undefined,
+      issueStores
+    );
+
+    await view.load();
+
+    const blocked_count = mount
+      .querySelector('#blocked-col .board-column__count')
+      ?.textContent?.trim();
+    const ready_count = mount
+      .querySelector('#ready-col .board-column__count')
+      ?.textContent?.trim();
+    const in_progress_count = mount
+      .querySelector('#in-progress-col .board-column__count')
+      ?.textContent?.trim();
+    const closed_count = mount
+      .querySelector('#closed-col .board-column__count')
+      ?.textContent?.trim();
+
+    expect(blocked_count).toBe('2');
+    expect(ready_count).toBe('3');
+    expect(in_progress_count).toBe('1');
+    expect(closed_count).toBe('1');
+
+    const closed_label = mount
+      .querySelector('#closed-col .board-column__count')
+      ?.getAttribute('aria-label');
+    expect(closed_label).toBe('1 issue');
+  });
+
   test('filters Ready to exclude items that are In Progress', async () => {
     document.body.innerHTML = '<div id="m"></div>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
