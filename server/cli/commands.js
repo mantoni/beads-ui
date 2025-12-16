@@ -14,10 +14,8 @@ import { openUrl, waitForServer } from './open.js';
  * - Spawns a detached server process, writes PID file, returns 0.
  * - If already running (PID file present and process alive), prints URL and returns 0.
  *
+ * @param {{ open?: boolean, is_debug?: boolean, host?: string, port?: number }} [options]
  * @returns {Promise<number>} Exit code (0 on success)
- */
-/**
- * @param {{ open?: boolean, is_debug?: boolean }} [options]
  */
 export async function handleStart(options) {
   // Default: do not open a browser unless explicitly requested via `open: true`.
@@ -32,7 +30,19 @@ export async function handleStart(options) {
     removePidFile();
   }
 
-  const started = startDaemon({ is_debug: options?.is_debug });
+  // Set env vars in current process so getConfig() reflects the overrides
+  if (options?.host) {
+    process.env.HOST = options.host;
+  }
+  if (options?.port) {
+    process.env.PORT = String(options.port);
+  }
+
+  const started = startDaemon({
+    is_debug: options?.is_debug,
+    host: options?.host,
+    port: options?.port
+  });
   if (started && started.pid > 0) {
     printServerUrl();
     // Auto-open the browser once for a fresh daemon start

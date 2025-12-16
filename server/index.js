@@ -10,6 +10,16 @@ if (process.argv.includes('--debug') || process.argv.includes('-d')) {
   enableAllDebug();
 }
 
+// Parse --host and --port from argv and set env vars before getConfig()
+for (let i = 0; i < process.argv.length; i++) {
+  if (process.argv[i] === '--host' && process.argv[i + 1]) {
+    process.env.HOST = process.argv[++i];
+  }
+  if (process.argv[i] === '--port' && process.argv[i + 1]) {
+    process.env.PORT = process.argv[++i];
+  }
+}
+
 const config = getConfig();
 const app = createApp(config);
 const server = createServer(app);

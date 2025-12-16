@@ -23,7 +23,8 @@ export function getConfig() {
     port_value = 3000;
   }
 
-  const host_value = '127.0.0.1';
+  const host_env = process.env.HOST;
+  const host_value = host_env && host_env.length > 0 ? host_env : '127.0.0.1';
 
   return {
     host: host_value,
