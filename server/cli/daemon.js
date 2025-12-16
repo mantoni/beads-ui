@@ -140,7 +140,7 @@ export function getServerEntryPath() {
  * Spawn the server as a detached daemon, redirecting stdio to the log file.
  * Writes the PID file upon success.
  *
- * @param {{ is_debug?: boolean }} [options]
+ * @param {{ is_debug?: boolean, host?: string, port?: number }} [options]
  * @returns {{ pid: number } | null} Returns child PID on success; null on failure.
  */
 export function startDaemon(options = {}) {
@@ -160,10 +160,19 @@ export function startDaemon(options = {}) {
     log_fd = -1;
   }
 
+  /** @type {Record<string, string | undefined>} */
+  const spawn_env = { ...process.env };
+  if (options.host) {
+    spawn_env.HOST = options.host;
+  }
+  if (options.port) {
+    spawn_env.PORT = String(options.port);
+  }
+
   /** @type {SpawnOptions} */
   const opts = {
     detached: true,
-    env: { ...process.env },
+    env: spawn_env,
     stdio: log_fd >= 0 ? ['ignore', log_fd, log_fd] : 'ignore',
     windowsHide: true
   };

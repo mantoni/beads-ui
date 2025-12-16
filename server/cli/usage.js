@@ -13,9 +13,11 @@ export function printUsage(out_stream) {
     '  restart     Restart the UI server',
     '',
     'Options:',
-    '  -h, --help    Show this help message',
-    '  -d, --debug   Enable debug logging',
-    '      --open    Open the browser after start/restart',
+    '  -h, --help        Show this help message',
+    '  -d, --debug       Enable debug logging',
+    '      --open        Open the browser after start/restart',
+    '      --host <addr> Bind to a specific host (default: 127.0.0.1)',
+    '      --port <num>  Bind to a specific port (default: 3000)',
     ''
   ];
   for (const line of lines) {

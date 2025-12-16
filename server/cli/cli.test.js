@@ -48,6 +48,24 @@ describe('parseArgs', () => {
 
     expect(r.flags.includes('open')).toBe(true);
   });
+
+  test('parses --host option', () => {
+    const r = parseArgs(['start', '--host', '0.0.0.0']);
+
+    expect(r.options.host).toBe('0.0.0.0');
+  });
+
+  test('parses --port option', () => {
+    const r = parseArgs(['start', '--port', '8080']);
+
+    expect(r.options.port).toBe(8080);
+  });
+
+  test('ignores invalid --port value', () => {
+    const r = parseArgs(['start', '--port', 'abc']);
+
+    expect(r.options.port).toBeUndefined();
+  });
 });
 
 describe('main', () => {
@@ -85,7 +103,20 @@ describe('main', () => {
 
     expect(commands.handleStart).toHaveBeenCalledWith({
       open: true,
-      is_debug: false
+      is_debug: false,
+      host: undefined,
+      port: undefined
+    });
+  });
+
+  test('propagates --host and --port to start handler', async () => {
+    await main(['start', '--host', '0.0.0.0', '--port', '8080']);
+
+    expect(commands.handleStart).toHaveBeenCalledWith({
+      open: false,
+      is_debug: false,
+      host: '0.0.0.0',
+      port: 8080
     });
   });
 
@@ -113,7 +144,9 @@ describe('main', () => {
     expect(commands.handleRestart).toHaveBeenCalledTimes(1);
     expect(commands.handleRestart).toHaveBeenCalledWith({
       open: false,
-      is_debug: false
+      is_debug: false,
+      host: undefined,
+      port: undefined
     });
   });
 
@@ -122,7 +155,20 @@ describe('main', () => {
 
     expect(commands.handleRestart).toHaveBeenCalledWith({
       open: true,
-      is_debug: false
+      is_debug: false,
+      host: undefined,
+      port: undefined
+    });
+  });
+
+  test('propagates --host and --port to restart handler', async () => {
+    await main(['restart', '--host', '0.0.0.0', '--port', '9000']);
+
+    expect(commands.handleRestart).toHaveBeenCalledWith({
+      open: false,
+      is_debug: false,
+      host: '0.0.0.0',
+      port: 9000
     });
   });
 
