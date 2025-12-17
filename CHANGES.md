@@ -1,5 +1,27 @@
 # Changes
 
+## 0.6.0
+
+- [`2e25941`](https://github.com/mantoni/beads-ui/commit/2e259418ab24367468daa4449833550f1e9cb297)
+  feat(cli): add --host and --port options (cc-vps)
+    >
+    > Add CLI options to configure the server bind address and port,
+    > making it easier to expose the UI on different network interfaces
+    > or run multiple instances on different ports.
+    >
+    > - Add --host <addr> option (default: 127.0.0.1)
+    > - Add --port <num> option (default: 3000)
+    > - Support HOST and PORT environment variables
+    > - Parse --host/--port in server/index.js for dev workflow
+    > - Add test coverage for new options
+    >
+    > Co-authored-by: Christian Catalan <crcatala@gmail.com>
+    >
+- [`6327f77`](https://github.com/mantoni/beads-ui/commit/6327f779f7b6ad7d274a37168320442bf013b4e0)
+  Fix GitHub action commands
+
+_Released by [Maximilian Antoni](https://github.com/mantoni) on 2025-12-17._
+
 ## 0.5.0
 
 - [`76964c1`](https://github.com/mantoni/beads-ui/commit/76964c1daf133dded6b8f335cfe9d3184ac96a18)
