@@ -66,9 +66,9 @@ describe('views/detail', () => {
       '#/issues?issue=UI-34'
     ]);
 
-    // No textarea in read mode
+    // No description textarea in read mode (only comment input textarea should exist)
     const descInput0 = /** @type {HTMLTextAreaElement|null} */ (
-      mount.querySelector('textarea')
+      mount.querySelector('.description textarea')
     );
     expect(descInput0).toBeNull();
 
@@ -171,8 +171,11 @@ describe('views/detail', () => {
     area.dispatchEvent(key);
     // After save, returns to read mode (allow microtask flush)
     await Promise.resolve();
+    // Only the comment input textarea should remain, no description textarea
     expect(
-      /** @type {HTMLTextAreaElement|null} */ (mount.querySelector('textarea'))
+      /** @type {HTMLTextAreaElement|null} */ (
+        mount.querySelector('.description textarea')
+      )
     ).toBeNull();
   });
 
@@ -197,5 +200,219 @@ describe('views/detail', () => {
     expect((mount.textContent || '').toLowerCase()).toContain(
       'select an issue'
     );
+  });
+
+  test('renders comments section with author and timestamp', async () => {
+    document.body.innerHTML =
+      '<section class="panel"><div id="mount"></div></section>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+
+    const issue = {
+      id: 'UI-99',
+      title: 'Test issue',
+      dependencies: [],
+      dependents: [],
+      comments: [
+        {
+          id: 1,
+          author: 'Alice',
+          text: 'This is a comment',
+          created_at: '2025-01-15T10:30:00Z'
+        },
+        {
+          id: 2,
+          author: 'Bob',
+          text: 'Another comment',
+          created_at: '2025-01-15T11:00:00Z'
+        }
+      ]
+    };
+
+    const stores = {
+      snapshotFor(/** @type {string} */ id) {
+        return id === 'detail:UI-99' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+
+    const view = createDetailView(mount, async () => ({}), undefined, stores);
+    await view.load('UI-99');
+
+    // Check comments section exists
+    const commentsSection = mount.querySelector('.comments');
+    expect(commentsSection).toBeTruthy();
+
+    // Check comments are rendered
+    const commentItems = mount.querySelectorAll('.comment-item');
+    expect(commentItems.length).toBe(2);
+
+    // Check first comment content
+    const firstComment = commentItems[0];
+    expect(firstComment.textContent).toContain('Alice');
+    expect(firstComment.textContent).toContain('This is a comment');
+  });
+
+  test('shows placeholder when no comments', async () => {
+    document.body.innerHTML =
+      '<section class="panel"><div id="mount"></div></section>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+
+    const issue = {
+      id: 'UI-100',
+      title: 'Test issue',
+      dependencies: [],
+      dependents: [],
+      comments: []
+    };
+
+    const stores = {
+      snapshotFor(/** @type {string} */ id) {
+        return id === 'detail:UI-100' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+
+    const view = createDetailView(mount, async () => ({}), undefined, stores);
+    await view.load('UI-100');
+
+    const commentsSection = mount.querySelector('.comments');
+    expect(commentsSection).toBeTruthy();
+    expect(commentsSection && commentsSection.textContent).toContain(
+      'No comments yet'
+    );
+  });
+
+  test('submits new comment via sendFn', async () => {
+    document.body.innerHTML =
+      '<section class="panel"><div id="mount"></div></section>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+
+    const issue = {
+      id: 'UI-101',
+      title: 'Test issue',
+      dependencies: [],
+      dependents: [],
+      comments: []
+    };
+
+    /** @type {Array<{type: string, payload: unknown}>} */
+    const calls = [];
+    const sendFn = async (
+      /** @type {string} */ type,
+      /** @type {unknown} */ payload
+    ) => {
+      calls.push({ type, payload });
+      // Return updated comments
+      return [
+        {
+          id: 1,
+          author: 'Me',
+          text: 'New comment',
+          created_at: '2025-01-15T12:00:00Z'
+        }
+      ];
+    };
+
+    const stores = {
+      snapshotFor(/** @type {string} */ id) {
+        return id === 'detail:UI-101' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+
+    const view = createDetailView(mount, sendFn, undefined, stores);
+    await view.load('UI-101');
+
+    // Find textarea and button
+    const textarea = /** @type {HTMLTextAreaElement} */ (
+      mount.querySelector('.comment-input textarea')
+    );
+    const button = /** @type {HTMLButtonElement} */ (
+      mount.querySelector('.comment-input button')
+    );
+
+    expect(textarea).toBeTruthy();
+    expect(button).toBeTruthy();
+
+    // Type a comment
+    textarea.value = 'Test comment';
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+
+    // Click submit
+    button.click();
+
+    // Wait for async
+    await new Promise((r) => setTimeout(r, 10));
+
+    // Verify sendFn was called correctly
+    expect(calls.length).toBe(1);
+    expect(calls[0].type).toBe('add-comment');
+    expect(calls[0].payload).toEqual({ id: 'UI-101', text: 'Test comment' });
+  });
+
+  test('fetches comments on load when not in snapshot', async () => {
+    document.body.innerHTML =
+      '<section class="panel"><div id="mount"></div></section>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+
+    // Issue without comments in snapshot
+    const issue = {
+      id: 'UI-102',
+      title: 'Test issue',
+      dependencies: [],
+      dependents: []
+      // No comments property
+    };
+
+    /** @type {Array<{type: string, payload: unknown}>} */
+    const calls = [];
+    const sendFn = async (
+      /** @type {string} */ type,
+      /** @type {unknown} */ payload
+    ) => {
+      calls.push({ type, payload });
+      if (type === 'get-comments') {
+        return [
+          {
+            id: 1,
+            author: 'Fetched',
+            text: 'Fetched comment',
+            created_at: '2025-01-15T12:00:00Z'
+          }
+        ];
+      }
+      return {};
+    };
+
+    const stores = {
+      snapshotFor(/** @type {string} */ id) {
+        return id === 'detail:UI-102' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+
+    const view = createDetailView(mount, sendFn, undefined, stores);
+    await view.load('UI-102');
+
+    // Wait for async fetch
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Verify get-comments was called
+    const getCommentsCall = calls.find((c) => c.type === 'get-comments');
+    expect(getCommentsCall).toBeTruthy();
+    expect(getCommentsCall?.payload).toEqual({ id: 'UI-102' });
+
+    // Verify fetched comment is displayed
+    const commentItems = mount.querySelectorAll('.comment-item');
+    expect(commentItems.length).toBe(1);
+    expect(commentItems[0].textContent).toContain('Fetched');
   });
 });

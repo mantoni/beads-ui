@@ -48,9 +48,18 @@ describe('detail view design section', () => {
       if (el.classList.contains('acceptance')) {
         return 'acceptance';
       }
+      if (el.classList.contains('comments')) {
+        return 'comments';
+      }
       return 'description';
     });
-    expect(names).toEqual(['description', 'design', 'notes', 'acceptance']);
+    expect(names).toEqual([
+      'description',
+      'design',
+      'notes',
+      'acceptance',
+      'comments'
+    ]);
     // Heading text for acceptance should be updated
     const accTitle = mount.querySelector('.acceptance .props-card__title');
     expect(accTitle && accTitle.textContent).toBe('Acceptance Criteria');
