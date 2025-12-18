@@ -1656,3 +1656,67 @@ html[data-theme='dark'] {
     grid-template-columns: 1fr;
   }
 }
+
+/* Comments section */
+.comments {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.comment-item {
+  padding: 12px;
+  margin-bottom: 8px;
+  background: color-mix(in srgb, var(--panel-bg) 95%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.comment-author {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.comment-date {
+  color: var(--muted);
+}
+
+.comment-text {
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.comment-input {
+  margin-top: 12px;
+}
+
+.comment-input textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 8px;
+  border: 1px solid var(--control-border);
+  border-radius: 4px;
+  background: var(--control-bg);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.comment-input textarea:focus {
+  outline: none;
+  border-color: var(--link);
+}
+
+.comment-input button {
+  margin-top: 8px;
+}

@@ -11,12 +11,42 @@ import { showToast } from '../utils/toast.js';
 import { createTypeBadge } from '../utils/type-badge.js';
 
 /**
+ * Format a date string for display.
+ *
+ * @param {string} [dateStr]
+ * @returns {string}
+ */
+function formatCommentDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
+/**
  * @typedef {Object} Dependency
  * @property {string} id
  * @property {string} [title]
  * @property {string} [status]
  * @property {number} [priority]
  * @property {string} [issue_type]
+ */
+
+/**
+ * @typedef {Object} Comment
+ * @property {number} id
+ * @property {string} [author]
+ * @property {string} text
+ * @property {string} [created_at]
  */
 
 /**
@@ -33,6 +63,7 @@ import { createTypeBadge } from '../utils/type-badge.js';
  * @property {string[]} [labels]
  * @property {Dependency[]} [dependencies]
  * @property {Dependency[]} [dependents]
+ * @property {Comment[]} [comments]
  */
 
 /**
@@ -78,6 +109,10 @@ export function createDetailView(
   let edit_assignee = false;
   /** @type {string} */
   let new_label_text = '';
+  /** @type {string} */
+  let comment_text = '';
+  /** @type {boolean} */
+  let comment_pending = false;
 
   /** @param {string} id */
   function issueHref(id) {
@@ -679,6 +714,58 @@ export function createDetailView(
     doRender();
   };
 
+  // Comment input handlers
+  /**
+   * @param {Event} ev
+   */
+  const onCommentInput = (ev) => {
+    const el = /** @type {HTMLTextAreaElement} */ (ev.currentTarget);
+    const prev_has_text = comment_text.trim().length > 0;
+    comment_text = el.value || '';
+    const has_text = comment_text.trim().length > 0;
+    // Re-render when the "has content" state changes to update button disabled state
+    if (prev_has_text !== has_text) {
+      doRender();
+    }
+  };
+
+  const onCommentSubmit = async () => {
+    if (!current || comment_pending || !comment_text.trim()) {
+      return;
+    }
+    comment_pending = true;
+    doRender();
+    try {
+      log('add comment to %s', String(current.id));
+      const result = await sendFn('add-comment', {
+        id: current.id,
+        text: comment_text.trim()
+      });
+      if (Array.isArray(result)) {
+        // Update comments in current issue
+        /** @type {any} */ (current).comments = result;
+        comment_text = '';
+        doRender();
+      }
+    } catch (err) {
+      log('add comment failed %s %o', String(current.id), err);
+      showToast('Failed to add comment', 'error');
+    } finally {
+      comment_pending = false;
+      doRender();
+    }
+  };
+
+  /**
+   * @param {KeyboardEvent} ev
+   */
+  const onCommentKeydown = (ev) => {
+    if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
+      ev.preventDefault();
+      onCommentSubmit();
+    }
+  };
+
   /**
    * @param {'Dependencies'|'Dependents'} title
    * @param {Dependency[]} items
@@ -985,13 +1072,52 @@ export function createDetailView(
           })()}
         </div>`;
 
+    // Comments section
+    const comments = Array.isArray(/** @type {any} */ (issue).comments)
+      ? /** @type {Comment[]} */ (/** @type {any} */ (issue).comments)
+      : [];
+    const comments_block = html`<div class="comments">
+      <div class="props-card__title">Comments</div>
+      ${comments.length === 0
+        ? html`<div class="muted">No comments yet</div>`
+        : comments.map(
+            (c) => html`
+              <div class="comment-item">
+                <div class="comment-header">
+                  <span class="comment-author">${c.author || 'Unknown'}</span>
+                  <span class="comment-date"
+                    >${formatCommentDate(c.created_at)}</span
+                  >
+                </div>
+                <div class="comment-text">${c.text}</div>
+              </div>
+            `
+          )}
+      <div class="comment-input">
+        <textarea
+          placeholder="Add a comment... (Ctrl+Enter to submit)"
+          rows="3"
+          .value=${comment_text}
+          @input=${onCommentInput}
+          @keydown=${onCommentKeydown}
+          ?disabled=${comment_pending}
+        ></textarea>
+        <button
+          @click=${onCommentSubmit}
+          ?disabled=${comment_pending || !comment_text.trim()}
+        >
+          ${comment_pending ? 'Adding...' : 'Add Comment'}
+        </button>
+      </div>
+    </div>`;
+
     return html`
       <div class="panel__body" id="detail-root">
         <div style="position:relative">
           <div class="detail-layout">
             <div class="detail-main">
               ${title_zone} ${desc_block} ${design_block} ${notes_block}
-              ${accept_block}
+              ${accept_block} ${comments_block}
             </div>
             <div class="detail-side">
               <div class="props-card">
@@ -1256,7 +1382,22 @@ export function createDetailView(
       }
       // Render from current (if available) or keep placeholder until push arrives
       pending = false;
+      comment_text = '';
+      comment_pending = false;
       doRender();
+
+      // Fetch comments if not already present
+      if (current && !(/** @type {any} */ (current).comments)) {
+        try {
+          const comments = await sendFn('get-comments', { id: current_id });
+          if (Array.isArray(comments) && current && current_id === id) {
+            /** @type {any} */ (current).comments = comments;
+            doRender();
+          }
+        } catch (err) {
+          log('fetch comments failed %s %o', id, err);
+        }
+      }
     },
     clear() {
       renderPlaceholder('Select an issue to view details');

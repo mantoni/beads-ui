@@ -5,6 +5,38 @@ import { debug } from './logging.js';
 const log = debug('bd');
 
 /**
+ * Get the git user name from git config.
+ *
+ * @param {{ cwd?: string }} [options]
+ * @returns {Promise<string>}
+ */
+export async function getGitUserName(options = {}) {
+  return new Promise((resolve) => {
+    const child = spawn('git', ['config', 'user.name'], {
+      cwd: options.cwd || process.cwd(),
+      shell: false
+    });
+
+    /** @type {string[]} */
+    const chunks = [];
+
+    if (child.stdout) {
+      child.stdout.setEncoding('utf8');
+      child.stdout.on('data', (chunk) => chunks.push(String(chunk)));
+    }
+
+    child.on('error', () => resolve(''));
+    child.on('close', (code) => {
+      if (code !== 0) {
+        resolve('');
+        return;
+      }
+      resolve(chunks.join('').trim());
+    });
+  });
+}
+
+/**
  * Resolve the bd executable path.
  *
  * @returns {string}

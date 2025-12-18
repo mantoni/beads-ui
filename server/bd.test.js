@@ -2,7 +2,7 @@ import { spawn as spawnMock } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { getBdBin, runBd, runBdJson } from './bd.js';
+import { getBdBin, getGitUserName, runBd, runBdJson } from './bd.js';
 
 // Mock child_process.spawn before importing the module under test
 vi.mock('node:child_process', () => ({ spawn: vi.fn() }));
@@ -89,5 +89,19 @@ describe('runBdJson', () => {
     const res = await runBdJson(['list', '--json']);
     expect(res.code).toBe(2);
     expect(res.stderr).toContain('oops');
+  });
+});
+
+describe('getGitUserName', () => {
+  test('returns git user name on success', async () => {
+    mockedSpawn.mockReturnValueOnce(makeFakeProc('Alice Smith\n', '', 0));
+    const name = await getGitUserName();
+    expect(name).toBe('Alice Smith');
+  });
+
+  test('returns empty string on failure', async () => {
+    mockedSpawn.mockReturnValueOnce(makeFakeProc('', 'error', 1));
+    const name = await getGitUserName();
+    expect(name).toBe('');
   });
 });

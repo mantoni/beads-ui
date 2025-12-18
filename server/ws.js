@@ -5,7 +5,7 @@
  */
 import { WebSocketServer } from 'ws';
 import { isRequest, makeError, makeOk } from '../app/protocol.js';
-import { runBd, runBdJson } from './bd.js';
+import { getGitUserName, runBd, runBdJson } from './bd.js';
 import { fetchListForSubscription } from './list-adapters.js';
 import { debug } from './logging.js';
 import { keyOf, registry } from './subscriptions.js';
@@ -1078,6 +1078,78 @@ export async function handleMessage(ws, data) {
     } catch {
       // ignore
     }
+    return;
+  }
+
+  // get-comments: payload { id: string }
+  if (req.type === 'get-comments') {
+    const { id } = /** @type {any} */ (req.payload || {});
+    if (typeof id !== 'string' || id.length === 0) {
+      ws.send(
+        JSON.stringify(
+          makeError(req, 'bad_request', 'payload requires { id: string }')
+        )
+      );
+      return;
+    }
+    const res = await runBdJson(['comments', id, '--json']);
+    if (res.code !== 0) {
+      ws.send(
+        JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
+      );
+      return;
+    }
+    ws.send(JSON.stringify(makeOk(req, res.stdoutJson || [])));
+    return;
+  }
+
+  // add-comment: payload { id: string, text: string }
+  if (req.type === 'add-comment') {
+    const { id, text } = /** @type {any} */ (req.payload || {});
+    if (
+      typeof id !== 'string' ||
+      id.length === 0 ||
+      typeof text !== 'string' ||
+      text.trim().length === 0
+    ) {
+      ws.send(
+        JSON.stringify(
+          makeError(
+            req,
+            'bad_request',
+            'payload requires { id: string, text: non-empty string }'
+          )
+        )
+      );
+      return;
+    }
+
+    // Get git user name for author attribution
+    const author = await getGitUserName();
+    const args = ['comment', id, text.trim()];
+    if (author) {
+      args.push('--author', author);
+    }
+
+    const res = await runBd(args);
+    if (res.code !== 0) {
+      ws.send(
+        JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
+      );
+      return;
+    }
+
+    // Return updated comments list
+    const comments = await runBdJson(['comments', id, '--json']);
+    if (comments.code !== 0) {
+      ws.send(
+        JSON.stringify(
+          makeError(req, 'bd_error', comments.stderr || 'bd failed')
+        )
+      );
+      return;
+    }
+    ws.send(JSON.stringify(makeOk(req, comments.stdoutJson || [])));
     return;
   }
 

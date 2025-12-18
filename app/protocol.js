@@ -9,7 +9,7 @@
  * - Server can also send unsolicited events (e.g., subscription `snapshot`).
  */
 
-/** @typedef {'list-issues'|'update-status'|'edit-text'|'update-priority'|'create-issue'|'list-ready'|'dep-add'|'dep-remove'|'epic-status'|'update-assignee'|'label-add'|'label-remove'|'subscribe-list'|'unsubscribe-list'|'snapshot'|'upsert'|'delete'} MessageType */
+/** @typedef {'list-issues'|'update-status'|'edit-text'|'update-priority'|'create-issue'|'list-ready'|'dep-add'|'dep-remove'|'epic-status'|'update-assignee'|'label-add'|'label-remove'|'subscribe-list'|'unsubscribe-list'|'snapshot'|'upsert'|'delete'|'get-comments'|'add-comment'} MessageType */
 
 /**
  * @typedef {Object} RequestEnvelope
@@ -53,7 +53,10 @@ export const MESSAGE_TYPES = /** @type {const} */ ([
   // vNext per-subscription full-issue push events
   'snapshot',
   'upsert',
-  'delete'
+  'delete',
+  // Comments
+  'get-comments',
+  'add-comment'
 ]);
 
 /**
