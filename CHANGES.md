@@ -1,5 +1,25 @@
 # Changes
 
+## 0.7.0
+
+- [`255845f`](https://github.com/mantoni/beads-ui/commit/255845fd49a1e830dd56404d4d49d71c4f3bd18f)
+  feat: add comments to issue detail view (Frederic Haddad)
+    >
+    > - Add get-comments and add-comment WebSocket handlers
+    > - Display comments with author and timestamp in detail view
+    > - Add comment input form with Ctrl+Enter submit
+    > - Auto-fill author from git config user.name
+    > - Fetch comments when loading issue details
+    >
+    > 🤖 Generated with [Claude Code](https://claude.com/claude-code)
+    >
+    > Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+    >
+- [`a296e98`](https://github.com/mantoni/beads-ui/commit/a296e98dadb59d989cf2acac15666c0d38c635d6)
+  Add CHANGES.md to prettier ignore
+
+_Released by [Maximilian Antoni](https://github.com/mantoni) on 2025-12-19._
+
 ## 0.6.0
 
 - [`2e25941`](https://github.com/mantoni/beads-ui/commit/2e259418ab24367468daa4449833550f1e9cb297)
