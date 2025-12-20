@@ -186,21 +186,15 @@ export function createDetailView(
     if (!current) return;
     const id = current.id;
     try {
-      console.log('[DELETE] 1. sending delete-issue for', id);
       await sendFn('delete-issue', { id });
-      console.log('[DELETE] 2. sendFn succeeded');
       current = null;
       current_id = null;
-      console.log('[DELETE] 3. calling doRender');
-      doRender(); // Show placeholder immediately
-      console.log('[DELETE] 4. doRender done, calling navigateFn');
+      doRender();
       // Navigate back to close the dialog
       const view = parseView(window.location.hash || '');
-      console.log('[DELETE] 5. view=', view, 'calling navigateFn(#/' + view + ')');
       navigateFn(`#/${view}`);
-      console.log('[DELETE] 6. navigateFn done - SUCCESS');
     } catch (err) {
-      console.error('[DELETE] FAILED:', err);
+      log('delete failed: %o', err);
       showToast('Failed to delete issue', 'error');
     }
   }
