@@ -1725,7 +1725,8 @@ html[data-theme='dark'] {
 .delete-issue-btn {
   position: absolute;
   top: 8px;
-  right: 8px;
+  right: 328px; /* 320px sidebar + 8px gap */
+  z-index: 10;
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
@@ -1748,6 +1749,37 @@ html[data-theme='dark'] {
   width: 18px;
   height: 18px;
   display: block;
+}
+.delete-issue-btn .tooltip {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: var(--fg);
+  color: var(--bg);
+  border-radius: 4px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.1s, visibility 0.1s;
+  pointer-events: none;
+}
+.delete-issue-btn .tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: var(--fg);
+}
+.delete-issue-btn:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* --- Delete Confirmation Dialog --- */

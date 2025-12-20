@@ -189,10 +189,13 @@ export function createDetailView(
       await sendFn('delete-issue', { id });
       current = null;
       current_id = null;
-      doRender();
+      doRender(); // Show placeholder immediately
+      // Navigate back to close the dialog
+      const view = parseView(window.location.hash || '');
+      navigateFn(`#/${view}`);
     } catch (err) {
       log('delete failed: %o', err);
-      // Could show error toast here
+      showToast('Failed to delete issue', 'error');
     }
   }
 
@@ -1205,28 +1208,14 @@ export function createDetailView(
     return html`
       <div class="panel__body" id="detail-root">
         <div style="position:relative">
-          <button
-            class="delete-issue-btn"
-            title="Delete issue"
-            aria-label="Delete issue"
-            @click=${onDeleteClick}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
+          <button class="delete-issue-btn" title="Delete issue" aria-label="Delete issue" @click=${onDeleteClick}>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6"></polyline>
-              <path
-                d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-              ></path>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
               <line x1="10" y1="11" x2="10" y2="17"></line>
               <line x1="14" y1="11" x2="14" y2="17"></line>
             </svg>
+            <span class="tooltip">Delete issue</span>
           </button>
           <div class="detail-layout">
             <div class="detail-main">
@@ -1322,7 +1311,6 @@ export function createDetailView(
       return;
     }
     render(detailTemplate(current), mount_element);
-    // panel header removed for detail view; ID is shown inline with title
   }
 
   /**
