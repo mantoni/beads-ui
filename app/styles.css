@@ -1354,10 +1354,16 @@ html[data-theme='dark'] {
   padding: 2px 0;
   cursor: pointer;
 }
+.props-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
 .props-card__title {
   font-weight: 700;
   font-size: 13px;
-  margin: 0 0 8px;
+  margin: 0;
 }
 .prop {
   display: grid;
@@ -1723,31 +1729,28 @@ html[data-theme='dark'] {
 
 /* --- Delete Issue Button --- */
 .delete-issue-btn {
-  position: absolute;
-  top: 8px;
-  right: 328px; /* 320px sidebar + 8px gap */
-  z-index: 10;
+  position: relative;
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
-  padding: 6px 8px;
+  padding: 4px 6px;
   cursor: pointer;
-  color: var(--danger, #b00020);
+  color: #c62828;
   transition:
     background 0.15s,
     border-color 0.15s;
 }
 .delete-issue-btn:hover {
-  background: color-mix(in srgb, var(--danger, #b00020) 10%, transparent);
-  border-color: color-mix(in srgb, var(--danger, #b00020) 30%, transparent);
+  background: rgba(198, 40, 40, 0.1);
+  border-color: rgba(198, 40, 40, 0.3);
 }
 .delete-issue-btn:focus-visible {
-  outline: 2px solid var(--danger, #b00020);
+  outline: 2px solid #c62828;
   outline-offset: 2px;
 }
 .delete-issue-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   display: block;
 }
 .delete-issue-btn .tooltip {
@@ -1767,6 +1770,7 @@ html[data-theme='dark'] {
   visibility: hidden;
   transition: opacity 0.1s, visibility 0.1s;
   pointer-events: none;
+  z-index: 100;
 }
 .delete-issue-btn .tooltip::before {
   content: '';
