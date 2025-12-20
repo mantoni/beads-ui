@@ -1164,7 +1164,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const res = await runBd(['delete', id]);
+    const res = await runBd(['delete', id, '--force']);
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(
