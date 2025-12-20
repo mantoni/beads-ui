@@ -349,6 +349,10 @@ export function bootstrap(root_element) {
         const id = parseHash(hash);
         if (id) {
           router.gotoIssue(id);
+        } else {
+          // No issue ID - navigate to view (closes dialog)
+          const view = parseView(hash);
+          router.gotoView(view);
         }
       },
       sub_issue_stores
