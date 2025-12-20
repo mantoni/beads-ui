@@ -114,6 +114,97 @@ export function createDetailView(
   /** @type {boolean} */
   let comment_pending = false;
 
+  /** @type {HTMLDialogElement | null} */
+  let delete_dialog = null;
+
+  function ensureDeleteDialog() {
+    if (delete_dialog) return delete_dialog;
+    delete_dialog = document.createElement('dialog');
+    delete_dialog.id = 'delete-confirm-dialog';
+    delete_dialog.setAttribute('role', 'alertdialog');
+    delete_dialog.setAttribute('aria-modal', 'true');
+    document.body.appendChild(delete_dialog);
+    return delete_dialog;
+  }
+
+  function openDeleteDialog() {
+    if (!current) return;
+    const dialog = ensureDeleteDialog();
+    const issueId = current.id;
+    const issueTitle = current.title || '(no title)';
+    dialog.innerHTML = `
+      <div class="delete-confirm">
+        <h2 class="delete-confirm__title">Delete Issue</h2>
+        <p class="delete-confirm__message">
+          Are you sure you want to delete issue <strong>${issueId}</strong> — <strong>${issueTitle}</strong>? This action cannot be undone.
+        </p>
+        <div class="delete-confirm__actions">
+          <button type="button" class="btn" id="delete-cancel-btn">Cancel</button>
+          <button type="button" class="btn danger" id="delete-confirm-btn">Delete</button>
+        </div>
+      </div>
+    `;
+    const cancelBtn = dialog.querySelector('#delete-cancel-btn');
+    const confirmBtn = dialog.querySelector('#delete-confirm-btn');
+
+    cancelBtn?.addEventListener('click', () => {
+      if (typeof dialog.close === 'function') {
+        dialog.close();
+      }
+      dialog.removeAttribute('open');
+    });
+
+    confirmBtn?.addEventListener('click', async () => {
+      if (typeof dialog.close === 'function') {
+        dialog.close();
+      }
+      dialog.removeAttribute('open');
+      await performDelete();
+    });
+
+    dialog.addEventListener('cancel', (ev) => {
+      ev.preventDefault();
+      if (typeof dialog.close === 'function') {
+        dialog.close();
+      }
+      dialog.removeAttribute('open');
+    });
+
+    if (typeof dialog.showModal === 'function') {
+      try {
+        dialog.showModal();
+        dialog.setAttribute('open', '');
+      } catch {
+        dialog.setAttribute('open', '');
+      }
+    } else {
+      dialog.setAttribute('open', '');
+    }
+  }
+
+  async function performDelete() {
+    if (!current) return;
+    const id = current.id;
+    try {
+      await sendFn('delete-issue', { id });
+      current = null;
+      current_id = null;
+      doRender();
+    } catch (err) {
+      log('delete failed: %o', err);
+      // Could show error toast here
+    }
+  }
+
+  /**
+   * @param {Event} ev
+   */
+  function onDeleteClick(ev) {
+    ev.stopPropagation();
+    ev.preventDefault();
+    openDeleteDialog();
+  }
+
   /** @param {string} id */
   function issueHref(id) {
     /** @type {'issues'|'epics'|'board'} */
@@ -1114,6 +1205,29 @@ export function createDetailView(
     return html`
       <div class="panel__body" id="detail-root">
         <div style="position:relative">
+          <button
+            class="delete-issue-btn"
+            title="Delete issue"
+            aria-label="Delete issue"
+            @click=${onDeleteClick}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path
+                d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+              ></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+          </button>
           <div class="detail-layout">
             <div class="detail-main">
               ${title_zone} ${desc_block} ${design_block} ${notes_block}
@@ -1404,6 +1518,10 @@ export function createDetailView(
     },
     destroy() {
       mount_element.replaceChildren();
+      if (delete_dialog && delete_dialog.parentNode) {
+        delete_dialog.parentNode.removeChild(delete_dialog);
+        delete_dialog = null;
+      }
     }
   };
 }

@@ -430,6 +430,7 @@ describe('views/detail', () => {
         dependents: []
       };
       const stores = {
+        /** @param {string} id */
         snapshotFor(id) {
           return id === 'detail:UI-99' ? [issue] : [];
         },
@@ -458,6 +459,7 @@ describe('views/detail', () => {
         dependents: []
       };
       const stores = {
+        /** @param {string} id */
         snapshotFor(id) {
           return id === 'detail:UI-100' ? [issue] : [];
         },
@@ -500,6 +502,7 @@ describe('views/detail', () => {
       };
       let deleteCalled = false;
       const stores = {
+        /** @param {string} id */
         snapshotFor(id) {
           return id === 'detail:UI-101' ? [issue] : [];
         },
@@ -550,6 +553,7 @@ describe('views/detail', () => {
       /** @type {{ type: string, payload: any }[]} */
       const calls = [];
       const stores = {
+        /** @param {string} id */
         snapshotFor(id) {
           return id === 'detail:UI-102' ? [issue] : [];
         },
