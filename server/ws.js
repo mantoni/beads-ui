@@ -1167,7 +1167,9 @@ export async function handleMessage(ws, data) {
     const res = await runBd(['delete', id]);
     if (res.code !== 0) {
       ws.send(
-        JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd delete failed'))
+        JSON.stringify(
+          makeError(req, 'bd_error', res.stderr || 'bd delete failed')
+        )
       );
       return;
     }

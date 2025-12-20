@@ -54,7 +54,11 @@ describe('delete-issue handler', () => {
 
   test('returns error when bd delete fails', async () => {
     const rb = /** @type {import('vitest').Mock} */ (runBd);
-    rb.mockResolvedValueOnce({ code: 1, stdout: '', stderr: 'Issue not found' });
+    rb.mockResolvedValueOnce({
+      code: 1,
+      stdout: '',
+      stderr: 'Issue not found'
+    });
 
     const ws = makeStubSocket();
     await handleMessage(
