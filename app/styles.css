@@ -1720,3 +1720,76 @@ html[data-theme='dark'] {
 .comment-input button {
   margin-top: 8px;
 }
+
+/* --- Delete Issue Button --- */
+.delete-issue-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 6px 8px;
+  cursor: pointer;
+  color: var(--danger, #b00020);
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.delete-issue-btn:hover {
+  background: color-mix(in srgb, var(--danger, #b00020) 10%, transparent);
+  border-color: color-mix(in srgb, var(--danger, #b00020) 30%, transparent);
+}
+.delete-issue-btn:focus-visible {
+  outline: 2px solid var(--danger, #b00020);
+  outline-offset: 2px;
+}
+.delete-issue-btn svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* --- Delete Confirmation Dialog --- */
+#delete-confirm-dialog {
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+  width: min(400px, 90vw);
+  margin: auto;
+}
+#delete-confirm-dialog::backdrop {
+  background: color-mix(in srgb, #000 45%, transparent);
+  backdrop-filter: blur(1px);
+}
+.delete-confirm {
+  padding: 20px;
+}
+.delete-confirm__title {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 600;
+}
+.delete-confirm__message {
+  margin: 0 0 20px;
+  line-height: 1.5;
+  color: var(--fg);
+}
+.delete-confirm__message strong {
+  font-weight: 600;
+}
+.delete-confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.btn.danger {
+  background: var(--danger, #b00020);
+  color: #fff;
+  border-color: var(--danger, #b00020);
+}
+.btn.danger:hover {
+  background: color-mix(in srgb, var(--danger, #b00020) 85%, #000);
+}
