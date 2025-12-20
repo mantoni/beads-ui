@@ -1768,7 +1768,9 @@ html[data-theme='dark'] {
   border-radius: 4px;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.1s, visibility 0.1s;
+  transition:
+    opacity 0.1s,
+    visibility 0.1s;
   pointer-events: none;
   z-index: 100;
 }

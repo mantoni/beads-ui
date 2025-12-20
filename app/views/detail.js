@@ -1243,56 +1243,60 @@ export function createDetailView(
                 <div class="prop assignee">
                   <div class="label">Assignee</div>
                   <div class="value">
-                    ${edit_assignee
-                      ? html`<input
-                            type="text"
-                            aria-label="Edit assignee"
-                            .value=${/** @type {any} */ (issue).assignee || ''}
-                            size=${Math.min(
-                              40,
-                              Math.max(12, (issue.assignee || '').length + 3)
-                            )}
-                            @keydown=${
-                              /** @param {KeyboardEvent} e */ (e) => {
-                                if (e.key === 'Escape') {
-                                  e.preventDefault();
-                                  onAssigneeCancel();
-                                } else if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  onAssigneeSave();
+                    ${
+                      edit_assignee
+                        ? html`<input
+                              type="text"
+                              aria-label="Edit assignee"
+                              .value=${
+                                /** @type {any} */ (issue).assignee || ''
+                              }
+                              size=${Math.min(
+                                40,
+                                Math.max(12, (issue.assignee || '').length + 3)
+                              )}
+                              @keydown=${
+                                /** @param {KeyboardEvent} e */ (e) => {
+                                  if (e.key === 'Escape') {
+                                    e.preventDefault();
+                                    onAssigneeCancel();
+                                  } else if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    onAssigneeSave();
+                                  }
                                 }
                               }
-                            }
-                          />
-                          <button
-                            class="btn"
-                            style="margin-left:6px"
-                            @click=${onAssigneeSave}
-                          >
-                            Save
-                          </button>
-                          <button
-                            class="btn"
-                            style="margin-left:6px"
-                            @click=${onAssigneeCancel}
-                          >
-                            Cancel
-                          </button>`
-                      : html`${(() => {
-                          const raw = issue.assignee || '';
-                          const has = raw.trim().length > 0;
-                          const text = has ? raw : 'Unassigned';
-                          const cls = has ? 'editable' : 'editable muted';
-                          return html`<span
-                            class=${cls}
-                            tabindex="0"
-                            role="button"
-                            aria-label="Edit assignee"
-                            @click=${onAssigneeSpanClick}
-                            @keydown=${onAssigneeKeydown}
-                            >${text}</span
-                          >`;
-                        })()}`}
+                            />
+                            <button
+                              class="btn"
+                              style="margin-left:6px"
+                              @click=${onAssigneeSave}
+                            >
+                              Save
+                            </button>
+                            <button
+                              class="btn"
+                              style="margin-left:6px"
+                              @click=${onAssigneeCancel}
+                            >
+                              Cancel
+                            </button>`
+                        : html`${(() => {
+                            const raw = issue.assignee || '';
+                            const has = raw.trim().length > 0;
+                            const text = has ? raw : 'Unassigned';
+                            const cls = has ? 'editable' : 'editable muted';
+                            return html`<span
+                              class=${cls}
+                              tabindex="0"
+                              role="button"
+                              aria-label="Edit assignee"
+                              @click=${onAssigneeSpanClick}
+                              @keydown=${onAssigneeKeydown}
+                              >${text}</span
+                            >`;
+                          })()}`
+                    }
                   </div>
                 </div>
               </div>
