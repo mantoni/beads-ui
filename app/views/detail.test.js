@@ -415,4 +415,183 @@ describe('views/detail', () => {
     expect(commentItems.length).toBe(1);
     expect(commentItems[0].textContent).toContain('Fetched');
   });
+
+  describe('delete issue', () => {
+    test('renders delete button in detail view', async () => {
+      document.body.innerHTML =
+        '<section class="panel"><div id="mount"></div></section>';
+      const mount = /** @type {HTMLElement} */ (
+        document.getElementById('mount')
+      );
+      const issue = {
+        id: 'UI-99',
+        title: 'Test delete',
+        dependencies: [],
+        dependents: []
+      };
+      const stores = {
+        snapshotFor(id) {
+          return id === 'detail:UI-99' ? [issue] : [];
+        },
+        subscribe() {
+          return () => {};
+        }
+      };
+      const view = createDetailView(mount, async () => ({}), undefined, stores);
+      await view.load('UI-99');
+
+      const deleteBtn = mount.querySelector('.delete-issue-btn');
+      expect(deleteBtn).toBeTruthy();
+      expect(deleteBtn?.getAttribute('title')).toBe('Delete issue');
+    });
+
+    test('clicking delete button opens confirmation dialog', async () => {
+      document.body.innerHTML =
+        '<section class="panel"><div id="mount"></div></section>';
+      const mount = /** @type {HTMLElement} */ (
+        document.getElementById('mount')
+      );
+      const issue = {
+        id: 'UI-100',
+        title: 'Confirm delete test',
+        dependencies: [],
+        dependents: []
+      };
+      const stores = {
+        snapshotFor(id) {
+          return id === 'detail:UI-100' ? [issue] : [];
+        },
+        subscribe() {
+          return () => {};
+        }
+      };
+      const view = createDetailView(mount, async () => ({}), undefined, stores);
+      await view.load('UI-100');
+
+      const deleteBtn = /** @type {HTMLButtonElement} */ (
+        mount.querySelector('.delete-issue-btn')
+      );
+      deleteBtn.click();
+
+      // Dialog should now be in document
+      const dialog = document.getElementById('delete-confirm-dialog');
+      expect(dialog).toBeTruthy();
+      expect(dialog?.hasAttribute('open')).toBe(true);
+
+      // Should show issue ID and title
+      const message = dialog?.querySelector('.delete-confirm__message');
+      expect(message?.innerHTML).toContain('<strong>UI-100</strong>');
+      expect(message?.innerHTML).toContain(
+        '<strong>Confirm delete test</strong>'
+      );
+    });
+
+    test('cancel button closes dialog without deleting', async () => {
+      document.body.innerHTML =
+        '<section class="panel"><div id="mount"></div></section>';
+      const mount = /** @type {HTMLElement} */ (
+        document.getElementById('mount')
+      );
+      const issue = {
+        id: 'UI-101',
+        title: 'Cancel test',
+        dependencies: [],
+        dependents: []
+      };
+      let deleteCalled = false;
+      const stores = {
+        snapshotFor(id) {
+          return id === 'detail:UI-101' ? [issue] : [];
+        },
+        subscribe() {
+          return () => {};
+        }
+      };
+      const view = createDetailView(
+        mount,
+        async (type) => {
+          if (type === 'delete-issue') deleteCalled = true;
+          return {};
+        },
+        undefined,
+        stores
+      );
+      await view.load('UI-101');
+
+      const deleteBtn = /** @type {HTMLButtonElement} */ (
+        mount.querySelector('.delete-issue-btn')
+      );
+      deleteBtn.click();
+
+      const dialog = /** @type {HTMLDialogElement} */ (
+        document.getElementById('delete-confirm-dialog')
+      );
+      const cancelBtn = /** @type {HTMLButtonElement} */ (
+        dialog.querySelector('.btn:not(.danger)')
+      );
+      cancelBtn.click();
+
+      expect(dialog.hasAttribute('open')).toBe(false);
+      expect(deleteCalled).toBe(false);
+    });
+
+    test('confirm button sends delete-issue and clears view', async () => {
+      document.body.innerHTML =
+        '<section class="panel"><div id="mount"></div></section>';
+      const mount = /** @type {HTMLElement} */ (
+        document.getElementById('mount')
+      );
+      const issue = {
+        id: 'UI-102',
+        title: 'Delete me',
+        dependencies: [],
+        dependents: []
+      };
+      /** @type {{ type: string, payload: any }[]} */
+      const calls = [];
+      const stores = {
+        snapshotFor(id) {
+          return id === 'detail:UI-102' ? [issue] : [];
+        },
+        subscribe() {
+          return () => {};
+        }
+      };
+      const view = createDetailView(
+        mount,
+        async (type, payload) => {
+          calls.push({ type, payload });
+          return { deleted: true };
+        },
+        undefined,
+        stores
+      );
+      await view.load('UI-102');
+
+      const deleteBtn = /** @type {HTMLButtonElement} */ (
+        mount.querySelector('.delete-issue-btn')
+      );
+      deleteBtn.click();
+
+      const dialog = /** @type {HTMLDialogElement} */ (
+        document.getElementById('delete-confirm-dialog')
+      );
+      const confirmBtn = /** @type {HTMLButtonElement} */ (
+        dialog.querySelector('.btn.danger')
+      );
+      confirmBtn.click();
+
+      // Wait for async operation
+      await new Promise((r) => setTimeout(r, 10));
+
+      expect(calls).toContainEqual({
+        type: 'delete-issue',
+        payload: { id: 'UI-102' }
+      });
+
+      // View should be cleared (showing placeholder)
+      const placeholder = mount.querySelector('.muted');
+      expect(placeholder?.textContent).toContain('No issue selected');
+    });
+  });
 });
