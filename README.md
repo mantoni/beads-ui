@@ -33,6 +33,24 @@ bdui start --open
 
 See `bdui --help` for options.
 
+### Upgrading from older versions
+
+If upgrading from a version before project-local support:
+
+```bash
+# 1. Check for old global instance
+bdui migrate
+
+# 2. Find all your beads projects
+bdui discover ~/github
+
+# 3. Restart instances per-project
+cd ~/your-project && bdui start --port 4000
+
+# 4. Verify all instances
+bdui list
+```
+
 ## Screenshots
 
 **Issues**
@@ -50,12 +68,32 @@ See `bdui --help` for options.
 ## Environment variables
 
 - `BD_BIN`: path to the `bd` binary.
-- `BDUI_RUNTIME_DIR`: override runtime directory for PID/logs. Defaults to
-  `$XDG_RUNTIME_DIR/beads-ui` or the system temp dir.
+- `BDUI_RUNTIME_DIR`: override runtime directory for PID/logs.
 - `HOST`: overrides the bind address (default `127.0.0.1`).
 - `PORT`: overrides the listen port (default `3000`).
 
 These can also be set via CLI options: `bdui start --host 0.0.0.0 --port 8080`
+
+### Runtime Directory Resolution (NEW)
+
+beads-ui now uses **project-local** runtime directories, enabling multiple instances:
+
+1. `BDUI_RUNTIME_DIR` if set (explicit override)
+2. `.beads/.bdui/` in nearest beads project (**NEW** - one instance per project)
+3. `$XDG_RUNTIME_DIR/beads-ui` (global fallback)
+4. `os.tmpdir()/beads-ui` (global fallback)
+
+**Before:** Only one beads-ui instance could run (global PID file).
+**Now:** Run one instance per project on different ports.
+
+Example multi-project workflow:
+```bash
+cd ~/project1 && bdui start --port 4000 &
+cd ~/project2 && bdui start --port 4001 &
+cd ~/project3 && bdui start --port 4002 &
+```
+
+Each instance uses `.beads/.bdui/server.pid` and `.beads/.bdui/daemon.log` in its project.
 
 ## Platform notes
 

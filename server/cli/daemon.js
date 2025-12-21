@@ -10,18 +10,64 @@ import { getConfig } from '../config.js';
 import { resolveDbPath } from '../db.js';
 
 /**
+ * Find the nearest .beads directory by walking up from the current directory.
+ * This enables project-local runtime directories for multi-project support.
+ *
+ * @param {string} [start] - Starting directory (defaults to process.cwd())
+ * @returns {string | null} - Path to .beads directory or null if not found
+ */
+function findBeadsDir(start = process.cwd()) {
+  let dir = path.resolve(start);
+  // Cap iterations to avoid infinite loop in degenerate cases
+  for (let i = 0; i < 100; i++) {
+    const beads_dir = path.join(dir, '.beads');
+    try {
+      const stat = fs.statSync(beads_dir);
+      if (stat.isDirectory()) {
+        return beads_dir;
+      }
+    } catch {
+      // Directory doesn't exist, continue walking up
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      break; // Reached filesystem root
+    }
+    dir = parent;
+  }
+  return null;
+}
+
+/**
  * Resolve the runtime directory used for PID and log files.
- * Prefers `BDUI_RUNTIME_DIR`, then `$XDG_RUNTIME_DIR/beads-ui`,
- * and finally `os.tmpdir()/beads-ui`.
+ *
+ * New behavior enables multiple beads-ui instances (one per project):
+ * 1) BDUI_RUNTIME_DIR env override (backward compatibility)
+ * 2) .beads/.bdui/ in nearest beads project (NEW - project-local isolation)
+ * 3) $XDG_RUNTIME_DIR/beads-ui (old global fallback)
+ * 4) os.tmpdir()/beads-ui (old global fallback)
+ *
+ * With this change, each project gets its own PID file and log,
+ * allowing multiple bdui instances to run simultaneously on different ports.
  *
  * @returns {string}
  */
 export function getRuntimeDir() {
+  // 1. Explicit override (backward compatibility for advanced use cases)
   const override_dir = process.env.BDUI_RUNTIME_DIR;
   if (override_dir && override_dir.length > 0) {
     return ensureDir(override_dir);
   }
 
+  // 2. NEW: Project-local runtime directory
+  // Enables multiple beads-ui instances, one per project
+  const beads_dir = findBeadsDir();
+  if (beads_dir) {
+    return ensureDir(path.join(beads_dir, '.bdui'));
+  }
+
+  // 3. Fallback to global runtime directory
+  // Used when not in a beads project (maintains backward compatibility)
   const xdg_dir = process.env.XDG_RUNTIME_DIR;
   if (xdg_dir && xdg_dir.length > 0) {
     return ensureDir(path.join(xdg_dir, 'beads-ui'));

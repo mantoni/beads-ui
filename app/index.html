@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Beads</title>
     <link rel="stylesheet" href="./styles.css" />
+    <script>
+      // Fetch project config and update title on load
+      fetch('/api/config')
+        .then(r => r.json())
+        .then(config => {
+          const title = `Beads - ${config.project_name}`;
+          document.title = title;
+          const appTitle = document.querySelector('.app-title');
+          if (appTitle) {
+            appTitle.textContent = title;
+          }
+        })
+        .catch(() => {
+          // Fallback to default if config fetch fails
+        });
+    </script>
   </head>
   <body>
     <header class="app-header">

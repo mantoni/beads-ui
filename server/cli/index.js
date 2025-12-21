@@ -1,5 +1,7 @@
 import { enableAllDebug } from '../logging.js';
-import { handleRestart, handleStart, handleStop } from './commands.js';
+import { handleRestart, handleStart, handleStop, handleList, handleStopAll } from './commands.js';
+import { handleMigrate } from './migrate.js';
+import { handleDiscover } from './discover.js';
 import { printUsage } from './usage.js';
 
 /**
@@ -30,6 +32,10 @@ export function parseArgs(args) {
       flags.push('open');
       continue;
     }
+    if (token === '--force') {
+      flags.push('force');
+      continue;
+    }
     if (token === '--host' && i + 1 < args.length) {
       options.host = args[++i];
       continue;
@@ -43,7 +49,7 @@ export function parseArgs(args) {
     }
     if (
       !command &&
-      (token === 'start' || token === 'stop' || token === 'restart')
+      (token === 'start' || token === 'stop' || token === 'restart' || token === 'list' || token === 'stop-all' || token === 'migrate' || token === 'discover')
     ) {
       command = token;
       continue;
@@ -101,6 +107,20 @@ export async function main(args) {
       port: options.port
     };
     return await handleRestart(restart_options);
+  }
+  if (command === 'list') {
+    return await handleList();
+  }
+  if (command === 'stop-all') {
+    return await handleStopAll();
+  }
+  if (command === 'migrate') {
+    return await handleMigrate({ force: flags.includes('force') });
+  }
+  if (command === 'discover') {
+    // Get remaining args as search paths
+    const search_paths = args.filter(a => !a.startsWith('-') && a !== 'discover');
+    return await handleDiscover(search_paths);
   }
 
   // Unknown command path (should not happen due to parseArgs guard)

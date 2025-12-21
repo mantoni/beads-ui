@@ -27,6 +27,19 @@ export function createApp(config) {
     res.status(200).send({ ok: true });
   });
 
+  // Config endpoint - provides project metadata to frontend
+  /**
+   * @param {Request} _req
+   * @param {Response} res
+   */
+  app.get('/api/config', (_req, res) => {
+    res.type('application/json');
+    res.status(200).send({
+      project_name: config.project_name,
+      port: config.port
+    });
+  });
+
   if (
     !fs.statSync(path.resolve(config.app_dir, 'main.bundle.js'), {
       throwIfNoEntry: false
