@@ -1153,6 +1153,35 @@ export async function handleMessage(ws, data) {
     return;
   }
 
+  // delete-issue: payload { id: string }
+  if (req.type === 'delete-issue') {
+    const { id } = /** @type {any} */ (req.payload || {});
+    if (typeof id !== 'string' || id.length === 0) {
+      ws.send(
+        JSON.stringify(
+          makeError(req, 'bad_request', 'payload requires { id: string }')
+        )
+      );
+      return;
+    }
+    const res = await runBd(['delete', id, '--force']);
+    if (res.code !== 0) {
+      ws.send(
+        JSON.stringify(
+          makeError(req, 'bd_error', res.stderr || 'bd delete failed')
+        )
+      );
+      return;
+    }
+    ws.send(JSON.stringify(makeOk(req, { deleted: true, id })));
+    try {
+      triggerMutationRefreshOnce();
+    } catch {
+      // ignore
+    }
+    return;
+  }
+
   // Unknown type
   const err = makeError(
     req,

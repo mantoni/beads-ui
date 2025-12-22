@@ -114,6 +114,100 @@ export function createDetailView(
   /** @type {boolean} */
   let comment_pending = false;
 
+  /** @type {HTMLDialogElement | null} */
+  let delete_dialog = null;
+
+  function ensureDeleteDialog() {
+    if (delete_dialog) return delete_dialog;
+    delete_dialog = document.createElement('dialog');
+    delete_dialog.id = 'delete-confirm-dialog';
+    delete_dialog.setAttribute('role', 'alertdialog');
+    delete_dialog.setAttribute('aria-modal', 'true');
+    document.body.appendChild(delete_dialog);
+    return delete_dialog;
+  }
+
+  function openDeleteDialog() {
+    if (!current) return;
+    const dialog = ensureDeleteDialog();
+    const issueId = current.id;
+    const issueTitle = current.title || '(no title)';
+    dialog.innerHTML = `
+      <div class="delete-confirm">
+        <h2 class="delete-confirm__title">Delete Issue</h2>
+        <p class="delete-confirm__message">
+          Are you sure you want to delete issue <strong>${issueId}</strong> — <strong>${issueTitle}</strong>? This action cannot be undone.
+        </p>
+        <div class="delete-confirm__actions">
+          <button type="button" class="btn" id="delete-cancel-btn">Cancel</button>
+          <button type="button" class="btn danger" id="delete-confirm-btn">Delete</button>
+        </div>
+      </div>
+    `;
+    const cancelBtn = dialog.querySelector('#delete-cancel-btn');
+    const confirmBtn = dialog.querySelector('#delete-confirm-btn');
+
+    cancelBtn?.addEventListener('click', () => {
+      if (typeof dialog.close === 'function') {
+        dialog.close();
+      }
+      dialog.removeAttribute('open');
+    });
+
+    confirmBtn?.addEventListener('click', async () => {
+      if (typeof dialog.close === 'function') {
+        dialog.close();
+      }
+      dialog.removeAttribute('open');
+      await performDelete();
+    });
+
+    dialog.addEventListener('cancel', (ev) => {
+      ev.preventDefault();
+      if (typeof dialog.close === 'function') {
+        dialog.close();
+      }
+      dialog.removeAttribute('open');
+    });
+
+    if (typeof dialog.showModal === 'function') {
+      try {
+        dialog.showModal();
+        dialog.setAttribute('open', '');
+      } catch {
+        dialog.setAttribute('open', '');
+      }
+    } else {
+      dialog.setAttribute('open', '');
+    }
+  }
+
+  async function performDelete() {
+    if (!current) return;
+    const id = current.id;
+    try {
+      await sendFn('delete-issue', { id });
+      current = null;
+      current_id = null;
+      doRender();
+      // Navigate back to close the dialog
+      const view = parseView(window.location.hash || '');
+      navigateFn(`#/${view}`);
+    } catch (err) {
+      log('delete failed: %o', err);
+      showToast('Failed to delete issue', 'error');
+    }
+  }
+
+  /**
+   * @param {Event} ev
+   */
+  function onDeleteClick(ev) {
+    ev.stopPropagation();
+    ev.preventDefault();
+    openDeleteDialog();
+  }
+
   /** @param {string} id */
   function issueHref(id) {
     /** @type {'issues'|'epics'|'board'} */
@@ -1113,15 +1207,25 @@ export function createDetailView(
 
     return html`
       <div class="panel__body" id="detail-root">
-        <div style="position:relative">
-          <div class="detail-layout">
-            <div class="detail-main">
-              ${title_zone} ${desc_block} ${design_block} ${notes_block}
-              ${accept_block} ${comments_block}
-            </div>
-            <div class="detail-side">
-              <div class="props-card">
+        <div class="detail-layout">
+          <div class="detail-main">
+            ${title_zone} ${desc_block} ${design_block} ${notes_block}
+            ${accept_block} ${comments_block}
+          </div>
+          <div class="detail-side">
+            <div class="props-card">
+              <div class="props-card__header">
                 <div class="props-card__title">Properties</div>
+                <button class="delete-issue-btn" title="Delete issue" aria-label="Delete issue" @click=${onDeleteClick}>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                  </svg>
+                  <span class="tooltip">Delete issue</span>
+                </button>
+              </div>
                 <div class="prop">
                   <div class="label">Type</div>
                   <div class="value">
@@ -1139,56 +1243,60 @@ export function createDetailView(
                 <div class="prop assignee">
                   <div class="label">Assignee</div>
                   <div class="value">
-                    ${edit_assignee
-                      ? html`<input
-                            type="text"
-                            aria-label="Edit assignee"
-                            .value=${/** @type {any} */ (issue).assignee || ''}
-                            size=${Math.min(
-                              40,
-                              Math.max(12, (issue.assignee || '').length + 3)
-                            )}
-                            @keydown=${
-                              /** @param {KeyboardEvent} e */ (e) => {
-                                if (e.key === 'Escape') {
-                                  e.preventDefault();
-                                  onAssigneeCancel();
-                                } else if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  onAssigneeSave();
+                    ${
+                      edit_assignee
+                        ? html`<input
+                              type="text"
+                              aria-label="Edit assignee"
+                              .value=${
+                                /** @type {any} */ (issue).assignee || ''
+                              }
+                              size=${Math.min(
+                                40,
+                                Math.max(12, (issue.assignee || '').length + 3)
+                              )}
+                              @keydown=${
+                                /** @param {KeyboardEvent} e */ (e) => {
+                                  if (e.key === 'Escape') {
+                                    e.preventDefault();
+                                    onAssigneeCancel();
+                                  } else if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    onAssigneeSave();
+                                  }
                                 }
                               }
-                            }
-                          />
-                          <button
-                            class="btn"
-                            style="margin-left:6px"
-                            @click=${onAssigneeSave}
-                          >
-                            Save
-                          </button>
-                          <button
-                            class="btn"
-                            style="margin-left:6px"
-                            @click=${onAssigneeCancel}
-                          >
-                            Cancel
-                          </button>`
-                      : html`${(() => {
-                          const raw = issue.assignee || '';
-                          const has = raw.trim().length > 0;
-                          const text = has ? raw : 'Unassigned';
-                          const cls = has ? 'editable' : 'editable muted';
-                          return html`<span
-                            class=${cls}
-                            tabindex="0"
-                            role="button"
-                            aria-label="Edit assignee"
-                            @click=${onAssigneeSpanClick}
-                            @keydown=${onAssigneeKeydown}
-                            >${text}</span
-                          >`;
-                        })()}`}
+                            />
+                            <button
+                              class="btn"
+                              style="margin-left:6px"
+                              @click=${onAssigneeSave}
+                            >
+                              Save
+                            </button>
+                            <button
+                              class="btn"
+                              style="margin-left:6px"
+                              @click=${onAssigneeCancel}
+                            >
+                              Cancel
+                            </button>`
+                        : html`${(() => {
+                            const raw = issue.assignee || '';
+                            const has = raw.trim().length > 0;
+                            const text = has ? raw : 'Unassigned';
+                            const cls = has ? 'editable' : 'editable muted';
+                            return html`<span
+                              class=${cls}
+                              tabindex="0"
+                              role="button"
+                              aria-label="Edit assignee"
+                              @click=${onAssigneeSpanClick}
+                              @keydown=${onAssigneeKeydown}
+                              >${text}</span
+                            >`;
+                          })()}`
+                    }
                   </div>
                 </div>
               </div>
@@ -1208,7 +1316,6 @@ export function createDetailView(
       return;
     }
     render(detailTemplate(current), mount_element);
-    // panel header removed for detail view; ID is shown inline with title
   }
 
   /**
@@ -1404,6 +1511,10 @@ export function createDetailView(
     },
     destroy() {
       mount_element.replaceChildren();
+      if (delete_dialog && delete_dialog.parentNode) {
+        delete_dialog.parentNode.removeChild(delete_dialog);
+        delete_dialog = null;
+      }
     }
   };
 }
