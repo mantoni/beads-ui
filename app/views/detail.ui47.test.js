@@ -30,6 +30,12 @@ describe('detail deps UI (UI-47)', () => {
 
     await view.load('UI-100');
 
+    // Click Dependencies tab
+    const depsTab = Array.from(
+      mount.querySelectorAll('.detail-tabs .tab')
+    ).find((el) => el.textContent?.trim() === 'Dependencies');
+    depsTab?.dispatchEvent(new window.Event('click'));
+
     const text = mount.textContent || '';
     expect(text).toContain('Alpha');
     expect(text).toContain('Gamma');
@@ -66,6 +72,12 @@ describe('detail deps UI (UI-47)', () => {
 
     await view.load('UI-200');
 
+    // Click Dependencies tab
+    const depsTab = Array.from(
+      mount.querySelectorAll('.detail-tabs .tab')
+    ).find((el) => el.textContent?.trim() === 'Dependencies');
+    depsTab?.dispatchEvent(new window.Event('click'));
+
     const row = /** @type {HTMLLIElement} */ (mount.querySelector('ul li'));
     row.click();
     expect(navs[navs.length - 1]).toBe('#/issues?issue=UI-9');
@@ -88,6 +100,12 @@ describe('detail deps UI (UI-47)', () => {
     const send = vi.fn().mockResolvedValue(current2);
     const view = createDetailView(mount, send, undefined, stores3);
     await view.load('UI-300');
+
+    // Click Dependencies tab
+    const depsTab = Array.from(
+      mount.querySelectorAll('.detail-tabs .tab')
+    ).find((el) => el.textContent?.trim() === 'Dependencies');
+    depsTab?.dispatchEvent(new window.Event('click'));
 
     const input = /** @type {HTMLInputElement} */ (
       mount.querySelector('[data-testid="add-dependency"]')

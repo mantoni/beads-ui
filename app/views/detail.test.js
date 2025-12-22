@@ -56,6 +56,12 @@ describe('views/detail', () => {
     const code = md.querySelector('code');
     expect(code && code.textContent).toBe('code');
 
+    // Click Dependencies tab
+    const depsTab = Array.from(
+      mount.querySelectorAll('.detail-tabs .tab')
+    ).find((el) => el.textContent?.trim() === 'Dependencies');
+    depsTab?.dispatchEvent(new window.Event('click'));
+
     const links = mount.querySelectorAll('li');
     const hrefs = Array.from(links)
       .map((a) => a.dataset.href)
