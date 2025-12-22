@@ -1,5 +1,12 @@
 # Changes
 
+## 0.8.0
+
+- [`2cfcd2d`](https://github.com/mantoni/beads-ui/commit/2cfcd2d4d4aa670b67f7798ecf7dfebaf5d2383c)
+  Feature/delete issue from detail (#15) (Frederic Haddad)
+
+_Released by [Maximilian Antoni](https://github.com/mantoni) on 2025-12-22._
+
 ## 0.7.0
 
 - [`255845f`](https://github.com/mantoni/beads-ui/commit/255845fd49a1e830dd56404d4d49d71c4f3bd18f)
