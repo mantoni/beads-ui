@@ -58,6 +58,8 @@ export function createListView(
   let selected_id = store ? store.getState().selected_id : null;
   /** @type {null | (() => void)} */
   let unsubscribe = null;
+  let status_dropdown_open = false;
+  let type_dropdown_open = false;
 
   /**
    * Normalize legacy string filter to array format.
@@ -145,6 +147,41 @@ export function createListView(
     doRender();
   };
 
+  /**
+   * Toggle status dropdown open/closed.
+   * @param {Event} e
+   */
+  const toggleStatusDropdown = (e) => {
+    e.stopPropagation();
+    status_dropdown_open = !status_dropdown_open;
+    type_dropdown_open = false;
+    doRender();
+  };
+
+  /**
+   * Toggle type dropdown open/closed.
+   * @param {Event} e
+   */
+  const toggleTypeDropdown = (e) => {
+    e.stopPropagation();
+    type_dropdown_open = !type_dropdown_open;
+    status_dropdown_open = false;
+    doRender();
+  };
+
+  /**
+   * Get display text for dropdown trigger.
+   * @param {string[]} selected
+   * @param {string} label
+   * @param {(val: string) => string} formatter
+   * @returns {string}
+   */
+  function getDropdownDisplayText(selected, label, formatter) {
+    if (selected.length === 0) return `${label}: Any`;
+    if (selected.length === 1) return `${label}: ${formatter(selected[0])}`;
+    return `${label} (${selected.length})`;
+  }
+
   // Initialize filters from store on first render so reload applies persisted state
   if (store) {
     const s = store.getState();
@@ -189,35 +226,39 @@ export function createListView(
     return html`
       <div class="panel__header">
         <div class="filter-bar">
-          <div class="filter-group">
-            <span class="filter-group__label">Status:</span>
-            <button
-              class="filter-chip filter-chip--ready ${status_filters.includes('ready') ? 'is-active' : ''}"
-              @click=${() => toggleStatusFilter('ready')}
-            >Ready</button>
-            <button
-              class="filter-chip filter-chip--open ${status_filters.includes('open') ? 'is-active' : ''}"
-              @click=${() => toggleStatusFilter('open')}
-            >${statusLabel('open')}</button>
-            <button
-              class="filter-chip filter-chip--in_progress ${status_filters.includes('in_progress') ? 'is-active' : ''}"
-              @click=${() => toggleStatusFilter('in_progress')}
-            >${statusLabel('in_progress')}</button>
-            <button
-              class="filter-chip filter-chip--closed ${status_filters.includes('closed') ? 'is-active' : ''}"
-              @click=${() => toggleStatusFilter('closed')}
-            >${statusLabel('closed')}</button>
+          <div class="filter-dropdown ${status_dropdown_open ? 'is-open' : ''}">
+            <button class="filter-dropdown__trigger" @click=${toggleStatusDropdown}>
+              ${getDropdownDisplayText(status_filters, 'Status', statusLabel)}
+              <span class="filter-dropdown__arrow">▾</span>
+            </button>
+            <div class="filter-dropdown__menu">
+              ${['ready', 'open', 'in_progress', 'closed'].map(s => html`
+                <label class="filter-dropdown__option">
+                  <input type="checkbox"
+                    .checked=${status_filters.includes(s)}
+                    @change=${() => toggleStatusFilter(s)}
+                  />
+                  ${s === 'ready' ? 'Ready' : statusLabel(s)}
+                </label>
+              `)}
+            </div>
           </div>
-          <div class="filter-group">
-            <span class="filter-group__label">Types:</span>
-            ${ISSUE_TYPES.map(
-              (t) => html`
-                <button
-                  class="filter-chip filter-chip--${t} ${type_filters.includes(t) ? 'is-active' : ''}"
-                  @click=${() => toggleTypeFilter(t)}
-                >${typeLabel(t)}</button>
-              `
-            )}
+          <div class="filter-dropdown ${type_dropdown_open ? 'is-open' : ''}">
+            <button class="filter-dropdown__trigger" @click=${toggleTypeDropdown}>
+              ${getDropdownDisplayText(type_filters, 'Types', typeLabel)}
+              <span class="filter-dropdown__arrow">▾</span>
+            </button>
+            <div class="filter-dropdown__menu">
+              ${ISSUE_TYPES.map(t => html`
+                <label class="filter-dropdown__option">
+                  <input type="checkbox"
+                    .checked=${type_filters.includes(t)}
+                    @change=${() => toggleTypeFilter(t)}
+                  />
+                  ${typeLabel(t)}
+                </label>
+              `)}
+            </div>
           </div>
         </div>
         <input
@@ -449,6 +490,18 @@ export function createListView(
     }
   });
 
+  // Click outside to close dropdowns
+  const clickOutsideHandler = (e) => {
+    if (!e.target.closest('.filter-dropdown')) {
+      if (status_dropdown_open || type_dropdown_open) {
+        status_dropdown_open = false;
+        type_dropdown_open = false;
+        doRender();
+      }
+    }
+  };
+  document.addEventListener('click', clickOutsideHandler);
+
   // Keep selection in sync with store
   if (store) {
     unsubscribe = store.subscribe((s) => {
@@ -504,6 +557,7 @@ export function createListView(
     load,
     destroy() {
       mount_element.replaceChildren();
+      document.removeEventListener('click', clickOutsideHandler);
       if (unsubscribe) {
         unsubscribe();
         unsubscribe = null;
