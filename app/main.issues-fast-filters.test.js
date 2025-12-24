@@ -2,6 +2,29 @@ import { describe, expect, test, vi } from 'vitest';
 import { bootstrap } from './main.js';
 import { createWsClient } from './ws.js';
 
+/**
+ * Helper to toggle a filter option in a dropdown.
+ * @param {number} dropdownIndex - 0 = status, 1 = types
+ * @param {string} optionText - Text to match in the option label
+ */
+function toggleFilter(dropdownIndex, optionText) {
+  const dropdowns = document.querySelectorAll('.filter-dropdown');
+  const dropdown = dropdowns[dropdownIndex];
+  // Open the dropdown
+  const trigger = /** @type {HTMLButtonElement} */ (
+    dropdown.querySelector('.filter-dropdown__trigger')
+  );
+  trigger.click();
+  // Find and click the checkbox
+  const option = Array.from(dropdown.querySelectorAll('.filter-dropdown__option')).find(
+    (opt) => opt.textContent?.includes(optionText)
+  );
+  const checkbox = /** @type {HTMLInputElement} */ (
+    option?.querySelector('input[type="checkbox"]')
+  );
+  checkbox.click();
+}
+
 // Mock WS client to drive push envelopes and record RPCs
 /** @type {{ type: string, payload: any }[]} */
 const calls = [];
@@ -91,13 +114,9 @@ describe('issues view — fast filter switching', () => {
 
     // Quickly toggle status: all -> ready -> in_progress before any server data
     // all -> ready
-    document
-      .querySelector('.filter-chip--ready')
-      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    toggleFilter(0, 'Ready');
     // ready -> in_progress (fast)
-    document
-      .querySelector('.filter-chip--in_progress')
-      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    toggleFilter(0, 'In progress');
     // Allow store subscriptions and sub_issue_stores.register to run
     await Promise.resolve();
     await Promise.resolve();

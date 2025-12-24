@@ -2,6 +2,30 @@ import { describe, expect, test } from 'vitest';
 import { createSubscriptionIssueStore } from '../data/subscription-issue-store.js';
 import { createListView } from './list.js';
 
+/**
+ * Helper to toggle a filter option in a dropdown.
+ * @param {HTMLElement} mount - The container element
+ * @param {number} dropdownIndex - 0 = status, 1 = types
+ * @param {string} optionText - Text to match in the option label
+ */
+function toggleFilter(mount, dropdownIndex, optionText) {
+  const dropdowns = mount.querySelectorAll('.filter-dropdown');
+  const dropdown = dropdowns[dropdownIndex];
+  // Open the dropdown
+  const trigger = /** @type {HTMLButtonElement} */ (
+    dropdown.querySelector('.filter-dropdown__trigger')
+  );
+  trigger.click();
+  // Find and click the checkbox
+  const option = Array.from(dropdown.querySelectorAll('.filter-dropdown__option')).find(
+    (opt) => opt.textContent?.includes(optionText)
+  );
+  const checkbox = /** @type {HTMLInputElement} */ (
+    option?.querySelector('input[type="checkbox"]')
+  );
+  checkbox.click();
+}
+
 function createTestIssueStores() {
   /** @type {Map<string, any>} */
   const stores = new Map();
@@ -67,12 +91,8 @@ describe('list view — fast filter switches', () => {
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(0);
 
     // Simulate quick switch: ready -> in_progress while snapshots arrive out-of-order
-    mount
-      .querySelector('.filter-chip--ready')
-      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    mount
-      .querySelector('.filter-chip--in_progress')
-      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    toggleFilter(mount, 0, 'Ready');
+    toggleFilter(mount, 0, 'In progress');
 
     const inProg = [
       {

@@ -2,6 +2,29 @@ import { describe, expect, test, vi } from 'vitest';
 import { bootstrap } from './main.js';
 import { createWsClient } from './ws.js';
 
+/**
+ * Helper to toggle a filter option in a dropdown.
+ * @param {number} dropdownIndex - 0 = status, 1 = types
+ * @param {string} optionText - Text to match in the option label
+ */
+function toggleFilter(dropdownIndex, optionText) {
+  const dropdowns = document.querySelectorAll('.filter-dropdown');
+  const dropdown = dropdowns[dropdownIndex];
+  // Open the dropdown
+  const trigger = /** @type {HTMLButtonElement} */ (
+    dropdown.querySelector('.filter-dropdown__trigger')
+  );
+  trigger.click();
+  // Find and click the checkbox
+  const option = Array.from(dropdown.querySelectorAll('.filter-dropdown__option')).find(
+    (opt) => opt.textContent?.includes(optionText)
+  );
+  const checkbox = /** @type {HTMLInputElement} */ (
+    option?.querySelector('input[type="checkbox"]')
+  );
+  checkbox.click();
+}
+
 // Mock WS client to allow pushing server events and observing RPCs
 vi.mock('./ws.js', () => {
   /** @type {Record<string, (p: any) => void>} */
@@ -74,11 +97,8 @@ describe('issues view — store resets on spec change', () => {
     });
     await Promise.resolve();
 
-    // Switch to in_progress using filter chip toggle
-    const inProgressChip = /** @type {HTMLButtonElement} */ (
-      document.querySelector('#issues-root .filter-chip--in_progress')
-    );
-    inProgressChip.click();
+    // Switch to in_progress using dropdown checkbox
+    toggleFilter(0, 'In progress');
     await Promise.resolve();
 
     // Now deliver a snapshot for the new spec with a LOWER revision

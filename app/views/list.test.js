@@ -2,6 +2,49 @@ import { describe, expect, test } from 'vitest';
 import { createSubscriptionIssueStore } from '../data/subscription-issue-store.js';
 import { createListView } from './list.js';
 
+/**
+ * Helper to toggle a filter option in a dropdown.
+ * @param {HTMLElement} mount - The container element
+ * @param {number} dropdownIndex - 0 = status, 1 = types
+ * @param {string} optionText - Text to match in the option label
+ */
+function toggleFilter(mount, dropdownIndex, optionText) {
+  const dropdowns = mount.querySelectorAll('.filter-dropdown');
+  const dropdown = dropdowns[dropdownIndex];
+  // Open the dropdown
+  const trigger = /** @type {HTMLButtonElement} */ (
+    dropdown.querySelector('.filter-dropdown__trigger')
+  );
+  trigger.click();
+  // Find and click the checkbox
+  const option = Array.from(dropdown.querySelectorAll('.filter-dropdown__option')).find(
+    (opt) => opt.textContent?.includes(optionText)
+  );
+  const checkbox = /** @type {HTMLInputElement} */ (
+    option?.querySelector('input[type="checkbox"]')
+  );
+  checkbox.click();
+}
+
+/**
+ * Check if a filter option is checked in a dropdown.
+ * @param {HTMLElement} mount - The container element
+ * @param {number} dropdownIndex - 0 = status, 1 = types
+ * @param {string} optionText - Text to match in the option label
+ * @returns {boolean}
+ */
+function isFilterChecked(mount, dropdownIndex, optionText) {
+  const dropdowns = mount.querySelectorAll('.filter-dropdown');
+  const dropdown = dropdowns[dropdownIndex];
+  const option = Array.from(dropdown.querySelectorAll('.filter-dropdown__option')).find(
+    (opt) => opt.textContent?.includes(optionText)
+  );
+  const checkbox = /** @type {HTMLInputElement} */ (
+    option?.querySelector('input[type="checkbox"]')
+  );
+  return checkbox?.checked ?? false;
+}
+
 function createTestIssueStores() {
   /** @type {Map<string, any>} */
   const stores = new Map();
@@ -123,16 +166,13 @@ describe('views/list', () => {
       mount.querySelector('input[type="search"]')
     );
 
-    // Filter by status using chip toggle
-    const openChip = /** @type {HTMLButtonElement} */ (
-      mount.querySelector('.filter-chip--open')
-    );
-    openChip.click();
+    // Filter by status using dropdown checkbox
+    toggleFilter(mount, 0, 'Open');
     await Promise.resolve();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(1);
 
     // Clear status filter and search
-    openChip.click(); // toggle off to show all
+    toggleFilter(mount, 0, 'Open'); // toggle off to show all
     await Promise.resolve();
     input.value = 'ga';
     input.dispatchEvent(new Event('input'));
@@ -200,14 +240,8 @@ describe('views/list', () => {
     // Initially shows all
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(4);
 
-    const bugChip = /** @type {HTMLButtonElement} */ (
-      mount.querySelector('.filter-chip--bug')
-    );
-    const featureChip = /** @type {HTMLButtonElement} */ (
-      mount.querySelector('.filter-chip--feature')
-    );
-    // Select bug
-    bugChip.click();
+    // Select bug using dropdown
+    toggleFilter(mount, 1, 'Bug');
     await Promise.resolve();
     const bug_only = Array.from(mount.querySelectorAll('tr.issue-row')).map(
       (el) => el.getAttribute('data-issue-id') || ''
@@ -215,8 +249,8 @@ describe('views/list', () => {
     expect(bug_only).toEqual(['UI-1', 'UI-3']);
 
     // Toggle off bug, toggle on feature
-    bugChip.click();
-    featureChip.click();
+    toggleFilter(mount, 1, 'Bug');
+    toggleFilter(mount, 1, 'Feature');
     await Promise.resolve();
     const feature_only = Array.from(mount.querySelectorAll('tr.issue-row')).map(
       (el) => el.getAttribute('data-issue-id') || ''
@@ -224,8 +258,8 @@ describe('views/list', () => {
     expect(feature_only).toEqual(['UI-2']);
 
     // Toggle off feature, toggle on bug, combine with search
-    featureChip.click();
-    bugChip.click();
+    toggleFilter(mount, 1, 'Feature');
+    toggleFilter(mount, 1, 'Bug');
     const input = /** @type {HTMLInputElement} */ (
       mount.querySelector('input[type="search"]')
     );
@@ -312,11 +346,8 @@ describe('views/list', () => {
     });
     await view.load();
 
-    // Apply type filter (feature) using toggle chip
-    const featureChip = /** @type {HTMLButtonElement} */ (
-      mount.querySelector('.filter-chip--feature')
-    );
-    featureChip.click();
+    // Apply type filter (feature) using dropdown checkbox
+    toggleFilter(mount, 1, 'Feature');
     await Promise.resolve();
 
     const rows = Array.from(mount.querySelectorAll('tr.issue-row')).map(
@@ -406,11 +437,8 @@ describe('views/list', () => {
     );
     expect(rows).toEqual(['UI-1', 'UI-3']);
 
-    // Bug chip should be active
-    const bugChip = /** @type {HTMLButtonElement} */ (
-      mount.querySelector('.filter-chip--bug')
-    );
-    expect(bugChip.classList.contains('is-active')).toBe(true);
+    // Bug checkbox should be checked in the types dropdown
+    expect(isFilterChecked(mount, 1, 'Bug')).toBe(true);
   });
 
   test('ready filter via select composes from push membership', async () => {
@@ -584,17 +612,14 @@ describe('views/list', () => {
     expect(items[0].id).toBe('UI-2');
 
     // Controls reflect persisted filters
-    const openChip = /** @type {HTMLButtonElement} */ (
-      mount.querySelector('.filter-chip--open')
-    );
+    expect(isFilterChecked(mount, 0, 'Open')).toBe(true);
     const input = /** @type {HTMLInputElement} */ (
       mount.querySelector('input[type="search"]')
     );
-    expect(openChip.classList.contains('is-active')).toBe(true);
     expect(input.value).toBe('ga');
   });
 
-  test('filters by multiple statuses with toggle chips', async () => {
+  test('filters by multiple statuses with dropdown checkboxes', async () => {
     document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
     const issues = [
@@ -619,15 +644,8 @@ describe('views/list', () => {
     );
     await view.load();
 
-    // Find status filter chips
-    const openChip = mount.querySelector('.filter-chip--open');
-    const inProgressChip = mount.querySelector('.filter-chip--in_progress');
-
-    expect(openChip).not.toBeNull();
-    expect(inProgressChip).not.toBeNull();
-
-    // Click open chip to select it
-    openChip?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    // Click Open checkbox to select it
+    toggleFilter(mount, 0, 'Open');
     await Promise.resolve();
 
     // Should show only open issues
@@ -636,8 +654,8 @@ describe('views/list', () => {
     );
     expect(rows).toEqual(['UI-1']);
 
-    // Click in_progress chip to add it (multi-select)
-    inProgressChip?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    // Click In progress checkbox to add it (multi-select)
+    toggleFilter(mount, 0, 'In progress');
     await Promise.resolve();
 
     // Should show both open and in_progress
@@ -647,7 +665,7 @@ describe('views/list', () => {
     expect(rows).toEqual(['UI-1', 'UI-2']);
   });
 
-  test('filters by multiple types with toggle chips', async () => {
+  test('filters by multiple types with dropdown checkboxes', async () => {
     document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
     const issues = [
@@ -673,15 +691,8 @@ describe('views/list', () => {
     );
     await view.load();
 
-    // Find type filter chips
-    const bugChip = mount.querySelector('.filter-chip--bug');
-    const featureChip = mount.querySelector('.filter-chip--feature');
-
-    expect(bugChip).not.toBeNull();
-    expect(featureChip).not.toBeNull();
-
-    // Click bug chip
-    bugChip?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    // Click Bug checkbox
+    toggleFilter(mount, 1, 'Bug');
     await Promise.resolve();
 
     let rows = Array.from(mount.querySelectorAll('tr.issue-row')).map(
@@ -689,8 +700,8 @@ describe('views/list', () => {
     );
     expect(rows).toEqual(['UI-1']);
 
-    // Click feature chip to add it
-    featureChip?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    // Click Feature checkbox to add it
+    toggleFilter(mount, 1, 'Feature');
     await Promise.resolve();
 
     rows = Array.from(mount.querySelectorAll('tr.issue-row')).map(
@@ -699,7 +710,7 @@ describe('views/list', () => {
     expect(rows).toEqual(['UI-1', 'UI-2']);
   });
 
-  test('deselecting all chips shows all issues', async () => {
+  test('deselecting all checkboxes shows all issues', async () => {
     document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
     const issues = [
@@ -726,14 +737,13 @@ describe('views/list', () => {
     // Initially all shown
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(2);
 
-    // Click open to filter
-    const openChip = mount.querySelector('.filter-chip--open');
-    openChip?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    // Click Open checkbox to filter
+    toggleFilter(mount, 0, 'Open');
     await Promise.resolve();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(1);
 
-    // Click open again to deselect - should show all
-    openChip?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    // Click Open checkbox again to deselect - should show all
+    toggleFilter(mount, 0, 'Open');
     await Promise.resolve();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(2);
   });
