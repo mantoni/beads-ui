@@ -17,9 +17,9 @@ function toggleFilter(mount, dropdownIndex, optionText) {
   );
   trigger.click();
   // Find and click the checkbox
-  const option = Array.from(dropdown.querySelectorAll('.filter-dropdown__option')).find(
-    (opt) => opt.textContent?.includes(optionText)
-  );
+  const option = Array.from(
+    dropdown.querySelectorAll('.filter-dropdown__option')
+  ).find((opt) => opt.textContent?.includes(optionText));
   const checkbox = /** @type {HTMLInputElement} */ (
     option?.querySelector('input[type="checkbox"]')
   );
