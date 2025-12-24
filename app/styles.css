@@ -290,6 +290,10 @@ a {
 
 .panel {
   min-height: 0;
+  overflow: visible;
+}
+
+.panel__body {
   overflow: auto;
 }
 .panel + .panel {
@@ -302,9 +306,10 @@ a {
   background: inherit;
   display: flex;
   align-items: center;
-  gap: var(--space-5);
+  gap: var(--space-2);
   min-height: 44px;
-  padding: var(--space-3) var(--space-9);
+  padding: var(--space-3) var(--space-4);
+  overflow: visible;
 }
 
 #detail-panel .panel__header {
