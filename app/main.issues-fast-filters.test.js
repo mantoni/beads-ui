@@ -90,15 +90,14 @@ describe('issues view — fast filter switching', () => {
     await Promise.resolve();
 
     // Quickly toggle status: all -> ready -> in_progress before any server data
-    const statusSelect = /** @type {HTMLSelectElement} */ (
-      document.querySelector('#issues-root select')
-    );
     // all -> ready
-    statusSelect.value = 'ready';
-    statusSelect.dispatchEvent(new Event('change'));
+    document
+      .querySelector('.filter-chip--ready')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     // ready -> in_progress (fast)
-    statusSelect.value = 'in_progress';
-    statusSelect.dispatchEvent(new Event('change'));
+    document
+      .querySelector('.filter-chip--in_progress')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     // Allow store subscriptions and sub_issue_stores.register to run
     await Promise.resolve();
     await Promise.resolve();

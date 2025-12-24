@@ -119,22 +119,21 @@ describe('views/list', () => {
       issueStores
     );
     await view.load();
-    const select = /** @type {HTMLSelectElement} */ (
-      mount.querySelector('select')
-    );
     const input = /** @type {HTMLInputElement} */ (
       mount.querySelector('input[type="search"]')
     );
 
-    // Filter by status
-    select.value = 'open';
-    select.dispatchEvent(new Event('change'));
+    // Filter by status using chip toggle
+    const openChip = /** @type {HTMLButtonElement} */ (
+      mount.querySelector('.filter-chip--open')
+    );
+    openChip.click();
     await Promise.resolve();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(1);
 
-    // Search filters further
-    select.value = 'all';
-    select.dispatchEvent(new Event('change'));
+    // Clear status filter and search
+    openChip.click(); // toggle off to show all
+    await Promise.resolve();
     input.value = 'ga';
     input.dispatchEvent(new Event('input'));
     const visible = Array.from(mount.querySelectorAll('tr.issue-row')).map(
@@ -201,30 +200,32 @@ describe('views/list', () => {
     // Initially shows all
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(4);
 
-    const typeSelect = /** @type {HTMLSelectElement} */ (
-      mount.querySelector('select[aria-label="Filter by type"]')
+    const bugChip = /** @type {HTMLButtonElement} */ (
+      mount.querySelector('.filter-chip--bug')
+    );
+    const featureChip = /** @type {HTMLButtonElement} */ (
+      mount.querySelector('.filter-chip--feature')
     );
     // Select bug
-    typeSelect.value = 'bug';
-    typeSelect.dispatchEvent(new Event('change'));
+    bugChip.click();
     await Promise.resolve();
     const bug_only = Array.from(mount.querySelectorAll('tr.issue-row')).map(
       (el) => el.getAttribute('data-issue-id') || ''
     );
     expect(bug_only).toEqual(['UI-1', 'UI-3']);
 
-    // Switch to feature
-    typeSelect.value = 'feature';
-    typeSelect.dispatchEvent(new Event('change'));
+    // Toggle off bug, toggle on feature
+    bugChip.click();
+    featureChip.click();
     await Promise.resolve();
     const feature_only = Array.from(mount.querySelectorAll('tr.issue-row')).map(
       (el) => el.getAttribute('data-issue-id') || ''
     );
     expect(feature_only).toEqual(['UI-2']);
 
-    // Combine with search while bug selected
-    typeSelect.value = 'bug';
-    typeSelect.dispatchEvent(new Event('change'));
+    // Toggle off feature, toggle on bug, combine with search
+    featureChip.click();
+    bugChip.click();
     const input = /** @type {HTMLInputElement} */ (
       mount.querySelector('input[type="search"]')
     );
@@ -311,12 +312,11 @@ describe('views/list', () => {
     });
     await view.load();
 
-    // Apply type filter (feature)
-    const typeSelect = /** @type {HTMLSelectElement} */ (
-      mount.querySelector('select[aria-label="Filter by type"]')
+    // Apply type filter (feature) using toggle chip
+    const featureChip = /** @type {HTMLButtonElement} */ (
+      mount.querySelector('.filter-chip--feature')
     );
-    typeSelect.value = 'feature';
-    typeSelect.dispatchEvent(new Event('change'));
+    featureChip.click();
     await Promise.resolve();
 
     const rows = Array.from(mount.querySelectorAll('tr.issue-row')).map(
@@ -406,10 +406,11 @@ describe('views/list', () => {
     );
     expect(rows).toEqual(['UI-1', 'UI-3']);
 
-    const typeSelect = /** @type {HTMLSelectElement} */ (
-      mount.querySelector('select[aria-label="Filter by type"]')
+    // Bug chip should be active
+    const bugChip = /** @type {HTMLButtonElement} */ (
+      mount.querySelector('.filter-chip--bug')
     );
-    expect(typeSelect.value).toBe('bug');
+    expect(bugChip.classList.contains('is-active')).toBe(true);
   });
 
   test('ready filter via select composes from push membership', async () => {
@@ -532,7 +533,7 @@ describe('views/list', () => {
 
     /** @type {{ state: any, subs: ((s:any)=>void)[], getState: () => any, setState: (patch:any)=>void, subscribe: (fn:(s:any)=>void)=>()=>void }} */
     const store = {
-      state: { selected_id: null, filters: { status: 'open', search: 'ga' } },
+      state: { selected_id: null, filters: { status: ['open'], search: 'ga' } },
       subs: [],
       getState() {
         return this.state;
@@ -583,13 +584,157 @@ describe('views/list', () => {
     expect(items[0].id).toBe('UI-2');
 
     // Controls reflect persisted filters
-    const select = /** @type {HTMLSelectElement} */ (
-      mount.querySelector('select')
+    const openChip = /** @type {HTMLButtonElement} */ (
+      mount.querySelector('.filter-chip--open')
     );
     const input = /** @type {HTMLInputElement} */ (
       mount.querySelector('input[type="search"]')
     );
-    expect(select.value).toBe('open');
+    expect(openChip.classList.contains('is-active')).toBe(true);
     expect(input.value).toBe('ga');
+  });
+
+  test('filters by multiple statuses with toggle chips', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const issues = [
+      { id: 'UI-1', title: 'Alpha', status: 'open', priority: 1 },
+      { id: 'UI-2', title: 'Beta', status: 'in_progress', priority: 2 },
+      { id: 'UI-3', title: 'Gamma', status: 'closed', priority: 3 }
+    ];
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+
+    // Find status filter chips
+    const openChip = mount.querySelector('.filter-chip--open');
+    const inProgressChip = mount.querySelector('.filter-chip--in_progress');
+
+    expect(openChip).not.toBeNull();
+    expect(inProgressChip).not.toBeNull();
+
+    // Click open chip to select it
+    openChip?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await Promise.resolve();
+
+    // Should show only open issues
+    let rows = Array.from(mount.querySelectorAll('tr.issue-row')).map(
+      (el) => el.getAttribute('data-issue-id') || ''
+    );
+    expect(rows).toEqual(['UI-1']);
+
+    // Click in_progress chip to add it (multi-select)
+    inProgressChip?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await Promise.resolve();
+
+    // Should show both open and in_progress
+    rows = Array.from(mount.querySelectorAll('tr.issue-row')).map(
+      (el) => el.getAttribute('data-issue-id') || ''
+    );
+    expect(rows).toEqual(['UI-1', 'UI-2']);
+  });
+
+  test('filters by multiple types with toggle chips', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const issues = [
+      { id: 'UI-1', title: 'A', status: 'open', issue_type: 'bug' },
+      { id: 'UI-2', title: 'B', status: 'open', issue_type: 'feature' },
+      { id: 'UI-3', title: 'C', status: 'open', issue_type: 'task' },
+      { id: 'UI-4', title: 'D', status: 'open', issue_type: 'epic' }
+    ];
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+
+    // Find type filter chips
+    const bugChip = mount.querySelector('.filter-chip--bug');
+    const featureChip = mount.querySelector('.filter-chip--feature');
+
+    expect(bugChip).not.toBeNull();
+    expect(featureChip).not.toBeNull();
+
+    // Click bug chip
+    bugChip?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await Promise.resolve();
+
+    let rows = Array.from(mount.querySelectorAll('tr.issue-row')).map(
+      (el) => el.getAttribute('data-issue-id') || ''
+    );
+    expect(rows).toEqual(['UI-1']);
+
+    // Click feature chip to add it
+    featureChip?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await Promise.resolve();
+
+    rows = Array.from(mount.querySelectorAll('tr.issue-row')).map(
+      (el) => el.getAttribute('data-issue-id') || ''
+    );
+    expect(rows).toEqual(['UI-1', 'UI-2']);
+  });
+
+  test('deselecting all chips shows all issues', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const issues = [
+      { id: 'UI-1', title: 'A', status: 'open' },
+      { id: 'UI-2', title: 'B', status: 'closed' }
+    ];
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+
+    // Initially all shown
+    expect(mount.querySelectorAll('tr.issue-row').length).toBe(2);
+
+    // Click open to filter
+    const openChip = mount.querySelector('.filter-chip--open');
+    openChip?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await Promise.resolve();
+    expect(mount.querySelectorAll('tr.issue-row').length).toBe(1);
+
+    // Click open again to deselect - should show all
+    openChip?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await Promise.resolve();
+    expect(mount.querySelectorAll('tr.issue-row').length).toBe(2);
   });
 });

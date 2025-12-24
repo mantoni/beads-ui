@@ -74,12 +74,11 @@ describe('issues view — store resets on spec change', () => {
     });
     await Promise.resolve();
 
-    // Switch to in_progress (different spec key)
-    const statusSelect = /** @type {HTMLSelectElement} */ (
-      document.querySelector('#issues-root select')
+    // Switch to in_progress using filter chip toggle
+    const inProgressChip = /** @type {HTMLButtonElement} */ (
+      document.querySelector('#issues-root .filter-chip--in_progress')
     );
-    statusSelect.value = 'in_progress';
-    statusSelect.dispatchEvent(new Event('change'));
+    inProgressChip.click();
     await Promise.resolve();
 
     // Now deliver a snapshot for the new spec with a LOWER revision

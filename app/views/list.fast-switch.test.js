@@ -67,13 +67,12 @@ describe('list view — fast filter switches', () => {
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(0);
 
     // Simulate quick switch: ready -> in_progress while snapshots arrive out-of-order
-    const statusSelect = /** @type {HTMLSelectElement} */ (
-      mount.querySelector('select')
-    );
-    statusSelect.value = 'ready';
-    statusSelect.dispatchEvent(new Event('change'));
-    statusSelect.value = 'in_progress';
-    statusSelect.dispatchEvent(new Event('change'));
+    mount
+      .querySelector('.filter-chip--ready')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    mount
+      .querySelector('.filter-chip--in_progress')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
     const inProg = [
       {
