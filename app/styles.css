@@ -931,7 +931,7 @@ input.inline-edit:focus {
   box-shadow: none;
 }
 
-#list-panel .panel__header input {
+#list-panel .panel__header input[type="search"] {
   flex: 1;
 }
 
