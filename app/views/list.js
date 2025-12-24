@@ -225,40 +225,38 @@ export function createListView(
 
     return html`
       <div class="panel__header">
-        <div class="filter-bar">
-          <div class="filter-dropdown ${status_dropdown_open ? 'is-open' : ''}">
-            <button class="filter-dropdown__trigger" @click=${toggleStatusDropdown}>
-              ${getDropdownDisplayText(status_filters, 'Status', statusLabel)}
-              <span class="filter-dropdown__arrow">▾</span>
-            </button>
-            <div class="filter-dropdown__menu">
-              ${['ready', 'open', 'in_progress', 'closed'].map(s => html`
-                <label class="filter-dropdown__option">
-                  <input type="checkbox"
-                    .checked=${status_filters.includes(s)}
-                    @change=${() => toggleStatusFilter(s)}
-                  />
-                  ${s === 'ready' ? 'Ready' : statusLabel(s)}
-                </label>
-              `)}
-            </div>
+        <div class="filter-dropdown ${status_dropdown_open ? 'is-open' : ''}">
+          <button class="filter-dropdown__trigger" @click=${toggleStatusDropdown}>
+            ${getDropdownDisplayText(status_filters, 'Status', statusLabel)}
+            <span class="filter-dropdown__arrow">▾</span>
+          </button>
+          <div class="filter-dropdown__menu">
+            ${['ready', 'open', 'in_progress', 'closed'].map(s => html`
+              <label class="filter-dropdown__option">
+                <input type="checkbox"
+                  .checked=${status_filters.includes(s)}
+                  @change=${() => toggleStatusFilter(s)}
+                />
+                ${s === 'ready' ? 'Ready' : statusLabel(s)}
+              </label>
+            `)}
           </div>
-          <div class="filter-dropdown ${type_dropdown_open ? 'is-open' : ''}">
-            <button class="filter-dropdown__trigger" @click=${toggleTypeDropdown}>
-              ${getDropdownDisplayText(type_filters, 'Types', typeLabel)}
-              <span class="filter-dropdown__arrow">▾</span>
-            </button>
-            <div class="filter-dropdown__menu">
-              ${ISSUE_TYPES.map(t => html`
-                <label class="filter-dropdown__option">
-                  <input type="checkbox"
-                    .checked=${type_filters.includes(t)}
-                    @change=${() => toggleTypeFilter(t)}
-                  />
-                  ${typeLabel(t)}
-                </label>
-              `)}
-            </div>
+        </div>
+        <div class="filter-dropdown ${type_dropdown_open ? 'is-open' : ''}">
+          <button class="filter-dropdown__trigger" @click=${toggleTypeDropdown}>
+            ${getDropdownDisplayText(type_filters, 'Types', typeLabel)}
+            <span class="filter-dropdown__arrow">▾</span>
+          </button>
+          <div class="filter-dropdown__menu">
+            ${ISSUE_TYPES.map(t => html`
+              <label class="filter-dropdown__option">
+                <input type="checkbox"
+                  .checked=${type_filters.includes(t)}
+                  @change=${() => toggleTypeFilter(t)}
+                />
+                ${typeLabel(t)}
+              </label>
+            `)}
           </div>
         </div>
         <input

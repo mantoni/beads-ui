@@ -888,7 +888,7 @@ html[data-theme='dark'] {
   border: 1px solid var(--border);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  z-index: 100;
+  z-index: 1000;
   padding: 4px 0;
 }
 
