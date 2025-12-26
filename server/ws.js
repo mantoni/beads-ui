@@ -3,11 +3,14 @@
  * @import { RawData, WebSocket } from 'ws'
  * @import { MessageType } from '../app/protocol.js'
  */
+import path from 'node:path';
 import { WebSocketServer } from 'ws';
 import { isRequest, makeError, makeOk } from '../app/protocol.js';
 import { getGitUserName, runBd, runBdJson } from './bd.js';
+import { resolveDbPath } from './db.js';
 import { fetchListForSubscription } from './list-adapters.js';
 import { debug } from './logging.js';
+import { getAvailableWorkspaces } from './registry-watcher.js';
 import { keyOf, registry } from './subscriptions.js';
 import { validateSubscribeListPayload } from './validators.js';
 
@@ -184,6 +187,20 @@ const SUBS = new WeakMap();
 
 /** @type {WebSocketServer | null} */
 let CURRENT_WSS = null;
+
+/**
+ * Current workspace configuration.
+ *
+ * @type {{ root_dir: string, db_path: string } | null}
+ */
+let CURRENT_WORKSPACE = null;
+
+/**
+ * Reference to the database watcher for rebinding on workspace change.
+ *
+ * @type {{ rebind: (opts?: { root_dir?: string }) => void, path: string } | null}
+ */
+let DB_WATCHER = null;
 
 /**
  * Get or initialize the subscription state for a socket.
@@ -400,11 +417,23 @@ function applyClosedIssuesFilter(spec, items) {
  * Attach a WebSocket server to an existing HTTP server.
  *
  * @param {Server} http_server
- * @param {{ path?: string, heartbeat_ms?: number, refresh_debounce_ms?: number }} [options]
- * @returns {{ wss: WebSocketServer, broadcast: (type: MessageType, payload?: unknown) => void, scheduleListRefresh: () => void }}
+ * @param {{ path?: string, heartbeat_ms?: number, refresh_debounce_ms?: number, root_dir?: string, watcher?: { rebind: (opts?: { root_dir?: string }) => void, path: string } }} [options]
+ * @returns {{ wss: WebSocketServer, broadcast: (type: MessageType, payload?: unknown) => void, scheduleListRefresh: () => void, setWorkspace: (root_dir: string) => { changed: boolean, workspace: { root_dir: string, db_path: string } } }}
  */
 export function attachWsServer(http_server, options = {}) {
-  const path = options.path || '/ws';
+  const ws_path = options.path || '/ws';
+
+  // Initialize workspace state
+  const initial_root = options.root_dir || process.cwd();
+  const initial_db = resolveDbPath({ cwd: initial_root });
+  CURRENT_WORKSPACE = {
+    root_dir: initial_root,
+    db_path: initial_db.path
+  };
+
+  if (options.watcher) {
+    DB_WATCHER = options.watcher;
+  }
   const heartbeat_ms = options.heartbeat_ms ?? 30000;
   if (typeof options.refresh_debounce_ms === 'number') {
     const n = options.refresh_debounce_ms;
@@ -413,7 +442,7 @@ export function attachWsServer(http_server, options = {}) {
     }
   }
 
-  const wss = new WebSocketServer({ server: http_server, path });
+  const wss = new WebSocketServer({ server: http_server, path: ws_path });
   CURRENT_WSS = wss;
 
   // Heartbeat: track if client answered the last ping
@@ -482,10 +511,50 @@ export function attachWsServer(http_server, options = {}) {
     }
   }
 
+  /**
+   * Change the current workspace and rebind the database watcher.
+   *
+   * @param {string} new_root_dir - Absolute path to the new workspace root.
+   * @returns {{ changed: boolean, workspace: { root_dir: string, db_path: string } }}
+   */
+  function setWorkspace(new_root_dir) {
+    const resolved_root = path.resolve(new_root_dir);
+    const new_db = resolveDbPath({ cwd: resolved_root });
+    const old_path = CURRENT_WORKSPACE?.db_path || '';
+
+    CURRENT_WORKSPACE = {
+      root_dir: resolved_root,
+      db_path: new_db.path
+    };
+
+    const changed = new_db.path !== old_path;
+
+    if (changed) {
+      log('workspace changed: %s → %s', old_path, new_db.path);
+
+      // Rebind the database watcher to the new workspace
+      if (DB_WATCHER) {
+        DB_WATCHER.rebind({ root_dir: resolved_root });
+      }
+
+      // Clear existing registry entries and refresh all subscriptions
+      registry.clear();
+
+      // Broadcast workspace-changed event to all clients
+      broadcast('workspace-changed', CURRENT_WORKSPACE);
+
+      // Schedule refresh of all active list subscriptions
+      scheduleListRefresh();
+    }
+
+    return { changed, workspace: CURRENT_WORKSPACE };
+  }
+
   return {
     wss,
     broadcast,
-    scheduleListRefresh
+    scheduleListRefresh,
+    setWorkspace
     // v2: list subscription refresh handles updates
   };
 }
@@ -1179,6 +1248,85 @@ export async function handleMessage(ws, data) {
     } catch {
       // ignore
     }
+    return;
+  }
+
+  // list-workspaces: returns all available workspaces from the registry
+  if (req.type === 'list-workspaces') {
+    log('list-workspaces');
+    const workspaces = getAvailableWorkspaces();
+    ws.send(
+      JSON.stringify(
+        makeOk(req, {
+          workspaces,
+          current: CURRENT_WORKSPACE
+        })
+      )
+    );
+    return;
+  }
+
+  // get-workspace: returns the current workspace
+  if (req.type === 'get-workspace') {
+    log('get-workspace');
+    ws.send(JSON.stringify(makeOk(req, CURRENT_WORKSPACE)));
+    return;
+  }
+
+  // set-workspace: payload { path: string }
+  if (req.type === 'set-workspace') {
+    log('set-workspace');
+    const { path: workspace_path } = /** @type {any} */ (req.payload || {});
+    if (typeof workspace_path !== 'string' || workspace_path.length === 0) {
+      ws.send(
+        JSON.stringify(
+          makeError(
+            req,
+            'bad_request',
+            'payload requires { path: string } (absolute workspace path)'
+          )
+        )
+      );
+      return;
+    }
+
+    // Resolve and validate the path
+    const resolved = path.resolve(workspace_path);
+
+    // Update workspace (this will rebind watcher, clear registry, broadcast change)
+    const new_db = resolveDbPath({ cwd: resolved });
+    const old_path = CURRENT_WORKSPACE?.db_path || '';
+
+    CURRENT_WORKSPACE = {
+      root_dir: resolved,
+      db_path: new_db.path
+    };
+
+    const changed = new_db.path !== old_path;
+
+    if (changed) {
+      log('workspace changed via set-workspace: %s → %s', old_path, new_db.path);
+
+      // Rebind the database watcher
+      if (DB_WATCHER) {
+        DB_WATCHER.rebind({ root_dir: resolved });
+      }
+
+      // Clear existing registry entries
+      registry.clear();
+
+      // Schedule refresh of all active list subscriptions
+      scheduleListRefresh();
+    }
+
+    ws.send(
+      JSON.stringify(
+        makeOk(req, {
+          changed,
+          workspace: CURRENT_WORKSPACE
+        })
+      )
+    );
     return;
   }
 
