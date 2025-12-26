@@ -102,9 +102,10 @@ export function normalizeIssueList(value) {
  * Errors do not throw; they are surfaced as a structured object.
  *
  * @param {{ type: string, params?: Record<string, string | number | boolean> }} spec
+ * @param {{ cwd?: string }} [options] - Optional working directory for bd command
  * @returns {Promise<FetchListResultSuccess | FetchListResultFailure>}
  */
-export async function fetchListForSubscription(spec) {
+export async function fetchListForSubscription(spec, options = {}) {
   /** @type {string[]} */
   let args;
   try {
@@ -117,7 +118,7 @@ export async function fetchListForSubscription(spec) {
   }
 
   try {
-    const res = await runBdJson(args);
+    const res = await runBdJson(args, { cwd: options.cwd });
     if (!res || res.code !== 0 || !('stdoutJson' in res)) {
       log(
         'bd failed for %o (args=%o) code=%s stderr=%s',
