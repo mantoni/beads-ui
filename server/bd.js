@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { resolveDbPath } from './db.js';
 import { debug } from './logging.js';
+import { getRootDir } from './workspace.js';
 
 const log = debug('bd');
 
@@ -13,7 +14,7 @@ const log = debug('bd');
 export async function getGitUserName(options = {}) {
   return new Promise((resolve) => {
     const child = spawn('git', ['config', 'user.name'], {
-      cwd: options.cwd || process.cwd(),
+      cwd: options.cwd || getRootDir(),
       shell: false
     });
 
@@ -62,7 +63,7 @@ export function runBd(args, options = {}) {
 
   // Ensure a consistent DB by setting BEADS_DB environment variable
   const db_path = resolveDbPath({
-    cwd: options.cwd || process.cwd(),
+    cwd: options.cwd || getRootDir(),
     env: options.env || process.env
   });
   const env_with_db = {
@@ -71,7 +72,7 @@ export function runBd(args, options = {}) {
   };
 
   const spawn_opts = {
-    cwd: options.cwd || process.cwd(),
+    cwd: options.cwd || getRootDir(),
     env: env_with_db,
     shell: false
   };

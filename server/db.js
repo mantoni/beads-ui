@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { getRootDir } from './workspace.js';
 
 /**
  * Resolve the SQLite DB path used by beads according to precedence:
@@ -16,7 +17,7 @@ import path from 'node:path';
  * @returns {{ path: string, source: 'flag'|'env'|'nearest'|'home-default', exists: boolean }}
  */
 export function resolveDbPath(options = {}) {
-  const cwd = options.cwd ? path.resolve(options.cwd) : process.cwd();
+  const cwd = options.cwd ? path.resolve(options.cwd) : getRootDir();
   const env = options.env || process.env;
 
   // 1) explicit flag

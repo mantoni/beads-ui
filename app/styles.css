@@ -191,6 +191,15 @@ a {
   }
 }
 
+.workspace-button {
+  font-size: 12px;
+  padding: 4px 8px;
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .header-actions {
   display: flex;
   align-items: center;
@@ -1466,6 +1475,119 @@ html[data-theme='dark'] {
 #new-issue-dialog::backdrop {
   background: color-mix(in srgb, #000 45%, transparent);
   backdrop-filter: blur(1px);
+}
+.new-issue__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.new-issue__title {
+  font-weight: 700;
+}
+
+/* --- Workspace Switcher Dialog --- */
+#workspace-dialog {
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+  width: min(900px, 96vw);
+  max-height: 92vh;
+  margin: 4vh auto;
+  overflow: hidden;
+}
+#workspace-dialog::backdrop {
+  background: color-mix(in srgb, #000 45%, transparent);
+  backdrop-filter: blur(1px);
+}
+.workspace-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.workspace-dialog__title {
+  font-weight: 700;
+}
+.workspace-dialog__close {
+  border-radius: 4px;
+  padding: 4px 8px;
+  min-width: 28px;
+  line-height: 1.2;
+}
+.workspace-dialog__body {
+  padding: 12px;
+}
+.workspace-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+}
+.workspace-browser__path {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.workspace-browser__input {
+  flex: 1;
+  min-width: 0;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  font-size: 12px;
+}
+.workspace-browser__error {
+  margin-top: 8px;
+  color: var(--danger, #b00020);
+  font-size: 12px;
+}
+.workspace-browser__list {
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-bg);
+  max-height: 56vh;
+  overflow: auto;
+}
+.workspace-browser__loading {
+  padding: 10px 12px;
+  color: var(--muted);
+}
+.workspace-browser__row {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  padding: 10px 12px;
+  border-radius: 0;
+}
+.workspace-browser__row:last-child {
+  border-bottom: none;
+}
+.workspace-browser__row:hover {
+  background: color-mix(in srgb, var(--panel-bg) 70%, var(--bg));
+}
+.workspace-browser__row .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workspace-browser__row .hint {
+  font-size: 12px;
+  color: var(--muted);
 }
 .new-issue__header {
   display: flex;
