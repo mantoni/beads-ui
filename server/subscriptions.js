@@ -281,6 +281,14 @@ export class SubscriptionRegistry {
     const next_map = toItemsMap(items);
     return this.applyNextMap(key, next_map);
   }
+
+  /**
+   * Clear all entries from the registry. Used when switching workspaces.
+   * Does not close WebSocket connections; they will re-subscribe on refresh.
+   */
+  clear() {
+    this._entries.clear();
+  }
 }
 
 /**
