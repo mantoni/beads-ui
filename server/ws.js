@@ -337,7 +337,9 @@ function emitSubscriptionDelete(ws, client_id, key, issue_id) {
 async function refreshAndPublish(spec) {
   const key = keyOf(spec);
   await registry.withKeyLock(key, async () => {
-    const res = await fetchListForSubscription(spec);
+    const res = await fetchListForSubscription(spec, {
+      cwd: CURRENT_WORKSPACE?.root_dir
+    });
     if (!res.ok) {
       log('refresh failed for %s: %s %o', key, res.error.message, res.error);
       return;
@@ -633,7 +635,9 @@ export async function handleMessage(ws, data) {
     /** @type {Awaited<ReturnType<typeof fetchListForSubscription>> | null} */
     let initial = null;
     try {
-      initial = await fetchListForSubscription(spec);
+      initial = await fetchListForSubscription(spec, {
+        cwd: CURRENT_WORKSPACE?.root_dir
+      });
     } catch (err) {
       log('subscribe-list snapshot error for %s: %o', key, err);
       const message =
