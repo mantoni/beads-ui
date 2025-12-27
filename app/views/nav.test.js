@@ -31,8 +31,22 @@ describe('views/nav', () => {
     createTopNav(
       mount,
       /** @type {any} */ (store),
-      /** @type {any} */ (router)
+      /** @type {any} */ (router),
+      {
+        fetchFn: /** @type {any} */ (
+          async () => ({
+            ok: true,
+            async json() {
+              return { ok: true, root_dir: '/tmp/repo' };
+            }
+          })
+        ),
+        reloadFn: () => {}
+      }
     );
+
+    expect(mount.querySelector('button.workspace-button')).not.toBeNull();
+
     const links = mount.querySelectorAll('a.tab');
     expect(links.length).toBe(3);
     links[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
