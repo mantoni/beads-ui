@@ -1,5 +1,12 @@
 # Changes
 
+## 0.8.1
+
+- [`59715e8`](https://github.com/mantoni/beads-ui/commit/59715e8eb7834e6fb6ee8f63f2257da33831d705)
+  Fix DB watch loop firing every second
+
+_Released by [Maximilian Antoni](https://github.com/mantoni) on 2025-12-30._
+
 ## 0.8.0
 
 - [`2cfcd2d`](https://github.com/mantoni/beads-ui/commit/2cfcd2d4d4aa670b67f7798ecf7dfebaf5d2383c)
