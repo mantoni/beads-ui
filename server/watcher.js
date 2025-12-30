@@ -9,27 +9,33 @@ import { debug } from './logging.js';
  *
  * @param {string} root_dir - Project root directory (starting point for resolution).
  * @param {() => void} onChange - Called when changes are detected.
- * @param {{ debounce_ms?: number, explicit_db?: string }} [options]
+ * @param {{ debounce_ms?: number, cooldown_ms?: number, explicit_db?: string }} [options]
  * @returns {{ close: () => void, rebind: (opts?: { root_dir?: string, explicit_db?: string }) => void, path: string }}
  */
 export function watchDb(root_dir, onChange, options = {}) {
   const debounce_ms = options.debounce_ms ?? 250;
+  const cooldown_ms = options.cooldown_ms ?? 1000;
   const log = debug('watcher');
 
   /** @type {ReturnType<typeof setTimeout> | undefined} */
   let timer;
   /** @type {fs.FSWatcher | undefined} */
   let watcher;
+  let cooldown_until = 0;
   let current_path = '';
   let current_dir = '';
   let current_file = '';
 
+  /**
+   * Schedule the debounced onChange callback.
+   */
   const schedule = () => {
     if (timer) {
       clearTimeout(timer);
     }
     timer = setTimeout(() => {
       onChange();
+      cooldown_until = Date.now() + cooldown_ms;
     }, debounce_ms);
     timer.unref();
   };
@@ -62,6 +68,9 @@ export function watchDb(root_dir, onChange, options = {}) {
             return;
           }
           if (event_type === 'change' || event_type === 'rename') {
+            if (Date.now() < cooldown_until) {
+              return;
+            }
             log('fs %s %s', event_type, filename || '');
             schedule();
           }
@@ -102,6 +111,7 @@ export function watchDb(root_dir, onChange, options = {}) {
       if (next_path !== current_path) {
         // swap watcher
         watcher?.close();
+        cooldown_until = 0;
         bind(next_root, next_explicit);
       }
     }
