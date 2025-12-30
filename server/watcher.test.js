@@ -92,4 +92,29 @@ describe('watchDb', () => {
 
     handle.close();
   });
+
+  test('ignores changes during cooldown window', () => {
+    const calls = [];
+    const handle = watchDb('/repo', () => calls.push(null), {
+      debounce_ms: 10,
+      cooldown_ms: 100,
+      explicit_db: '/repo/.beads/ui.db'
+    });
+    const { cb } = watchers[0];
+
+    cb('change', 'ui.db');
+    vi.advanceTimersByTime(10);
+    expect(calls.length).toBe(1);
+
+    cb('change', 'ui.db');
+    vi.advanceTimersByTime(10);
+    expect(calls.length).toBe(1);
+
+    vi.advanceTimersByTime(100);
+    cb('change', 'ui.db');
+    vi.advanceTimersByTime(10);
+    expect(calls.length).toBe(2);
+
+    handle.close();
+  });
 });
