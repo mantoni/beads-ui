@@ -29,6 +29,12 @@ describe('views/detail dependencies', () => {
     const view = createDetailView(mount, send, undefined, stores1);
     await view.load('UI-10');
 
+    // Click Dependencies tab
+    const depsTab = Array.from(
+      mount.querySelectorAll('.detail-tabs .tab')
+    ).find((el) => el.textContent?.trim() === 'Dependencies');
+    depsTab?.dispatchEvent(new window.Event('click'));
+
     const input = mount.querySelector('[data-testid="add-dependency"]');
     expect(input).toBeTruthy();
     const el = /** @type {HTMLInputElement} */ (input);
@@ -70,6 +76,12 @@ describe('views/detail dependencies', () => {
     const view = createDetailView(mount, send, undefined, stores2);
     await view.load('UI-20');
 
+    // Click Dependencies tab
+    const depsTab = Array.from(
+      mount.querySelectorAll('.detail-tabs .tab')
+    ).find((el) => el.textContent?.trim() === 'Dependencies');
+    depsTab?.dispatchEvent(new window.Event('click'));
+
     // Find the remove button next to link #5
     const btns = mount.querySelectorAll('button');
     const rm = Array.from(btns).find((b) =>
@@ -103,6 +115,12 @@ describe('views/detail dependencies', () => {
     const send = vi.fn(async (type) => current3);
     const view = createDetailView(mount, send, undefined, stores3);
     await view.load('UI-30');
+
+    // Click Dependencies tab
+    const depsTab = Array.from(
+      mount.querySelectorAll('.detail-tabs .tab')
+    ).find((el) => el.textContent?.trim() === 'Dependencies');
+    depsTab?.dispatchEvent(new window.Event('click'));
 
     const input = mount.querySelector('[data-testid="add-dependency"]');
     const el = /** @type {HTMLInputElement} */ (input);

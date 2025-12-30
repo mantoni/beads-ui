@@ -31,13 +31,11 @@ describe('detail view design section', () => {
     const view = createDetailView(mount, async () => ({}), undefined, storesA);
     await view.load('UI-116');
 
-    const main = /** @type {HTMLElement} */ (
-      mount.querySelector('.detail-main')
+    const wrapper = /** @type {HTMLElement} */ (
+      mount.querySelector('.tab-content-wrapper')
     );
-    expect(main).toBeTruthy();
-    const children = Array.from(main.children).filter(
-      (el) => !el.classList.contains('detail-title')
-    );
+    expect(wrapper).toBeTruthy();
+    const children = Array.from(wrapper.children);
     const names = children.map((el) => {
       if (el.classList.contains('design')) {
         return 'design';
