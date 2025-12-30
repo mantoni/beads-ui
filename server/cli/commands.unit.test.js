@@ -2,6 +2,23 @@ import { describe, expect, test, vi } from 'vitest';
 import { handleStart, handleStop } from './commands.js';
 import * as daemon from './daemon.js';
 
+// Mock open.js to avoid external effects
+vi.mock('./open.js', () => ({
+  openUrl: async () => true,
+  waitForServer: async () => {},
+  registerWorkspaceWithServer: async () => true
+}));
+
+// Mock db resolution
+vi.mock('../db.js', () => ({
+  resolveDbPath: () => ({ path: '/mock/test.db', source: 'nearest', exists: false })
+}));
+
+// Mock config
+vi.mock('../config.js', () => ({
+  getConfig: () => ({ url: 'http://127.0.0.1:3000' })
+}));
+
 describe('handleStart (unit)', () => {
   test('returns 1 when daemon start fails', async () => {
     vi.spyOn(daemon, 'readPidFile').mockReturnValue(null);

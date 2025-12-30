@@ -6,6 +6,40 @@ import { debug } from './logging.js';
 const log = debug('registry-watcher');
 
 /**
+ * In-memory registry of workspaces registered dynamically via the API.
+ * These supplement the file-based registry at ~/.beads/registry.json.
+ *
+ * @type {Map<string, { path: string, database: string, pid: number, version: string }>}
+ */
+const inMemoryWorkspaces = new Map();
+
+/**
+ * Register a workspace dynamically (in-memory).
+ * This allows `bdui start` to register workspaces when the server is already running.
+ *
+ * @param {{ path: string, database: string }} workspace
+ */
+export function registerWorkspace(workspace) {
+  const normalized = path.resolve(workspace.path);
+  log('registering workspace: %s (db: %s)', normalized, workspace.database);
+  inMemoryWorkspaces.set(normalized, {
+    path: normalized,
+    database: workspace.database,
+    pid: process.pid,
+    version: 'dynamic'
+  });
+}
+
+/**
+ * Get all dynamically registered workspaces (in-memory only).
+ *
+ * @returns {Array<{ path: string, database: string, pid: number, version: string }>}
+ */
+export function getInMemoryWorkspaces() {
+  return Array.from(inMemoryWorkspaces.values());
+}
+
+/**
  * @typedef {Object} RegistryEntry
  * @property {string} workspace_path
  * @property {string} socket_path
@@ -73,18 +107,27 @@ export function findWorkspaceEntry(root_dir) {
 }
 
 /**
- * Get all available workspaces from the registry.
+ * Get all available workspaces from both the file-based registry and
+ * dynamically registered in-memory workspaces.
  *
  * @returns {Array<{ path: string, database: string, pid: number, version: string }>}
  */
 export function getAvailableWorkspaces() {
   const entries = readRegistry();
-  return entries.map((entry) => ({
+  const fileWorkspaces = entries.map((entry) => ({
     path: entry.workspace_path,
     database: entry.database_path,
     pid: entry.pid,
     version: entry.version
   }));
+
+  // Merge in-memory workspaces, avoiding duplicates by path
+  const seen = new Set(fileWorkspaces.map((w) => path.resolve(w.path)));
+  const inMemory = getInMemoryWorkspaces().filter(
+    (w) => !seen.has(path.resolve(w.path))
+  );
+
+  return [...fileWorkspaces, ...inMemory];
 }
 
 /**

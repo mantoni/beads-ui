@@ -1,4 +1,5 @@
 import { getConfig } from '../config.js';
+import { resolveDbPath } from '../db.js';
 import {
   isProcessRunning,
   printServerUrl,
@@ -7,7 +8,7 @@ import {
   startDaemon,
   terminateProcess
 } from './daemon.js';
-import { openUrl, waitForServer } from './open.js';
+import { openUrl, registerWorkspaceWithServer, waitForServer } from './open.js';
 
 /**
  * Handle `start` command. Idempotent when already running.
@@ -22,7 +23,24 @@ export async function handleStart(options) {
   const should_open = options?.open === true;
   const existing_pid = readPidFile();
   if (existing_pid && isProcessRunning(existing_pid)) {
+    // Server is already running - register this workspace dynamically
+    const cwd = process.cwd();
+    const db_info = resolveDbPath({ cwd });
+    if (db_info.exists) {
+      const { url } = getConfig();
+      const registered = await registerWorkspaceWithServer(url, {
+        path: cwd,
+        database: db_info.path
+      });
+      if (registered) {
+        console.log('Workspace registered: %s', cwd);
+      }
+    }
     console.warn('Server is already running.');
+    if (should_open) {
+      const { url } = getConfig();
+      await openUrl(url);
+    }
     return 0;
   }
   if (existing_pid && !isProcessRunning(existing_pid)) {
