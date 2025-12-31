@@ -22,7 +22,11 @@ vi.mock('./open.js', () => ({
 
 // Mock db resolution to avoid file system dependencies
 vi.mock('../db.js', () => ({
-  resolveDbPath: () => ({ path: '/mock/test.db', source: 'nearest', exists: false })
+  resolveDbPath: () => ({
+    path: '/mock/test.db',
+    source: 'nearest',
+    exists: false
+  })
 }));
 
 /** @type {string} */

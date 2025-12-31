@@ -156,6 +156,31 @@ export function bootstrap(root_element) {
      */
     async function clearAndResubscribe() {
       log('clearing all subscriptions for workspace switch');
+      // Unsubscribe from server-side subscriptions first
+      if (unsub_issues_tab) {
+        void unsub_issues_tab().catch(() => {});
+        unsub_issues_tab = null;
+      }
+      if (unsub_epics_tab) {
+        void unsub_epics_tab().catch(() => {});
+        unsub_epics_tab = null;
+      }
+      if (unsub_board_ready) {
+        void unsub_board_ready().catch(() => {});
+        unsub_board_ready = null;
+      }
+      if (unsub_board_in_progress) {
+        void unsub_board_in_progress().catch(() => {});
+        unsub_board_in_progress = null;
+      }
+      if (unsub_board_closed) {
+        void unsub_board_closed().catch(() => {});
+        unsub_board_closed = null;
+      }
+      if (unsub_board_blocked) {
+        void unsub_board_blocked().catch(() => {});
+        unsub_board_blocked = null;
+      }
       // Clear all subscription stores
       const storeIds = [
         'tab:issues',

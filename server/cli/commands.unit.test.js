@@ -11,7 +11,11 @@ vi.mock('./open.js', () => ({
 
 // Mock db resolution
 vi.mock('../db.js', () => ({
-  resolveDbPath: () => ({ path: '/mock/test.db', source: 'nearest', exists: false })
+  resolveDbPath: () => ({
+    path: '/mock/test.db',
+    source: 'nearest',
+    exists: false
+  })
 }));
 
 // Mock config
