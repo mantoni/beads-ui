@@ -7,7 +7,7 @@ import { debug } from './logging.js';
  * Track in-flight UI actions and toggle a bound indicator element.
  *
  * @param {HTMLElement | null} mount_element
- * @returns {{ wrapSend: (fn: (type: MessageType, payload?: unknown) => Promise<unknown>) => (type: MessageType, payload?: unknown) => Promise<unknown>, start: () => void, done: () => void, getCount: () => number }}
+ * @returns {{ wrapSend: (fn: (type: MessageType, payload?: unknown) => Promise<unknown>) => (type: MessageType, payload?: unknown) => Promise<unknown>, start: () => void, done: () => void, getCount: () => number, getActiveRequests: () => Array<{ id: number, type: string, elapsed_ms: number }> }}
  */
 export function createActivityIndicator(mount_element) {
   const log = debug('activity');
@@ -60,7 +60,12 @@ export function createActivityIndicator(mount_element) {
       const req_id = next_request_id++;
       const start_ts = Date.now();
       active_requests.set(req_id, { type, start_ts });
-      log('request start id=%d type=%s count=%d', req_id, type, pending_count + 1);
+      log(
+        'request start id=%d type=%s count=%d',
+        req_id,
+        type,
+        pending_count + 1
+      );
       start();
 
       // Track if we've already called done() for this request
@@ -76,7 +81,12 @@ export function createActivityIndicator(mount_element) {
       // Safety timeout: force decrement if request takes too long
       const timeout_id = setTimeout(() => {
         if (!completed) {
-          log('request TIMEOUT id=%d type=%s elapsed=%dms', req_id, type, Date.now() - start_ts);
+          log(
+            'request TIMEOUT id=%d type=%s elapsed=%dms',
+            req_id,
+            type,
+            Date.now() - start_ts
+          );
           markComplete();
         }
       }, SAFETY_TIMEOUT_MS);
@@ -88,7 +98,13 @@ export function createActivityIndicator(mount_element) {
         return result;
       } catch (err) {
         const elapsed = Date.now() - start_ts;
-        log('request error id=%d type=%s elapsed=%dms err=%o', req_id, type, elapsed, err);
+        log(
+          'request error id=%d type=%s elapsed=%dms err=%o',
+          req_id,
+          type,
+          elapsed,
+          err
+        );
         throw err;
       } finally {
         clearTimeout(timeout_id);
