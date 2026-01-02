@@ -721,6 +721,42 @@ export async function handleMessage(ws, data) {
     return;
   }
 
+  // search-all-issues: returns all issues for client-side fuzzy search
+  if (req.type === 'search-all-issues') {
+    log('search-all-issues');
+    try {
+      const res = await fetchListForSubscription(
+        { type: 'all-issues' },
+        { cwd: CURRENT_WORKSPACE?.root_dir }
+      );
+      if (!res.ok) {
+        ws.send(
+          JSON.stringify(makeError(req, res.error.code, res.error.message))
+        );
+        return;
+      }
+      // Return minimal fields needed for search: id, title, status, issue_type
+      const items = res.items.map((it) => ({
+        id: it.id,
+        title: it.title || '',
+        status: it.status || 'open',
+        issue_type: it.issue_type || 'task',
+        priority: it.priority,
+        created_at: it.created_at,
+        closed_at: it.closed_at
+      }));
+      ws.send(JSON.stringify(makeOk(req, { items })));
+    } catch (err) {
+      log('search-all-issues error: %o', err);
+      ws.send(
+        JSON.stringify(
+          makeError(req, 'bd_error', 'Failed to fetch issues for search')
+        )
+      );
+    }
+    return;
+  }
+
   // Removed: subscribe-updates and subscribe-issues. No-ops in v2.
 
   // list-issues and epic-status were removed in favor of push-only subscriptions

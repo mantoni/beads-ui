@@ -118,22 +118,6 @@ export function createListView(
   };
 
   /**
-   * Event: search input.
-   */
-  /**
-   * @param {Event} ev
-   */
-  const onSearchInput = (ev) => {
-    const input = /** @type {HTMLInputElement} */ (ev.currentTarget);
-    search_text = input.value;
-    log('search input %s', search_text);
-    if (store) {
-      store.setState({ filters: { search: search_text } });
-    }
-    doRender();
-  };
-
-  /**
    * Toggle a type filter chip.
    *
    * @param {string} type
@@ -275,12 +259,6 @@ export function createListView(
             )}
           </div>
         </div>
-        <input
-          type="search"
-          placeholder="Search…"
-          @input=${onSearchInput}
-          .value=${search_text}
-        />
       </div>
       <div class="panel__body" id="list-root">
         ${filtered.length === 0

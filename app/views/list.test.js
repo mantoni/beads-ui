@@ -164,29 +164,23 @@ describe('views/list', () => {
       issueStores
     );
     await view.load();
-    const input = /** @type {HTMLInputElement} */ (
-      mount.querySelector('input[type="search"]')
-    );
 
     // Filter by status using dropdown checkbox
     toggleFilter(mount, 0, 'Open');
     await Promise.resolve();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(1);
 
-    // Clear status filter and search
+    // Clear status filter to show all
     toggleFilter(mount, 0, 'Open'); // toggle off to show all
     await Promise.resolve();
-    input.value = 'ga';
-    input.dispatchEvent(new Event('input'));
     const visible = Array.from(mount.querySelectorAll('tr.issue-row')).map(
       (el) => ({
         id: el.getAttribute('data-issue-id') || '',
         text: el.textContent || ''
       })
     );
-    expect(visible.length).toBe(1);
-    expect(visible[0].id).toBe('UI-3');
-    expect(visible[0].text.toLowerCase()).toContain('gamma');
+    // All 3 issues should be visible now
+    expect(visible.length).toBe(3);
   });
 
   test('filters by issue type and combines with search', async () => {
@@ -259,19 +253,15 @@ describe('views/list', () => {
     );
     expect(feature_only).toEqual(['UI-2']);
 
-    // Toggle off feature, toggle on bug, combine with search
+    // Toggle off feature, toggle on bug
     toggleFilter(mount, 1, 'Feature');
     toggleFilter(mount, 1, 'Bug');
-    const input = /** @type {HTMLInputElement} */ (
-      mount.querySelector('input[type="search"]')
-    );
-    input.value = 'ga';
-    input.dispatchEvent(new Event('input'));
     await Promise.resolve();
-    const filtered = Array.from(mount.querySelectorAll('tr.issue-row')).map(
+    const bug_filtered = Array.from(mount.querySelectorAll('tr.issue-row')).map(
       (el) => el.getAttribute('data-issue-id') || ''
     );
-    expect(filtered).toEqual(['UI-3']);
+    // Should show UI-1 (Alpha bug) and UI-3 (Gamma bug)
+    expect(bug_filtered).toEqual(['UI-1', 'UI-3']);
   });
 
   test('applies type filters after Ready reload', async () => {
@@ -615,10 +605,7 @@ describe('views/list', () => {
 
     // Controls reflect persisted filters
     expect(isFilterChecked(mount, 0, 'Open')).toBe(true);
-    const input = /** @type {HTMLInputElement} */ (
-      mount.querySelector('input[type="search"]')
-    );
-    expect(input.value).toBe('ga');
+    // Search is now in global search component, not in list view
   });
 
   test('filters by multiple statuses with dropdown checkboxes', async () => {
