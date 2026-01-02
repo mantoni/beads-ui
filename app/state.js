@@ -20,7 +20,7 @@ import { debug } from './utils/logging.js';
  */
 
 /**
- * @typedef {{ closed_filter: ClosedFilter }} BoardState
+ * @typedef {{ closed_filter: ClosedFilter, epic_filter: string | null }} BoardState
  */
 
 /**
@@ -65,7 +65,8 @@ export function createStore(initial = {}) {
         initial.board?.closed_filter === '7' ||
         initial.board?.closed_filter === 'today'
           ? initial.board?.closed_filter
-          : 'today'
+          : 'today',
+      epic_filter: initial.board?.epic_filter ?? null
     },
     workspace: {
       current: initial.workspace?.current ?? null,
@@ -124,6 +125,7 @@ export function createStore(initial = {}) {
         next.filters.search === state.filters.search &&
         next.filters.type === state.filters.type &&
         next.board.closed_filter === state.board.closed_filter &&
+        next.board.epic_filter === state.board.epic_filter &&
         !workspace_changed
       ) {
         return;

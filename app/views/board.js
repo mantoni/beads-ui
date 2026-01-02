@@ -44,8 +44,8 @@ const COLUMN_STATUS_MAP = {
  * @param {unknown} _data - Unused (legacy param retained for call-compat)
  * @param {(id: string) => void} gotoIssue - Navigate to issue detail.
  * @param {{ getState: () => any, setState: (patch: any) => void, subscribe?: (fn: (s:any)=>void)=>()=>void }} [store]
- * @param {{ selectors: { getIds: (client_id: string) => string[], count?: (client_id: string) => number } }} [subscriptions]
- * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void }} [issueStores]
+ * @param {{ selectors: { getIds: (client_id: string) => string[], count?: (client_id: string) => number }, subscribeList?: (client_id: string, spec: { type: string, params?: Record<string, string> }) => Promise<() => void> }} [subscriptions]
+ * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void, register?: (client_id: string, spec: { type: string, params?: Record<string, string> }) => void, unregister?: (client_id: string) => void }} [issueStores]
  * @param {(type: string, payload: unknown) => Promise<unknown>} [transport] - Transport function for sending updates
  * @returns {{ load: () => Promise<void>, clear: () => void }}
  */
@@ -80,6 +80,36 @@ export function createBoardView(
    * @type {'today'|'3'|'7'}
    */
   let closed_filter_mode = 'today';
+
+  /**
+   * Epic filter - selected epic ID or null for "all".
+   *
+   * @type {string|null}
+   */
+  let epic_filter = null;
+
+  /**
+   * Cached epics list for dropdown.
+   *
+   * @type {Array<{id: string, title?: string}>}
+   */
+  let epics_list = [];
+
+  /**
+   * Reverse lookup: issue_id → parent_epic_id.
+   * Built from epics' dependents arrays.
+   *
+   * @type {Map<string, string>}
+   */
+  const issue_to_epic = new Map();
+
+  /**
+   * Track epic detail subscription unsubscribe functions.
+   *
+   * @type {Map<string, () => void>}
+   */
+  const epic_detail_unsubs = new Map();
+
   if (store) {
     try {
       const s = store.getState();
@@ -88,13 +118,168 @@ export function createBoardView(
       if (cf === 'today' || cf === '3' || cf === '7') {
         closed_filter_mode = /** @type {any} */ (cf);
       }
+      // Restore epic filter from state
+      const ef = s && s.board ? s.board.epic_filter : null;
+      if (typeof ef === 'string' && ef.length > 0) {
+        epic_filter = ef;
+      }
     } catch {
       // ignore store init errors
     }
   }
 
+  /**
+   * Build the issue-to-epic lookup map from epics subscription data.
+   */
+  function rebuildEpicLookup() {
+    issue_to_epic.clear();
+    epics_list = [];
+    if (!issueStores || typeof issueStores.snapshotFor !== 'function') {
+      return;
+    }
+    try {
+      const snapshot = issueStores.snapshotFor('tab:epics');
+      if (!Array.isArray(snapshot)) {
+        return;
+      }
+      for (const epic of snapshot) {
+        if (!epic || typeof epic !== 'object') {
+          continue;
+        }
+        const epic_id = String(epic.id || '');
+        if (!epic_id) {
+          continue;
+        }
+        epics_list.push({ id: epic_id, title: epic.title });
+
+        // Try to get dependents from epic detail subscription first,
+        // then fall back to dependents from list (for tests/direct data)
+        let dependents = [];
+        try {
+          const detail = issueStores.snapshotFor(`detail:${epic_id}`);
+          if (Array.isArray(detail) && detail.length > 0) {
+            const epic_detail = detail[0];
+            if (
+              epic_detail &&
+              Array.isArray(/** @type {any} */ (epic_detail).dependents)
+            ) {
+              dependents = /** @type {any} */ (epic_detail).dependents;
+            }
+          }
+        } catch {
+          // ignore detail read errors
+        }
+        // Fall back to dependents from list if detail not available or empty
+        if (dependents.length === 0) {
+          const list_dependents = /** @type {any} */ (epic).dependents;
+          if (Array.isArray(list_dependents)) {
+            dependents = list_dependents;
+          }
+        }
+
+        for (const dep of dependents) {
+          if (dep && typeof dep === 'object' && dep.id) {
+            issue_to_epic.set(String(dep.id), epic_id);
+          }
+        }
+      }
+      log(
+        'epic lookup rebuilt: %d epics, %d mappings',
+        epics_list.length,
+        issue_to_epic.size
+      );
+    } catch {
+      // ignore errors reading epics
+    }
+  }
+
+  /**
+   * Get display text for epic filter dropdown.
+   *
+   * @returns {string}
+   */
+  function getEpicFilterDisplay() {
+    if (!epic_filter) {
+      return 'Epic: All';
+    }
+    const epic = epics_list.find((e) => e.id === epic_filter);
+    const title = epic?.title || epic_filter;
+    // Truncate long titles
+    const display = title.length > 16 ? title.slice(0, 14) + '...' : title;
+    return `Epic: ${display}`;
+  }
+
+  /** @type {boolean} */
+  let epic_dropdown_open = false;
+
+  function toggleEpicDropdown() {
+    epic_dropdown_open = !epic_dropdown_open;
+    doRender();
+  }
+
+  /**
+   * @param {string|null} id
+   */
+  function onEpicFilterSelect(id) {
+    epic_filter = id;
+    epic_dropdown_open = false;
+    log('epic filter %s', epic_filter);
+    if (store) {
+      try {
+        store.setState({ board: { epic_filter } });
+      } catch {
+        // ignore store errors
+      }
+    }
+    doRender();
+  }
+
+  function epicFilterTemplate() {
+    if (epics_list.length === 0) {
+      return '';
+    }
+    return html`
+      <div class="filter-dropdown ${epic_dropdown_open ? 'is-open' : ''}">
+        <button
+          class="filter-dropdown__trigger"
+          @click=${toggleEpicDropdown}
+          aria-haspopup="listbox"
+          aria-expanded=${epic_dropdown_open}
+        >
+          ${getEpicFilterDisplay()}
+          <span class="filter-dropdown__arrow">▾</span>
+        </button>
+        <div class="filter-dropdown__menu" role="listbox">
+          <label class="filter-dropdown__option">
+            <input
+              type="radio"
+              name="epic-filter"
+              .checked=${epic_filter === null}
+              @change=${() => onEpicFilterSelect(null)}
+            />
+            All
+          </label>
+          ${epics_list.map(
+            (e) => html`
+              <label class="filter-dropdown__option">
+                <input
+                  type="radio"
+                  name="epic-filter"
+                  .checked=${epic_filter === e.id}
+                  @change=${() => onEpicFilterSelect(e.id)}
+                />
+                ${e.title || e.id}
+              </label>
+            `
+          )}
+        </div>
+      </div>
+    `;
+  }
+
   function template() {
     return html`
+      <div class="panel__header board-header">${epicFilterTemplate()}</div>
       <div class="panel__body board-root">
         ${columnTemplate('Blocked', 'blocked-col', list_blocked)}
         ${columnTemplate('Ready', 'ready-col', list_ready)}
@@ -572,10 +757,26 @@ export function createBoardView(
   }
 
   /**
+   * Apply epic filter to a list of issues.
+   *
+   * @param {IssueLite[]} items
+   * @returns {IssueLite[]}
+   */
+  function applyEpicFilter(items) {
+    if (!epic_filter) {
+      return items;
+    }
+    return items.filter((it) => issue_to_epic.get(it.id) === epic_filter);
+  }
+
+  /**
    * Compose lists from subscriptions + issues store and render.
    */
   function refreshFromStores() {
     try {
+      // Rebuild epic lookup from latest epics data
+      rebuildEpicLookup();
+
       if (selectors) {
         const in_progress = selectors.selectBoardColumn(
           'tab:board:in-progress',
@@ -599,10 +800,11 @@ export function createBoardView(
         const in_prog_ids = new Set(in_progress.map((i) => i.id));
         const ready = ready_raw.filter((i) => !in_prog_ids.has(i.id));
 
-        list_ready = ready;
-        list_blocked = blocked;
-        list_in_progress = in_progress;
-        list_closed_raw = closed;
+        // Apply epic filter to all columns
+        list_ready = applyEpicFilter(ready);
+        list_blocked = applyEpicFilter(blocked);
+        list_in_progress = applyEpicFilter(in_progress);
+        list_closed_raw = applyEpicFilter(closed);
       }
       applyClosedFilter();
       doRender();
@@ -631,6 +833,48 @@ export function createBoardView(
       // Compose lists from subscriptions + issues store
       log('load');
       refreshFromStores();
+
+      // Subscribe to each epic's detail to get dependents for filtering
+      if (
+        issueStores &&
+        typeof issueStores.snapshotFor === 'function' &&
+        subscriptions &&
+        typeof subscriptions.subscribeList === 'function'
+      ) {
+        try {
+          const epic_snapshot = issueStores.snapshotFor('tab:epics');
+          if (Array.isArray(epic_snapshot)) {
+            for (const epic of epic_snapshot) {
+              const epic_id = String(epic?.id || '');
+              if (!epic_id || epic_detail_unsubs.has(epic_id)) {
+                continue;
+              }
+              // Register store before subscribing
+              if (typeof issueStores.register === 'function') {
+                issueStores.register(`detail:${epic_id}`, {
+                  type: 'issue-detail',
+                  params: { id: epic_id }
+                });
+              }
+              // Subscribe to get the detail with dependents
+              subscriptions
+                .subscribeList(`detail:${epic_id}`, {
+                  type: 'issue-detail',
+                  params: { id: epic_id }
+                })
+                .then((unsub) => {
+                  epic_detail_unsubs.set(epic_id, unsub);
+                })
+                .catch(() => {
+                  // ignore subscription failures
+                });
+            }
+          }
+        } catch {
+          // ignore epic subscription errors
+        }
+      }
+
       // If nothing is present yet (e.g., immediately after switching back
       // to the Board and before list-delta arrives), fetch via data layer as
       // a fallback so the board is not empty on initial display.
@@ -714,6 +958,18 @@ export function createBoardView(
     },
     clear() {
       mount_element.replaceChildren();
+      // Clean up epic detail subscriptions
+      for (const [epic_id, unsub] of epic_detail_unsubs) {
+        try {
+          unsub();
+          if (issueStores && typeof issueStores.unregister === 'function') {
+            issueStores.unregister(`detail:${epic_id}`);
+          }
+        } catch {
+          // ignore cleanup errors
+        }
+      }
+      epic_detail_unsubs.clear();
       list_ready = [];
       list_blocked = [];
       list_in_progress = [];
