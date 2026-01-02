@@ -638,7 +638,8 @@ export function bootstrap(root_element) {
       (id) => router.gotoIssue(id),
       store,
       subscriptions,
-      sub_issue_stores
+      sub_issue_stores,
+      transport
     );
     // Preload epics when switching to view
     /**

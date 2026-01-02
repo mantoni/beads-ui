@@ -1309,6 +1309,24 @@ input.inline-edit:focus {
   gap: var(--space-4);
 }
 
+/* Drag and drop styles */
+.board-card--dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+  box-shadow:
+    0 4px 16px color-mix(in srgb, #000 24%, transparent),
+    0 8px 32px color-mix(in srgb, #000 16%, transparent);
+}
+
+.board-column--drag-over {
+  background: color-mix(in srgb, var(--link) 8%, var(--panel-bg));
+  border-color: color-mix(in srgb, var(--link) 40%, var(--border));
+}
+
+.board-column--drag-over .board-column__body {
+  min-height: 100px;
+}
+
 @media (max-width: 1100px) {
   .board-root {
     grid-template-columns: 1fr;
