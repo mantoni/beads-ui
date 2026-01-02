@@ -4,6 +4,7 @@ import { createWsClient } from './ws.js';
 
 /**
  * Helper to toggle a filter option in a dropdown.
+ *
  * @param {number} dropdownIndex - 0 = status, 1 = types
  * @param {string} optionText - Text to match in the option label
  */

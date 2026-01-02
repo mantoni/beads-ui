@@ -63,6 +63,7 @@ export function createListView(
 
   /**
    * Normalize legacy string filter to array format.
+   *
    * @param {string | string[] | undefined} val
    * @returns {string[]}
    */
@@ -74,6 +75,7 @@ export function createListView(
 
   /**
    * Normalize legacy string filter to array format.
+   *
    * @param {string | string[] | undefined} val
    * @returns {string[]}
    */
@@ -99,6 +101,7 @@ export function createListView(
 
   /**
    * Toggle a status filter chip.
+   *
    * @param {string} status
    */
   const toggleStatusFilter = async (status) => {
@@ -132,6 +135,7 @@ export function createListView(
 
   /**
    * Toggle a type filter chip.
+   *
    * @param {string} type
    */
   const toggleTypeFilter = (type) => {
@@ -149,6 +153,7 @@ export function createListView(
 
   /**
    * Toggle status dropdown open/closed.
+   *
    * @param {Event} e
    */
   const toggleStatusDropdown = (e) => {
@@ -160,6 +165,7 @@ export function createListView(
 
   /**
    * Toggle type dropdown open/closed.
+   *
    * @param {Event} e
    */
   const toggleTypeDropdown = (e) => {
@@ -171,6 +177,7 @@ export function createListView(
 
   /**
    * Get display text for dropdown trigger.
+   *
    * @param {string[]} selected
    * @param {string} label
    * @param {(val: string) => string} formatter

@@ -4,6 +4,7 @@ import { createListView } from './list.js';
 
 /**
  * Helper to toggle a filter option in a dropdown.
+ *
  * @param {HTMLElement} mount - The container element
  * @param {number} dropdownIndex - 0 = status, 1 = types
  * @param {string} optionText - Text to match in the option label
@@ -28,6 +29,7 @@ function toggleFilter(mount, dropdownIndex, optionText) {
 
 /**
  * Check if a filter option is checked in a dropdown.
+ *
  * @param {HTMLElement} mount - The container element
  * @param {number} dropdownIndex - 0 = status, 1 = types
  * @param {string} optionText - Text to match in the option label
