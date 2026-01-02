@@ -16,7 +16,17 @@ import * as daemon from './daemon.js';
 // Mock browser open + readiness wait to avoid external effects and flakiness
 vi.mock('./open.js', () => ({
   openUrl: async () => true,
-  waitForServer: async () => {}
+  waitForServer: async () => {},
+  registerWorkspaceWithServer: async () => true
+}));
+
+// Mock db resolution to avoid file system dependencies
+vi.mock('../db.js', () => ({
+  resolveDbPath: () => ({
+    path: '/mock/test.db',
+    source: 'nearest',
+    exists: false
+  })
 }));
 
 /** @type {string} */

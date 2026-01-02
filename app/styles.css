@@ -152,6 +152,78 @@ a {
   gap: var(--space-6);
 }
 
+/* Workspace picker in header */
+.header-workspace {
+  display: flex;
+  align-items: center;
+}
+
+.workspace-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.workspace-picker--single {
+  /* Single workspace: just show a label */
+}
+
+.workspace-picker__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  padding: var(--space-2) var(--space-3);
+  background: color-mix(in srgb, var(--control-bg) 60%, transparent);
+  border-radius: 6px;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-picker__select {
+  font-size: 13px;
+  font-weight: 500;
+  padding: var(--space-2) var(--space-6) var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--control-bg);
+  color: var(--fg);
+  cursor: pointer;
+  min-width: 100px;
+  max-width: 180px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5H5z' fill='%23666'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 14px 14px;
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--link) 50%, var(--border));
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--link);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--link) 20%, transparent);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+}
+
+.workspace-picker__loading {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--muted) 40%, transparent);
+  border-top-color: var(--link);
+  animation: header-spin 700ms linear infinite;
+}
+
 /* Header navigation tabs (sit next to title) */
 .header-nav {
   display: flex;
