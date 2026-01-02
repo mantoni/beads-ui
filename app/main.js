@@ -397,8 +397,8 @@ export function bootstrap(root_element) {
       log('view parse error: %o', err);
     }
     // Load board preferences
-    /** @type {{ closed_filter: 'today'|'3'|'7' }} */
-    let persistedBoard = { closed_filter: 'today' };
+    /** @type {{ closed_filter: 'today'|'3'|'7', epic_filter: string | null }} */
+    let persistedBoard = { closed_filter: 'today', epic_filter: null };
     try {
       const raw_board = window.localStorage.getItem('beads-ui.board');
       if (raw_board) {
@@ -407,6 +407,13 @@ export function bootstrap(root_element) {
           const cf = String(obj.closed_filter || 'today');
           if (cf === 'today' || cf === '3' || cf === '7') {
             persistedBoard.closed_filter = cf;
+          }
+          // Restore epic filter
+          if (
+            typeof obj.epic_filter === 'string' &&
+            obj.epic_filter.length > 0
+          ) {
+            persistedBoard.epic_filter = obj.epic_filter;
           }
         }
       }
@@ -508,7 +515,10 @@ export function bootstrap(root_element) {
     store.subscribe((s) => {
       window.localStorage.setItem(
         'beads-ui.board',
-        JSON.stringify({ closed_filter: s.board.closed_filter })
+        JSON.stringify({
+          closed_filter: s.board.closed_filter,
+          epic_filter: s.board.epic_filter
+        })
       );
     });
     void issues_view.load();
@@ -722,23 +732,25 @@ export function bootstrap(root_element) {
         }
       }
 
-      // Epics tab
-      if (s.view === 'epics') {
+      // Epics subscription - needed for epics tab and board epic filter
+      if (s.view === 'epics' || s.view === 'board') {
         // Register store first to avoid race with initial snapshot
-        try {
-          sub_issue_stores.register('tab:epics', { type: 'epics' });
-        } catch (err) {
-          log('register epics store failed: %o', err);
+        if (!unsub_epics_tab) {
+          try {
+            sub_issue_stores.register('tab:epics', { type: 'epics' });
+          } catch (err) {
+            log('register epics store failed: %o', err);
+          }
+          void subscriptions
+            .subscribeList('tab:epics', { type: 'epics' })
+            .then((unsub) => {
+              unsub_epics_tab = unsub;
+            })
+            .catch((err) => {
+              log('subscribe epics failed: %o', err);
+              showFatalFromError(err, 'epics');
+            });
         }
-        void subscriptions
-          .subscribeList('tab:epics', { type: 'epics' })
-          .then((unsub) => {
-            unsub_epics_tab = unsub;
-          })
-          .catch((err) => {
-            log('subscribe epics failed: %o', err);
-            showFatalFromError(err, 'epics');
-          });
       } else if (unsub_epics_tab) {
         void unsub_epics_tab().catch(() => {});
         unsub_epics_tab = null;

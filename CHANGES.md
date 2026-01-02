@@ -1,5 +1,22 @@
 # Changes
 
+## 0.9.0
+
+- [`21fdde2`](https://github.com/mantoni/beads-ui/commit/21fdde230713a58001974db29caf288deeedb371)
+  Fix eslint warnings
+- [`5fa7fea`](https://github.com/mantoni/beads-ui/commit/5fa7fead5359aa8f01d4e12a9432464af7276e33)
+  Remove accidental bundle commit
+- [`56819d3`](https://github.com/mantoni/beads-ui/commit/56819d321b35a77da690cf028672825752b45544)
+  Add drag and drop to boards view (#30) (Brendan O'Leary)
+- [`1c52c6f`](https://github.com/mantoni/beads-ui/commit/1c52c6f2a30b7d37439f291b1a3b1d4c26510396)
+  Feature/filter toggles v2 (#20) (Frederic Haddad)
+- [`b4c7ae6`](https://github.com/mantoni/beads-ui/commit/b4c7ae62fd93d7bbaee936e0f8b659beb774122d)
+  fix: add windowsHide to prevent console flash on Windows (#29) (Titusz)
+- [`63a269e`](https://github.com/mantoni/beads-ui/commit/63a269ec1f580728bc8977d00b150d69bc1ce535)
+  feat: add multi-project workspace switching (#24) (Ofer Shaal)
+
+_Released by [Maximilian Antoni](https://github.com/mantoni) on 2026-01-02._
+
 ## 0.8.1
 
 - [`59715e8`](https://github.com/mantoni/beads-ui/commit/59715e8eb7834e6fb6ee8f63f2257da33831d705)
