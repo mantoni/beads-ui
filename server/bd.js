@@ -14,7 +14,8 @@ export async function getGitUserName(options = {}) {
   return new Promise((resolve) => {
     const child = spawn('git', ['config', 'user.name'], {
       cwd: options.cwd || process.cwd(),
-      shell: false
+      shell: false,
+      windowsHide: true
     });
 
     /** @type {string[]} */
@@ -73,7 +74,8 @@ export function runBd(args, options = {}) {
   const spawn_opts = {
     cwd: options.cwd || process.cwd(),
     env: env_with_db,
-    shell: false
+    shell: false,
+    windowsHide: true
   };
 
   /** @type {string[]} */
