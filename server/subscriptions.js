@@ -29,8 +29,7 @@
  * @typedef {{
  *   itemsById: Map<string, ItemMeta>,
  *   subscribers: Set<WebSocket>,
- *   lock: Promise<void>,
- *   lockTail: () => void
+ *   lock: Promise<void>
  * }} Entry
  */
 
@@ -43,8 +42,7 @@ function createEntry() {
   return {
     itemsById: new Map(),
     subscribers: new Set(),
-    lock: Promise.resolve(),
-    lockTail: () => {}
+    lock: Promise.resolve()
   };
 }
 
@@ -230,21 +228,25 @@ export class SubscriptionRegistry {
     }
     // Chain onto the existing lock
     const prev = entry.lock;
+    // Create our own release function and store it locally (not in shared state)
+    // to avoid race conditions when multiple operations queue concurrently
     /** @type {(v?: void) => void} */
     let release = () => {};
-    entry.lock = new Promise((resolve) => {
+    const our_lock = new Promise((resolve) => {
       release = resolve;
     });
-    entry.lockTail = release;
+    // Update the entry's lock to our lock so the next operation waits on us
+    entry.lock = our_lock;
     // Wait for previous operations to finish
     await prev.catch(() => {});
     try {
       const result = await fn();
       return result;
     } finally {
-      // Release lock for next queued op
+      // Release our lock for the next queued operation
+      // Use the locally-captured release function, not entry.lockTail
       try {
-        entry.lockTail();
+        release();
       } catch {
         // ignore
       }
