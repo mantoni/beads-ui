@@ -15,6 +15,7 @@ import { createBoardView } from './views/board.js';
 import { createDetailView } from './views/detail.js';
 import { createEpicsView } from './views/epics.js';
 import { createFatalErrorDialog } from './views/fatal-error-dialog.js';
+import { createGlobalSearch } from './views/global-search.js';
 import { createIssueDialog } from './views/issue-dialog.js';
 import { createListView } from './views/list.js';
 import { createTopNav } from './views/nav.js';
@@ -208,6 +209,10 @@ export function bootstrap(root_element) {
       }
       // Force re-subscribe by resetting last spec key
       last_issues_spec_key = null;
+      // Clear global search cache so it reloads from new workspace
+      if (global_search) {
+        global_search.refresh();
+      }
       // Re-establish subscriptions for current view
       ensureTabSubscriptions(store.getState());
     }
@@ -444,6 +449,21 @@ export function bootstrap(root_element) {
     }
     // Load workspaces after WebSocket is connected
     void loadWorkspaces();
+
+    // Global search bar
+    const global_search_mount = document.getElementById('global-search-mount');
+    /** @type {{ refresh: () => void, doRender: () => void } | null} */
+    let global_search = null;
+    if (global_search_mount) {
+      global_search = createGlobalSearch(global_search_mount, {
+        send: (type, payload) =>
+          tracked_send(/** @type {any} */ (type), payload),
+        onSelect: (id) => {
+          // Navigate to the issue dialog
+          router.gotoIssue(id);
+        }
+      });
+    }
 
     // Global New Issue dialog (UI-106) mounted at root so it is always visible
     const new_issue_dialog = createNewIssueDialog(

@@ -14,7 +14,7 @@ describe('list adapters for subscription types', () => {
 
   test('mapSubscriptionToBdArgs returns args for all-issues', () => {
     const args = mapSubscriptionToBdArgs({ type: 'all-issues' });
-    expect(args).toEqual(['list', '--json']);
+    expect(args).toEqual(['list', '--json', '--all', '--limit', '0']);
   });
 
   test('mapSubscriptionToBdArgs returns args for epics', () => {
