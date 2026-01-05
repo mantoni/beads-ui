@@ -973,6 +973,20 @@ export function bootstrap(root_element) {
 }
 
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  /**
+   * Update the favicon based on the current theme.
+   *
+   * @param {'dark'|'light'} theme
+   */
+  function updateFavicon(theme) {
+    const link = /** @type {HTMLLinkElement|null} */ (
+      document.querySelector('link[rel="icon"]')
+    );
+    if (link) {
+      link.href = theme === 'dark' ? './favicon-dark.png' : './favicon.png';
+    }
+  }
+
   window.addEventListener('DOMContentLoaded', () => {
     // Initialize theme from saved preference or OS preference
     try {
@@ -987,6 +1001,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
             ? 'dark'
             : 'light';
       document.documentElement.setAttribute('data-theme', initial);
+      updateFavicon(initial);
       const sw = /** @type {HTMLInputElement|null} */ (
         document.getElementById('theme-switch')
       );
@@ -1005,6 +1020,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       themeSwitch.addEventListener('change', () => {
         const mode = themeSwitch.checked ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', mode);
+        updateFavicon(mode);
         window.localStorage.setItem('beads-ui.theme', mode);
       });
     }
