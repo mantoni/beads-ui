@@ -301,6 +301,7 @@ export function createListView(
                   <col style="width: 120px" />
                   <col style="width: 160px" />
                   <col style="width: 130px" />
+                  <col style="width: 80px" />
                 </colgroup>
                 <thead>
                   <tr role="row">
@@ -310,6 +311,7 @@ export function createListView(
                     <th role="columnheader">Status</th>
                     <th role="columnheader">Assignee</th>
                     <th role="columnheader">Priority</th>
+                    <th role="columnheader">Deps</th>
                   </tr>
                 </thead>
                 <tbody role="rowgroup">

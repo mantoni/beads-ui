@@ -1,5 +1,14 @@
 # Changes
 
+## 0.9.1
+
+- [`bd6f412`](https://github.com/mantoni/beads-ui/commit/bd6f412570a6cb774a683106f9b6efa6ee0e318b)
+  Add dependency/dependent counts to issues list view (#35) (Enan Srivastava)
+- [`c6391d1`](https://github.com/mantoni/beads-ui/commit/c6391d1b4ea98ae06ea5bc0c251da57123370ef4)
+  Fix stuck loading indicator during view switching (#28) (Ofer Shaal)
+
+_Released by [Maximilian Antoni](https://github.com/mantoni) on 2026-01-05._
+
 ## 0.9.0
 
 - [`21fdde2`](https://github.com/mantoni/beads-ui/commit/21fdde230713a58001974db29caf288deeedb371)
