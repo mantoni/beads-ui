@@ -268,6 +268,107 @@ a {
   align-items: center;
   gap: var(--space-5);
 }
+
+/* Mobile menu toggle - hidden by default */
+.mobile-menu-toggle {
+  display: none;
+  padding: var(--space-3);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--fg);
+}
+
+.mobile-menu-toggle svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+/* Header responsive: keep navigation accessible on all screen sizes */
+@media (max-width: 768px) {
+  .app-header {
+    flex-wrap: wrap;
+    padding: var(--space-4) var(--space-4) 0;
+    gap: var(--space-3);
+  }
+
+  .header-left {
+    flex: 1;
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .app-title {
+    font-size: 16px;
+  }
+
+  /* Navigation stays visible but becomes more compact */
+  .header-nav {
+    gap: var(--space-1);
+  }
+
+  .header-nav .tab {
+    padding: var(--space-3) var(--space-4);
+    font-size: 13px;
+  }
+
+  .header-actions {
+    gap: var(--space-3);
+  }
+
+  /* Hide theme toggle label on mobile */
+  .theme-toggle span {
+    display: none;
+  }
+
+  .workspace-picker__label,
+  .workspace-picker__select {
+    max-width: 120px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: var(--space-3) var(--space-3) 0;
+  }
+
+  .app-title {
+    font-size: 14px;
+  }
+
+  /* Navigation moves to its own row on very small screens */
+  .header-left {
+    width: 100%;
+    order: 1;
+  }
+
+  .header-nav {
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+    padding-top: var(--space-2);
+  }
+
+  .header-nav .tab {
+    padding: var(--space-2) var(--space-3);
+    font-size: 12px;
+  }
+
+  .header-actions {
+    order: 2;
+    gap: var(--space-2);
+  }
+
+  .workspace-picker__label,
+  .workspace-picker__select {
+    max-width: 90px;
+  }
+}
+
 .header-loading {
   display: inline-flex;
   align-items: center;
@@ -1037,6 +1138,41 @@ input.inline-edit:focus {
   font-size: 12px;
 }
 
+/* List panel responsive: optimize for narrow screens */
+@media (max-width: 640px) {
+  #list-panel .panel__body li {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-4);
+  }
+
+  #list-panel .panel__body li .issue-id {
+    font-size: 11px;
+  }
+
+  #list-panel .issue-meta {
+    display: none; /* Hide secondary metadata on mobile */
+  }
+
+  #list-panel .issue-right {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+}
+
+@media (max-width: 480px) {
+  #list-panel .panel__header {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  #list-panel .panel__header input[type='search'] {
+    width: 100%;
+    order: 10;
+  }
+}
+
 /* Details typography */
 #detail-panel .panel__body {
   line-height: 1.5;
@@ -1213,7 +1349,8 @@ input.inline-edit:focus {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  min-width: 380px;
+  /* Responsive: removed hard min-width: 380px that broke tablet layouts */
+  min-width: 280px;
   overflow: auto;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -1327,9 +1464,29 @@ input.inline-edit:focus {
   min-height: 100px;
 }
 
-@media (max-width: 1100px) {
+/* Board responsive breakpoints: 4 → 3 → 2 → 1 columns */
+@media (max-width: 1400px) {
+  .board-root {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .board-root {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-6);
+    padding: var(--space-4);
+  }
+  .board-column {
+    min-width: 0; /* Allow full flexibility on tablets */
+  }
+}
+
+@media (max-width: 640px) {
   .board-root {
     grid-template-columns: 1fr;
+    gap: var(--space-4);
+    padding: var(--space-3);
   }
 }
 
@@ -1747,6 +1904,55 @@ html[data-theme='dark'] {
   line-height: 1.2;
 }
 
+/* Dialog responsive: stack form labels on mobile */
+@media (max-width: 480px) {
+  #new-issue-dialog {
+    width: 100vw;
+    max-height: 100vh;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .new-issue__body {
+    padding: var(--space-4);
+  }
+
+  .new-issue__form {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  .new-issue__form label {
+    font-weight: 600;
+    color: var(--fg);
+  }
+
+  .new-issue__form input,
+  .new-issue__form select,
+  .new-issue__form textarea {
+    width: 100%;
+  }
+
+  .new-issue__actions {
+    flex-direction: column-reverse;
+    gap: var(--space-3);
+  }
+
+  .new-issue__actions button {
+    width: 100%;
+    padding: var(--space-4) var(--space-5);
+  }
+}
+
+@media (max-width: 640px) {
+  #issue-dialog {
+    width: 100vw;
+    max-height: 100vh;
+    margin: 0;
+    border-radius: 0;
+  }
+}
+
 /* --- Fatal Error Dialog --- */
 #fatal-error-dialog {
   padding: 0;
@@ -1919,9 +2125,48 @@ html[data-theme='dark'] {
   font-variant-ligatures: none;
 }
 
+/* Detail layout responsive breakpoints */
 @media (max-width: 1100px) {
   .detail-layout {
+    grid-template-columns: 1fr 280px;
+    gap: 24px;
+  }
+}
+
+@media (max-width: 900px) {
+  .detail-layout {
     grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .detail-side {
+    position: static;
+    order: -1; /* Show properties card above content on mobile */
+  }
+  .detail-main h2 {
+    font-size: 24px;
+    margin-bottom: 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  #detail-root {
+    padding: var(--space-4);
+  }
+  .detail-main h2 {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+  .detail-title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .detail-toolbar {
+    flex-wrap: wrap;
+  }
+  .btn-bar {
+    width: 100%;
+    justify-content: flex-start;
   }
 }
 
