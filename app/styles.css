@@ -2093,3 +2093,27 @@ html[data-theme='dark'] {
 .btn.danger:hover {
   background: color-mix(in srgb, var(--danger, #b00020) 85%, #000);
 }
+
+/* Dependency indicators column */
+.deps-col {
+  text-align: center;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.deps-indicator {
+  display: inline-flex;
+  gap: var(--space-3);
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+.dep-count,
+.dependent-count {
+  color: var(--muted);
+  font-family:
+    ui-monospace, 'SF Mono', Monaco, 'Cascadia Mono', 'Segoe UI Mono',
+    'Roboto Mono', Menlo, Consolas, 'Courier New', monospace;
+}
+.dep-count:hover,
+.dependent-count:hover {
+  color: var(--fg);
+}
