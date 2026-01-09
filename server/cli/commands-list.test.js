@@ -88,7 +88,9 @@ describe('handleList command', () => {
       { workspace: '/home/user/project-b', port: 3002, pid: 5679 }
     ]);
     vi.spyOn(daemon, 'readPidFile').mockReturnValue(null);
-    vi.spyOn(daemon, 'isProcessRunning').mockImplementation((pid) => pid === 5678);
+    vi.spyOn(daemon, 'isProcessRunning').mockImplementation(
+      (pid) => pid === 5678
+    );
 
     const code = await handleList();
 
@@ -114,4 +116,3 @@ describe('handleList command', () => {
     expect(clean_spy).not.toHaveBeenCalled();
   });
 });
-

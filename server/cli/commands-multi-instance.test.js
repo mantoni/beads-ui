@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { handleStart, handleStop, handleRestart } from './commands.js';
+import { handleRestart, handleStart, handleStop } from './commands.js';
 import * as daemon from './daemon.js';
 import * as registry from './instance-registry.js';
 
@@ -38,7 +38,9 @@ describe('Multi-instance support', () => {
       vi.spyOn(registry, 'cleanStaleInstances').mockImplementation(() => {});
       vi.spyOn(registry, 'findInstanceByWorkspace').mockReturnValue(null);
       vi.spyOn(registry, 'registerInstance').mockImplementation(() => {});
-      const read_pid_spy = vi.spyOn(daemon, 'readPidFile').mockReturnValue(null);
+      const read_pid_spy = vi
+        .spyOn(daemon, 'readPidFile')
+        .mockReturnValue(null);
       vi.spyOn(daemon, 'isProcessRunning').mockReturnValue(false);
       vi.spyOn(daemon, 'findAvailablePort').mockResolvedValue(3001);
       vi.spyOn(daemon, 'startDaemon').mockReturnValue({ pid: 12345 });
@@ -51,7 +53,9 @@ describe('Multi-instance support', () => {
 
     test('uses default PID file when new_instance is false', async () => {
       vi.spyOn(registry, 'cleanStaleInstances').mockImplementation(() => {});
-      const read_pid_spy = vi.spyOn(daemon, 'readPidFile').mockReturnValue(null);
+      const read_pid_spy = vi
+        .spyOn(daemon, 'readPidFile')
+        .mockReturnValue(null);
       vi.spyOn(daemon, 'isProcessRunning').mockReturnValue(false);
       vi.spyOn(daemon, 'startDaemon').mockReturnValue({ pid: 12345 });
       vi.spyOn(daemon, 'printServerUrl').mockImplementation(() => {});
@@ -196,11 +200,12 @@ describe('Multi-instance support', () => {
     });
   });
 
-
   describe('handleStop with workspace detection', () => {
     test('uses port-specific PID file when port specified', async () => {
       vi.spyOn(registry, 'unregisterInstance').mockImplementation(() => {});
-      const read_pid_spy = vi.spyOn(daemon, 'readPidFile').mockReturnValue(12345);
+      const read_pid_spy = vi
+        .spyOn(daemon, 'readPidFile')
+        .mockReturnValue(12345);
       vi.spyOn(daemon, 'isProcessRunning').mockReturnValue(true);
       vi.spyOn(daemon, 'terminateProcess').mockResolvedValue(true);
       const remove_pid_spy = vi
@@ -215,7 +220,9 @@ describe('Multi-instance support', () => {
 
     test('uses default PID file when no port specified', async () => {
       vi.spyOn(registry, 'unregisterInstance').mockImplementation(() => {});
-      const read_pid_spy = vi.spyOn(daemon, 'readPidFile').mockReturnValue(12345);
+      const read_pid_spy = vi
+        .spyOn(daemon, 'readPidFile')
+        .mockReturnValue(12345);
       vi.spyOn(daemon, 'isProcessRunning').mockReturnValue(true);
       vi.spyOn(daemon, 'terminateProcess').mockResolvedValue(true);
       const remove_pid_spy = vi
@@ -392,4 +399,3 @@ describe('Multi-instance support', () => {
     });
   });
 });
-

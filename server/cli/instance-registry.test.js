@@ -1,7 +1,8 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import * as daemon from './daemon.js';
 import {
   cleanStaleInstances,
   findInstanceByPort,
@@ -12,13 +13,14 @@ import {
   unregisterInstance,
   writeInstanceRegistry
 } from './instance-registry.js';
-import * as daemon from './daemon.js';
 
 describe('getRegistryPath', () => {
   test('returns path in home directory', () => {
     const registry_path = getRegistryPath();
     const home_dir = os.homedir();
-    expect(registry_path).toBe(path.join(home_dir, '.beads-ui', 'instances.json'));
+    expect(registry_path).toBe(
+      path.join(home_dir, '.beads-ui', 'instances.json')
+    );
   });
 });
 
@@ -313,7 +315,11 @@ describe('cleanStaleInstances', () => {
 
   test('removes entries for dead processes', () => {
     registerInstance({ workspace: '/test/workspace1', port: 3000, pid: 99999 });
-    registerInstance({ workspace: '/test/workspace2', port: 3001, pid: process.pid });
+    registerInstance({
+      workspace: '/test/workspace2',
+      port: 3001,
+      pid: process.pid
+    });
 
     vi.spyOn(daemon, 'isProcessRunning')
       .mockReturnValueOnce(false) // First instance is dead
@@ -338,4 +344,3 @@ describe('cleanStaleInstances', () => {
     expect(instances).toHaveLength(2);
   });
 });
-

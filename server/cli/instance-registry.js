@@ -18,14 +18,14 @@ import { isProcessRunning } from './daemon.js';
 export function getRegistryPath() {
   const home_dir = os.homedir();
   const beads_ui_dir = path.join(home_dir, '.beads-ui');
-  
+
   // Ensure directory exists
   try {
     fs.mkdirSync(beads_ui_dir, { recursive: true, mode: 0o700 });
   } catch {
     // Best-effort; errors will surface on file operations
   }
-  
+
   return path.join(beads_ui_dir, 'instances.json');
 }
 
@@ -37,18 +37,18 @@ export function getRegistryPath() {
  */
 export function readInstanceRegistry() {
   const registry_path = getRegistryPath();
-  
+
   try {
     const content = fs.readFileSync(registry_path, 'utf8');
     const parsed = JSON.parse(content);
-    
+
     if (Array.isArray(parsed)) {
       return parsed;
     }
   } catch {
     // File doesn't exist or is corrupted
   }
-  
+
   return [];
 }
 
@@ -61,7 +61,7 @@ export function readInstanceRegistry() {
 export function writeInstanceRegistry(instances) {
   const registry_path = getRegistryPath();
   const temp_path = registry_path + '.tmp';
-  
+
   try {
     const content = JSON.stringify(instances, null, 2);
     fs.writeFileSync(temp_path, content, { encoding: 'utf8', mode: 0o600 });
@@ -83,17 +83,17 @@ export function writeInstanceRegistry(instances) {
  */
 export function registerInstance(entry) {
   const instances = readInstanceRegistry();
-  
+
   // Remove any existing entry with the same port
   const filtered = instances.filter((inst) => inst.port !== entry.port);
-  
+
   // Add the new entry
   filtered.push({
     workspace: entry.workspace,
     port: entry.port,
     pid: entry.pid
   });
-  
+
   writeInstanceRegistry(filtered);
 }
 
@@ -118,14 +118,14 @@ export function unregisterInstance(port) {
 export function findInstanceByWorkspace(workspace) {
   const instances = readInstanceRegistry();
   const normalized = path.resolve(workspace);
-  
+
   // First try exact match
   for (const inst of instances) {
     if (path.resolve(inst.workspace) === normalized) {
       return inst;
     }
   }
-  
+
   // Then try parent workspace match
   for (const inst of instances) {
     const inst_path = path.resolve(inst.workspace);
@@ -133,7 +133,7 @@ export function findInstanceByWorkspace(workspace) {
       return inst;
     }
   }
-  
+
   return null;
 }
 
@@ -156,9 +156,8 @@ export function findInstanceByPort(port) {
 export function cleanStaleInstances() {
   const instances = readInstanceRegistry();
   const alive = instances.filter((inst) => isProcessRunning(inst.pid));
-  
+
   if (alive.length !== instances.length) {
     writeInstanceRegistry(alive);
   }
 }
-

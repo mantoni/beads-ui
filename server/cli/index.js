@@ -1,5 +1,10 @@
 import { enableAllDebug } from '../logging.js';
-import { handleList, handleRestart, handleStart, handleStop } from './commands.js';
+import {
+  handleList,
+  handleRestart,
+  handleStart,
+  handleStop
+} from './commands.js';
 import { printUsage } from './usage.js';
 
 /**
@@ -47,7 +52,10 @@ export function parseArgs(args) {
     }
     if (
       !command &&
-      (token === 'start' || token === 'stop' || token === 'restart' || token === 'list')
+      (token === 'start' ||
+        token === 'stop' ||
+        token === 'restart' ||
+        token === 'list')
     ) {
       command = token;
       continue;

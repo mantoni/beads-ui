@@ -59,7 +59,10 @@ export async function handleStart(options) {
             port = existing.port;
           }
         } else {
-          console.error('Failed to stop existing instance on port %d', existing.port);
+          console.error(
+            'Failed to stop existing instance on port %d',
+            existing.port
+          );
           return 1;
         }
       }
@@ -80,7 +83,11 @@ export async function handleStart(options) {
       found_port = await findAvailablePort(start_port);
 
       if (!found_port) {
-        console.error('Could not find an available port (tried %d-%d)', start_port, start_port + 9);
+        console.error(
+          'Could not find an available port (tried %d-%d)',
+          start_port,
+          start_port + 9
+        );
         return 1;
       }
 
