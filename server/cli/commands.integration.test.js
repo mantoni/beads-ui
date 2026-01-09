@@ -101,12 +101,12 @@ describe('commands integration', () => {
     expect(pid_after_stop).toBeNull();
   });
 
-  test('stop returns 2 when not running', async () => {
+  test('stop returns 0 when not running (self-healing)', async () => {
     // execution
     const code = await handleStop();
 
     // assertion
-    expect(code).toBe(2);
+    expect(code).toBe(0);
   });
 
   test('start is idempotent when already running', async () => {

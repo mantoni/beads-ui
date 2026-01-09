@@ -105,7 +105,8 @@ describe('main', () => {
       open: true,
       is_debug: false,
       host: undefined,
-      port: undefined
+      port: undefined,
+      new_instance: false
     });
   });
 
@@ -116,7 +117,8 @@ describe('main', () => {
       open: false,
       is_debug: false,
       host: '0.0.0.0',
-      port: 8080
+      port: 8080,
+      new_instance: false
     });
   });
 

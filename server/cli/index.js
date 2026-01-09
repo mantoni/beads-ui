@@ -1,5 +1,5 @@
 import { enableAllDebug } from '../logging.js';
-import { handleRestart, handleStart, handleStop } from './commands.js';
+import { handleList, handleRestart, handleStart, handleStop } from './commands.js';
 import { printUsage } from './usage.js';
 
 /**
@@ -30,6 +30,10 @@ export function parseArgs(args) {
       flags.push('open');
       continue;
     }
+    if (token === '--new-instance') {
+      flags.push('new-instance');
+      continue;
+    }
     if (token === '--host' && i + 1 < args.length) {
       options.host = args[++i];
       continue;
@@ -43,7 +47,7 @@ export function parseArgs(args) {
     }
     if (
       !command &&
-      (token === 'start' || token === 'stop' || token === 'restart')
+      (token === 'start' || token === 'stop' || token === 'restart' || token === 'list')
     ) {
       command = token;
       continue;
@@ -86,12 +90,16 @@ export async function main(args) {
       open: flags.includes('open'),
       is_debug: is_debug || Boolean(process.env.DEBUG),
       host: options.host,
-      port: options.port
+      port: options.port,
+      new_instance: flags.includes('new-instance')
     };
     return await handleStart(start_options);
   }
   if (command === 'stop') {
-    return await handleStop();
+    const stop_options = {
+      port: options.port
+    };
+    return await handleStop(stop_options);
   }
   if (command === 'restart') {
     const restart_options = {
@@ -101,6 +109,9 @@ export async function main(args) {
       port: options.port
     };
     return await handleRestart(restart_options);
+  }
+  if (command === 'list') {
+    return await handleList();
   }
 
   // Unknown command path (should not happen due to parseArgs guard)

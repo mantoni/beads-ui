@@ -46,28 +46,39 @@ function ensureDir(dir_path) {
 }
 
 /**
+ * Resolve the PID file path. When port is provided, returns a port-specific
+ * PID file to enable multiple independent instances.
+ *
+ * @param {number} [port] - Optional port number for instance-specific PID file
  * @returns {string}
  */
-export function getPidFilePath() {
+export function getPidFilePath(port) {
   const runtime_dir = getRuntimeDir();
-  return path.join(runtime_dir, 'server.pid');
+  const filename = port ? `server-${port}.pid` : 'server.pid';
+  return path.join(runtime_dir, filename);
 }
 
 /**
+ * Resolve the log file path. When port is provided, returns a port-specific
+ * log file to enable multiple independent instances.
+ *
+ * @param {number} [port] - Optional port number for instance-specific log file
  * @returns {string}
  */
-export function getLogFilePath() {
+export function getLogFilePath(port) {
   const runtime_dir = getRuntimeDir();
-  return path.join(runtime_dir, 'daemon.log');
+  const filename = port ? `daemon-${port}.log` : 'daemon.log';
+  return path.join(runtime_dir, filename);
 }
 
 /**
  * Read PID from the PID file if present.
  *
+ * @param {number} [port] - Optional port number for instance-specific PID file
  * @returns {number | null}
  */
-export function readPidFile() {
-  const pid_file = getPidFilePath();
+export function readPidFile(port) {
+  const pid_file = getPidFilePath(port);
   try {
     const text = fs.readFileSync(pid_file, 'utf8');
     const pid_value = Number.parseInt(text.trim(), 10);
@@ -81,10 +92,13 @@ export function readPidFile() {
 }
 
 /**
+ * Write PID to the PID file.
+ *
  * @param {number} pid
+ * @param {number} [port] - Optional port number for instance-specific PID file
  */
-export function writePidFile(pid) {
-  const pid_file = getPidFilePath();
+export function writePidFile(pid, port) {
+  const pid_file = getPidFilePath(port);
   try {
     fs.writeFileSync(pid_file, String(pid) + '\n', { encoding: 'utf8' });
   } catch {
@@ -92,8 +106,13 @@ export function writePidFile(pid) {
   }
 }
 
-export function removePidFile() {
-  const pid_file = getPidFilePath();
+/**
+ * Remove the PID file if it exists.
+ *
+ * @param {number} [port] - Optional port number for instance-specific PID file
+ */
+export function removePidFile(port) {
+  const pid_file = getPidFilePath(port);
   try {
     fs.unlinkSync(pid_file);
   } catch {
@@ -125,6 +144,43 @@ export function isProcessRunning(pid) {
 }
 
 /**
+ * Find an available port starting from the given port.
+ * Tries up to 10 consecutive ports.
+ *
+ * @param {number} start_port - Port to start searching from
+ * @returns {Promise<number | null>} Available port or null if none found
+ */
+export async function findAvailablePort(start_port) {
+  const net = await import('node:net');
+
+  for (let i = 0; i < 10; i++) {
+    const port = start_port + i;
+
+    // Try to create a server on this port
+    const is_available = await new Promise((resolve) => {
+      const server = net.createServer();
+
+      server.once('error', () => {
+        resolve(false);
+      });
+
+      server.once('listening', () => {
+        server.close();
+        resolve(true);
+      });
+
+      server.listen(port);
+    });
+
+    if (is_available) {
+      return port;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Compute the absolute path to the server entry file.
  *
  * @returns {string}
@@ -145,7 +201,8 @@ export function getServerEntryPath() {
  */
 export function startDaemon(options = {}) {
   const server_entry = getServerEntryPath();
-  const log_file = getLogFilePath();
+  const port = options.port;
+  const log_file = getLogFilePath(port);
 
   // Open the log file for appending; reuse for both stdout and stderr
   /** @type {number} */
@@ -186,7 +243,7 @@ export function startDaemon(options = {}) {
       if (options.is_debug) {
         console.debug('starting  ', child_pid);
       }
-      writePidFile(child_pid);
+      writePidFile(child_pid, port);
       return { pid: child_pid };
     }
     return null;

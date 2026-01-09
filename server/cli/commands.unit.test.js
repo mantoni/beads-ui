@@ -49,15 +49,15 @@ describe('handleStart (unit)', () => {
 });
 
 describe('handleStop (unit)', () => {
-  test('returns 2 when not running and no PID file', async () => {
+  test('returns 0 when not running and no PID file (self-healing)', async () => {
     vi.spyOn(daemon, 'readPidFile').mockReturnValue(null);
 
     const code = await handleStop();
 
-    expect(code).toBe(2);
+    expect(code).toBe(0);
   });
 
-  test('returns 2 on stale PID and removes file', async () => {
+  test('returns 0 on stale PID and removes file (self-healing)', async () => {
     vi.spyOn(daemon, 'readPidFile').mockReturnValue(1111);
     vi.spyOn(daemon, 'isProcessRunning').mockReturnValue(false);
     const remove_pid = vi
@@ -66,7 +66,7 @@ describe('handleStop (unit)', () => {
 
     const code = await handleStop();
 
-    expect(code).toBe(2);
+    expect(code).toBe(0);
     expect(remove_pid).toHaveBeenCalledTimes(1);
   });
 

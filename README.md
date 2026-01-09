@@ -33,6 +33,43 @@ bdui start --open
 
 See `bdui --help` for options.
 
+## Multi-Instance Support
+
+Run multiple workspace-specific instances simultaneously:
+
+```sh
+# In workspace A:
+cd ~/projects/workspace-a
+bdui start --new-instance    # Starts on port 3001 (auto-selected)
+
+# In workspace B:
+cd ~/projects/workspace-b
+bdui start --new-instance    # Starts on port 3002 (auto-selected)
+
+# Restart workspace instance (auto-detects):
+bdui restart                 # Restarts workspace instance if exists
+
+# Stop workspace instance:
+bdui stop                    # Stops workspace instance if exists
+
+# List all running instances:
+bdui list
+```
+
+**Key Features:**
+
+- 🔢 **Auto port selection** – Automatically finds available ports starting from
+  3001
+- 🎯 **Workspace-aware** – Each instance is tied to its workspace directory
+- 🔄 **Smart restart** – `restart` automatically detects and restarts workspace
+  instances
+- 🧹 **Self-healing** – Automatically cleans up orphaned instances
+- ⏮️ **Backward compatible** – Existing workflows unchanged (no `--new-instance`
+  = global instance)
+
+**Note:** The global instance (without `--new-instance`) continues to work as
+before on port 3000.
+
 ## Screenshots
 
 **Issues**
