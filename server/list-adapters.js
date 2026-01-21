@@ -143,6 +143,11 @@ export async function fetchListForSubscription(spec, options = {}) {
         ? [res.stdoutJson]
         : [];
 
+    // For epics, merge counters from `bd epic status` into the list data
+    if (String(spec.type) === 'epics') {
+      raw = await mergeEpicCounters(raw, options);
+    }
+
     const items = normalizeIssueList(raw);
     return { ok: true, items };
   } catch (err) {
@@ -155,6 +160,57 @@ export async function fetchListForSubscription(spec, options = {}) {
           (err && /** @type {any} */ (err).message) || 'bd invocation failed'
       }
     };
+  }
+}
+
+/**
+ * Merge epic counters from `bd epic status` into epic list data.
+ * This provides total_children and closed_children for progress display.
+ *
+ * @param {any[]} epics - Epic list from `bd list --type epic`
+ * @param {{ cwd?: string }} options
+ * @returns {Promise<any[]>}
+ */
+async function mergeEpicCounters(epics, options) {
+  try {
+    const status_res = await runBdJson(['epic', 'status', '--json'], {
+      cwd: options.cwd
+    });
+    if (
+      !status_res ||
+      status_res.code !== 0 ||
+      !Array.isArray(status_res.stdoutJson)
+    ) {
+      return epics; // Fall back to list data without counters
+    }
+    // Build a map of counters by epic id
+    /** @type {Map<string, { total_children: number, closed_children: number }>} */
+    const counters = new Map();
+    for (const item of status_res.stdoutJson) {
+      const epic = item?.epic;
+      if (epic && typeof epic.id === 'string') {
+        counters.set(epic.id, {
+          total_children: Number(item.total_children) || 0,
+          closed_children: Number(item.closed_children) || 0
+        });
+      }
+    }
+    // Merge counters into epic list
+    return epics.map((e) => {
+      const id = String(e?.id || '');
+      const c = counters.get(id);
+      if (c) {
+        return { ...e, total_children: c.total_children, closed_children: c.closed_children };
+      }
+      // For closed epics without counters, show as fully complete
+      if (String(e?.status || '').toLowerCase() === 'closed') {
+        const total = Number(e?.dependent_count) || 0;
+        return { ...e, total_children: total, closed_children: total };
+      }
+      return e;
+    });
+  } catch {
+    return epics; // Fall back on error
   }
 }
 
