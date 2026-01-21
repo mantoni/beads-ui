@@ -96,8 +96,8 @@
         document
           .getElementById('boards-modal')
           .addEventListener('click', (e) => {
-            // Close if clicking the modal backdrop itself, not the content
-            if (e.target.classList.contains('modal')) {
+            // Close if clicking the modal backdrop itself (not its children)
+            if (e.target.id === 'boards-modal') {
               hideBoardsModal();
             }
           });

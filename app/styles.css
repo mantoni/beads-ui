@@ -2017,7 +2017,7 @@ html[data-theme='dark'] {
   overflow: auto;
 }
 
-body.dark .modal-content {
+[data-theme='dark'] .modal-content {
   background: #1e1e1e;
   color: #e5e5e5;
 }
@@ -2030,7 +2030,7 @@ body.dark .modal-content {
   border-bottom: 1px solid #e5e5e5;
 }
 
-body.dark .modal-header {
+[data-theme='dark'] .modal-header {
   border-bottom-color: #333;
 }
 
@@ -2055,11 +2055,11 @@ body.dark .modal-header {
   color: #000;
 }
 
-body.dark .modal-close {
+[data-theme='dark'] .modal-close {
   color: #999;
 }
 
-body.dark .modal-close:hover {
+[data-theme='dark'] .modal-close:hover {
   color: #fff;
 }
 
@@ -2077,7 +2077,7 @@ body.dark .modal-close:hover {
   margin-bottom: 0.5rem;
 }
 
-body.dark .board-item {
+[data-theme='dark'] .board-item {
   border-color: #333;
 }
 
@@ -2086,7 +2086,7 @@ body.dark .board-item {
   border-color: #0ea5e9;
 }
 
-body.dark .board-item.current {
+[data-theme='dark'] .board-item.current {
   background: #1e3a4a;
   border-color: #0ea5e9;
 }
@@ -2094,6 +2094,11 @@ body.dark .board-item.current {
 .board-info strong {
   display: block;
   margin-bottom: 0.25rem;
+  color: #1a1a1a;
+}
+
+[data-theme='dark'] .board-info strong {
+  color: #e5e5e5;
 }
 
 .board-meta {
@@ -2101,7 +2106,7 @@ body.dark .board-item.current {
   color: #666;
 }
 
-body.dark .board-meta {
+[data-theme='dark'] .board-meta {
   color: #999;
 }
 
