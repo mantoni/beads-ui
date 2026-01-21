@@ -1,5 +1,41 @@
 # Changes
 
+## 0.10.0
+
+- feat: add multi-instance CLI management
+  >
+  > Enable running multiple beads-ui instances simultaneously with CLI tools
+  > for process isolation and flexible network configuration.
+  >
+  > New commands:
+  > - `bdui list` - Show all running instances with status
+  > - `bdui discover <paths>` - Find all beads projects in directory tree
+  > - `bdui stop-all` - Stop all registered instances
+  > - `bdui restart-all` - Restart all registered instances
+  >
+  > Each instance uses project-local runtime in `.beads/.bdui/` with isolated
+  > PID file and logs. Central registry at `~/.bdui/instances.json` tracks
+  > all running instances for CLI management.
+  >
+  > Backward compatible: Single-instance mode works unchanged. Opt into
+  > multi-instance by using `--port` flag per project.
+  >
+  > See `docs/adr/003-multi-instance-runtime.md` for architecture details.
+  >
+- feat: add migration tool for legacy instances
+  >
+  > `bdui migrate` detects old global instances and guides users through
+  > migrating to project-local runtime. Includes auto-discovery of beads
+  > projects and port assignment strategies.
+  >
+- feat: add session completion workflow to AGENTS.md
+  >
+  > Document mandatory workflow for AI agents to ensure work is properly
+  > committed and pushed before ending sessions.
+  >
+
+_Released by [TBD] on TBD._
+
 ## 0.9.1
 
 - [`bd6f412`](https://github.com/mantoni/beads-ui/commit/bd6f412570a6cb774a683106f9b6efa6ee0e318b)

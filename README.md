@@ -22,6 +22,7 @@
 - ⛰️ **Epics view** – Show progress per epic, expand rows, edit inline
 - 🏂 **Board view** – Blocked / Ready / In progress / Closed columns
 - ⌨️ **Keyboard navigation** – Navigate and edit without touching the mouse
+- 🚀 **Multi-instance management** – Run multiple projects simultaneously with CLI tools
 
 ## Setup
 
@@ -65,6 +66,82 @@ bdui list
 
 ![Board view](https://github.com/mantoni/beads-ui/raw/main/media/bdui-board.png)
 
+## Multi-Instance Management
+
+Run multiple beads-ui instances simultaneously for different projects.
+
+### CLI Commands
+
+```bash
+# List all running instances
+bdui list
+
+# Find all beads projects in a directory
+bdui discover ~/code
+
+# Stop all running instances
+bdui stop-all
+
+# Restart all registered instances
+bdui restart-all
+```
+
+### When to Use Multi-Instance Mode
+
+**Use multiple instances when you:**
+- Work on several projects simultaneously and want boards open side-by-side
+- Need process isolation (one crash doesn't affect other projects)
+- Want different ports per project (firewall rules, proxies, remote access)
+- Prefer CLI-based automation workflows
+
+**Use single instance when you:**
+- Work on 1-2 projects casually
+- Prefer UI-based workspace switching (see v0.8.0+ workspace picker)
+- Want minimal resource usage
+- Don't need port-level isolation
+
+### Example Workflows
+
+**Side-by-side boards:**
+```bash
+# Terminal 1
+cd ~/work-project && bdui start --port 4000 --open
+
+# Terminal 2
+cd ~/personal-project && bdui start --port 4001 --open
+
+# See both instances
+bdui list
+```
+
+**Batch management:**
+```bash
+# Find all your beads projects
+bdui discover ~/code ~/projects
+
+# Stop everything before system shutdown
+bdui stop-all
+
+# Restart everything after reboot
+bdui restart-all
+```
+
+**Hybrid approach:**
+```bash
+# Critical project on dedicated port
+cd ~/production-app && bdui start --port 4000
+
+# Quick experiments share default port (workspace switching)
+cd ~/experiment1 && bdui start  # Registers with :3000
+cd ~/experiment2 && bdui start  # Also uses :3000, switch in UI
+```
+
+Each instance stores runtime data in `.beads/.bdui/` within the project directory
+(PID file, logs). A central registry at `~/.bdui/instances.json` tracks all
+running instances for CLI tools.
+
+See [ADR 003](docs/adr/003-multi-instance-runtime.md) for architecture details.
+
 ## Environment variables
 
 - `BD_BIN`: path to the `bd` binary.
@@ -74,26 +151,16 @@ bdui list
 
 These can also be set via CLI options: `bdui start --host 0.0.0.0 --port 8080`
 
-### Runtime Directory Resolution (NEW)
+### Runtime Directory Resolution
 
-beads-ui now uses **project-local** runtime directories, enabling multiple instances:
+Beads-ui automatically finds the best location for runtime files (PID, logs):
 
 1. `BDUI_RUNTIME_DIR` if set (explicit override)
-2. `.beads/.bdui/` in nearest beads project (**NEW** - one instance per project)
-3. `$XDG_RUNTIME_DIR/beads-ui` (global fallback)
-4. `os.tmpdir()/beads-ui` (global fallback)
+2. `.beads/.bdui/` in nearest beads project (enables multi-instance)
+3. `$XDG_RUNTIME_DIR/beads-ui` (single-instance fallback)
+4. `os.tmpdir()/beads-ui` (single-instance fallback)
 
-**Before:** Only one beads-ui instance could run (global PID file).
-**Now:** Run one instance per project on different ports.
-
-Example multi-project workflow:
-```bash
-cd ~/project1 && bdui start --port 4000 &
-cd ~/project2 && bdui start --port 4001 &
-cd ~/project3 && bdui start --port 4002 &
-```
-
-Each instance uses `.beads/.bdui/server.pid` and `.beads/.bdui/daemon.log` in its project.
+Project-local directories enable multiple instances with isolated state.
 
 ## Platform notes
 
