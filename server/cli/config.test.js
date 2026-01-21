@@ -10,7 +10,7 @@ import {
 
 /** @type {string} */
 let tmp_home;
-/** @type {string} */
+/** @type {string | undefined} */
 let prev_home;
 /** @type {string | undefined} */
 let prev_discovery_paths;

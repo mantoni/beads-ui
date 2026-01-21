@@ -22,7 +22,8 @@
 - ⛰️ **Epics view** – Show progress per epic, expand rows, edit inline
 - 🏂 **Board view** – Blocked / Ready / In progress / Closed columns
 - ⌨️ **Keyboard navigation** – Navigate and edit without touching the mouse
-- 🚀 **Multi-instance management** – Run multiple projects simultaneously with CLI tools
+- 🚀 **Multi-instance management** – Run multiple projects simultaneously with
+  CLI tools
 
 ## Setup
 
@@ -89,12 +90,14 @@ bdui restart-all
 ### When to Use Multi-Instance Mode
 
 **Use multiple instances when you:**
+
 - Work on several projects simultaneously and want boards open side-by-side
 - Need process isolation (one crash doesn't affect other projects)
 - Want different ports per project (firewall rules, proxies, remote access)
 - Prefer CLI-based automation workflows
 
 **Use single instance when you:**
+
 - Work on 1-2 projects casually
 - Prefer UI-based workspace switching (see v0.8.0+ workspace picker)
 - Want minimal resource usage
@@ -103,6 +106,7 @@ bdui restart-all
 ### Example Workflows
 
 **Side-by-side boards:**
+
 ```bash
 # Terminal 1
 cd ~/work-project && bdui start --port 4000 --open
@@ -115,6 +119,7 @@ bdui list
 ```
 
 **Batch management:**
+
 ```bash
 # Find all your beads projects
 bdui discover ~/code ~/projects
@@ -127,6 +132,7 @@ bdui restart-all
 ```
 
 **Hybrid approach:**
+
 ```bash
 # Critical project on dedicated port
 cd ~/production-app && bdui start --port 4000
@@ -136,27 +142,32 @@ cd ~/experiment1 && bdui start  # Registers with :3000
 cd ~/experiment2 && bdui start  # Also uses :3000, switch in UI
 ```
 
-Each instance stores runtime data in `.beads/.bdui/` within the project directory
-(PID file, logs). A central registry at `~/.bdui/instances.json` tracks all
-running instances for CLI tools.
+Each instance stores runtime data in `.beads/.bdui/` within the project
+directory (PID file, logs). A central registry at `~/.bdui/instances.json`
+tracks all running instances for CLI tools.
 
 See [ADR 003](docs/adr/003-multi-instance-runtime.md) for architecture details.
 
 ## Configuration
 
-📖 **See [CONFIGURATION.md](CONFIGURATION.md) for complete reference** (environment variables, config files, examples)
+📖 **See [CONFIGURATION.md](CONFIGURATION.md) for complete reference**
+(environment variables, config files, examples)
 
 beads-ui supports multiple configuration methods with the following precedence:
 
 **1. Environment Variables** (highest priority)
+
 - `BD_BIN`: path to the `bd` binary
 - `BDUI_RUNTIME_DIR`: override runtime directory for PID/logs
 - `HOST`: bind address (default `127.0.0.1`)
 - `PORT`: listen port (default `3000`)
-- `BDUI_DISCOVERY_PATHS`: colon-separated paths for project discovery (e.g., `~/code:~/projects`)
-- `BDUI_DEFAULT_PORT_START`: starting port for multi-instance mode (default `4000`)
+- `BDUI_DISCOVERY_PATHS`: colon-separated paths for project discovery (e.g.,
+  `~/code:~/projects`)
+- `BDUI_DEFAULT_PORT_START`: starting port for multi-instance mode (default
+  `4000`)
 
-**2. Config Files** (via [cosmiconfig](https://github.com/cosmiconfig/cosmiconfig))
+**2. Config Files** (via
+[cosmiconfig](https://github.com/cosmiconfig/cosmiconfig))
 
 Create a config file in your home directory using any of these formats:
 
@@ -223,13 +234,15 @@ Project-local directories enable multiple instances with isolated state.
 
 ## Documentation
 
-- **[CONFIGURATION.md](CONFIGURATION.md)** - Complete reference for environment variables, config files, and all configuration options
+- **[CONFIGURATION.md](CONFIGURATION.md)** - Complete reference for environment
+  variables, config files, and all configuration options
 - **[CHANGES.md](CHANGES.md)** - Version history and changelog
 - **[docs/adr/](docs/adr/)** - Architecture decision records
   - [ADR 001: Push-Only Lists](docs/adr/001-push-only-lists.md)
   - [ADR 002: Per-Subscription Stores](docs/adr/002-per-subscription-stores-and-full-issue-push.md)
   - [ADR 003: Multi-Instance Runtime](docs/adr/003-multi-instance-runtime.md)
-- **[docs/architecture.md](docs/architecture.md)** - System architecture overview
+- **[docs/architecture.md](docs/architecture.md)** - System architecture
+  overview
 - **[AGENTS.md](AGENTS.md)** - Guidelines for AI coding agents
 
 ## License

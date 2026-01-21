@@ -11,8 +11,7 @@ export default defineConfig({
         '**/test/**',
         'scripts/**',
         'server/index.js' // dev server entry
-      ],
-      all: true
+      ]
     },
     projects: [
       {

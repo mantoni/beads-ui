@@ -27,7 +27,7 @@ vi.mock('node:child_process', () => ({
 
 /** @type {string} */
 let tmp_home;
-/** @type {string} */
+/** @type {string | undefined} */
 let prev_home;
 /** @type {string} */
 let tmp_projects;
@@ -352,11 +352,13 @@ describe('handleRestartAll', () => {
   test('shows success when restart succeeds', async () => {
     const cp = await import('node:child_process');
     const spawn_mock = vi.mocked(cp.spawn);
-    spawn_mock.mockReturnValue({
-      pid: 77777,
-      unref: vi.fn(),
-      on: vi.fn()
-    });
+    spawn_mock.mockReturnValue(
+      /** @type {any} */ ({
+        pid: 77777,
+        unref: vi.fn(),
+        on: vi.fn()
+      })
+    );
 
     registry.registerInstance({
       project_path: '/test/project1',
@@ -374,11 +376,13 @@ describe('handleRestartAll', () => {
   test('shows failure when spawn fails', async () => {
     const cp = await import('node:child_process');
     const spawn_mock = vi.mocked(cp.spawn);
-    spawn_mock.mockReturnValue({
-      pid: undefined, // spawn failed
-      unref: vi.fn(),
-      on: vi.fn()
-    });
+    spawn_mock.mockReturnValue(
+      /** @type {any} */ ({
+        pid: undefined, // spawn failed
+        unref: vi.fn(),
+        on: vi.fn()
+      })
+    );
 
     registry.registerInstance({
       project_path: '/test/project1',
@@ -397,14 +401,18 @@ describe('handleRestartAll', () => {
     const cp = await import('node:child_process');
     const spawn_mock = vi.mocked(cp.spawn);
     let call_count = 0;
-    spawn_mock.mockImplementation(() => {
-      call_count++;
-      return {
-        pid: call_count === 1 ? 12345 : undefined, // First succeeds, second fails
-        unref: vi.fn(),
-        on: vi.fn()
-      };
-    });
+    spawn_mock.mockImplementation(
+      /** @type {any} */ (
+        () => {
+          call_count++;
+          return {
+            pid: call_count === 1 ? 12345 : undefined, // First succeeds, second fails
+            unref: vi.fn(),
+            on: vi.fn()
+          };
+        }
+      )
+    );
 
     registry.registerInstance({
       project_path: '/test/project1',
@@ -434,11 +442,13 @@ describe('handleRestartAll', () => {
   test('returns 0 when all restarts succeed', async () => {
     const cp = await import('node:child_process');
     const spawn_mock = vi.mocked(cp.spawn);
-    spawn_mock.mockReturnValue({
-      pid: 55555,
-      unref: vi.fn(),
-      on: vi.fn()
-    });
+    spawn_mock.mockReturnValue(
+      /** @type {any} */ ({
+        pid: 55555,
+        unref: vi.fn(),
+        on: vi.fn()
+      })
+    );
 
     registry.registerInstance({
       project_path: '/test/project1',

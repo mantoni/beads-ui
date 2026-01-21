@@ -9,7 +9,7 @@ import { registerWorkspace } from './registry-watcher.js';
 /**
  * Create and configure the Express application.
  *
- * @param {{ host: string, port: number, app_dir: string, root_dir: string }} config - Server configuration.
+ * @param {{ host: string, port: number, app_dir: string, root_dir: string, project_name?: string }} config - Server configuration.
  * @returns {Express} Configured Express app instance.
  */
 export function createApp(config) {

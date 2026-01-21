@@ -13,9 +13,9 @@
  * - ~/.config/bdui/config.json, config.yaml, config.yml
  * - package.json "bdui" property
  */
+import { cosmiconfig } from 'cosmiconfig';
 import os from 'node:os';
 import path from 'node:path';
-import { cosmiconfig } from 'cosmiconfig';
 
 const explorer = cosmiconfig('bdui', {
   searchPlaces: [
@@ -60,9 +60,11 @@ export async function getDiscoveryPaths() {
   // 1. Check environment variable first (backward compatibility)
   const env_paths = process.env.BDUI_DISCOVERY_PATHS;
   if (env_paths && env_paths.length > 0) {
-    return env_paths.split(':').map((p) =>
-      p.startsWith('~/') ? path.join(os.homedir(), p.slice(2)) : p
-    );
+    return env_paths
+      .split(':')
+      .map((p) =>
+        p.startsWith('~/') ? path.join(os.homedir(), p.slice(2)) : p
+      );
   }
 
   // 2. Check config file

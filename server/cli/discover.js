@@ -12,8 +12,13 @@ import path from 'node:path';
  * @returns {string[]} - Array of project paths (directories containing .beads/)
  */
 export function findBeadsProjects(search_path, max_depth = 4) {
+  /** @type {string[]} */
   const projects = [];
 
+  /**
+   * @param {string} dir
+   * @param {number} depth
+   */
   function walk(dir, depth) {
     if (depth > max_depth) return;
 
@@ -21,7 +26,9 @@ export function findBeadsProjects(search_path, max_depth = 4) {
       const entries = fs.readdirSync(dir, { withFileTypes: true });
 
       // Check if this directory has .beads/
-      const has_beads = entries.some(e => e.isDirectory() && e.name === '.beads');
+      const has_beads = entries.some(
+        (e) => e.isDirectory() && e.name === '.beads'
+      );
       if (has_beads) {
         projects.push(dir);
         // Don't recurse into beads projects (avoid nested projects)
@@ -33,11 +40,13 @@ export function findBeadsProjects(search_path, max_depth = 4) {
         if (!entry.isDirectory()) continue;
 
         // Skip common large directories
-        if (entry.name === 'node_modules' ||
-            entry.name === '.git' ||
-            entry.name === 'dist' ||
-            entry.name === 'build' ||
-            entry.name.startsWith('.')) {
+        if (
+          entry.name === 'node_modules' ||
+          entry.name === '.git' ||
+          entry.name === 'dist' ||
+          entry.name === 'build' ||
+          entry.name.startsWith('.')
+        ) {
           continue;
         }
 
@@ -67,7 +76,9 @@ export async function handleDiscover(search_paths = []) {
 
     if (configured_paths && configured_paths.length > 0) {
       search_paths = configured_paths;
-      const source = process.env.BDUI_DISCOVERY_PATHS ? 'BDUI_DISCOVERY_PATHS' : 'config file';
+      const source = process.env.BDUI_DISCOVERY_PATHS
+        ? 'BDUI_DISCOVERY_PATHS'
+        : 'config file';
       console.log(`Using discovery paths from ${source}\n`);
     } else {
       console.error('No search paths provided and none configured.');
@@ -88,7 +99,9 @@ export async function handleDiscover(search_paths = []) {
       console.log('  3. One-time search (no config):');
       console.log('       bdui discover ~/code ~/projects');
       console.log('');
-      console.log('See: https://github.com/cosmiconfig/cosmiconfig for config formats');
+      console.log(
+        'See: https://github.com/cosmiconfig/cosmiconfig for config formats'
+      );
       return 1;
     }
   }

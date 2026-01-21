@@ -22,9 +22,18 @@ function getRegistryPath() {
 }
 
 /**
+ * @typedef {Object} InstanceData
+ * @property {string} path
+ * @property {number} port
+ * @property {number} pid
+ * @property {string} started_at
+ * @property {string} [stopped_at]
+ */
+
+/**
  * Read the registry file.
  *
- * @returns {Record<string, { path: string, port: number, pid: number, started_at: string }>}
+ * @returns {Record<string, InstanceData>}
  */
 export function readRegistry() {
   const registry_path = getRegistryPath();
@@ -41,12 +50,20 @@ export function readRegistry() {
  *
  * @param {Record<string, any>} registry
  */
+/**
+ * Write the registry file.
+ *
+ * @param {Record<string, InstanceData>} registry
+ */
 function writeRegistry(registry) {
   const registry_path = getRegistryPath();
   try {
     fs.writeFileSync(registry_path, JSON.stringify(registry, null, 2), 'utf8');
   } catch (err) {
-    console.warn('Failed to write registry:', err.message);
+    console.warn(
+      'Failed to write registry:',
+      /** @type {Error} */ (err).message
+    );
   }
 }
 
@@ -63,7 +80,7 @@ function getProjectName(project_path) {
 /**
  * Register a running instance.
  *
- * @param {{ project_path: string, port: number, pid: number }}
+ * @param {{ project_path: string, port: number, pid: number }} params
  */
 export function registerInstance({ project_path, port, pid }) {
   const registry = readRegistry();
@@ -132,6 +149,7 @@ export function getAllInstances() {
  */
 export function cleanRegistry() {
   const registry = readRegistry();
+  /** @type {Record<string, InstanceData>} */
   const clean_registry = {};
 
   for (const [project, data] of Object.entries(registry)) {

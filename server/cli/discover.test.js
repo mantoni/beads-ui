@@ -66,10 +66,7 @@ describe('findBeadsProjects', () => {
   });
 
   test('skips node_modules directories', () => {
-    fs.mkdirSync(
-      path.join(tmp_dir, 'project', '.beads'),
-      { recursive: true }
-    );
+    fs.mkdirSync(path.join(tmp_dir, 'project', '.beads'), { recursive: true });
     fs.mkdirSync(
       path.join(tmp_dir, 'project', 'node_modules', 'some-package', '.beads'),
       { recursive: true }
@@ -155,10 +152,9 @@ describe('findBeadsProjects', () => {
     fs.mkdirSync(path.join(tmp_dir, 'a', 'b', 'c', 'level4', '.beads'), {
       recursive: true
     });
-    fs.mkdirSync(
-      path.join(tmp_dir, 'a', 'b', 'c', 'd', 'level5', '.beads'),
-      { recursive: true }
-    );
+    fs.mkdirSync(path.join(tmp_dir, 'a', 'b', 'c', 'd', 'level5', '.beads'), {
+      recursive: true
+    });
 
     const projects = findBeadsProjects(tmp_dir, 3);
 
@@ -200,16 +196,18 @@ describe('findBeadsProjects', () => {
 });
 
 describe('handleDiscover', () => {
+  /** @type {any} */
   let console_log_spy;
+  /** @type {any} */
   let console_error_spy;
+  /** @type {string} */
   let tmp_home;
+  /** @type {string | undefined} */
   let prev_home;
 
   beforeEach(() => {
     console_log_spy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    console_error_spy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {});
+    console_error_spy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     tmp_home = fs.mkdtempSync(path.join(os.tmpdir(), 'bdui-home-'));
     prev_home = process.env.HOME;

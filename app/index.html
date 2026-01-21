@@ -8,8 +8,8 @@
     <script>
       // Fetch project config and update title on load
       fetch('/api/config')
-        .then(r => r.json())
-        .then(config => {
+        .then((r) => r.json())
+        .then((config) => {
           const title = `Beads - ${config.project_name}`;
           document.title = title;
           const appTitle = document.querySelector('.app-title');
@@ -26,11 +26,12 @@
 
       function loadInstances() {
         fetch('/api/instances')
-          .then(r => r.json())
-          .then(data => {
+          .then((r) => r.json())
+          .then((data) => {
             instancesData = data;
-            const running = data.instances.filter(i => i.running);
-            document.getElementById('boards-count').textContent = running.length;
+            const running = data.instances.filter((i) => i.running);
+            document.getElementById('boards-count').textContent =
+              running.length;
           })
           .catch(() => {
             document.getElementById('boards-count').textContent = '?';
@@ -43,16 +44,18 @@
         const modal = document.getElementById('boards-modal');
         const listEl = document.getElementById('boards-list');
 
-        const running = instancesData.instances.filter(i => i.running);
+        const running = instancesData.instances.filter((i) => i.running);
         const current = instancesData.current;
 
         if (running.length === 0) {
-          listEl.innerHTML = '<p style="padding: 1rem;">No other boards running.</p>';
+          listEl.innerHTML =
+            '<p style="padding: 1rem;">No other boards running.</p>';
         } else {
-          const items = running.map(instance => {
-            const isCurrent = instance.project === current;
-            const url = `http://127.0.0.1:${instance.port}`;
-            return `
+          const items = running
+            .map((instance) => {
+              const isCurrent = instance.project === current;
+              const url = `http://127.0.0.1:${instance.port}`;
+              return `
               <div class="board-item ${isCurrent ? 'current' : ''}">
                 <div class="board-info">
                   <strong>${instance.project}</strong>
@@ -62,7 +65,8 @@
                 ${!isCurrent ? `<a href="${url}" target="_blank" class="board-link">Open →</a>` : ''}
               </div>
             `;
-          }).join('');
+            })
+            .join('');
 
           listEl.innerHTML = items;
         }
@@ -81,16 +85,22 @@
         setInterval(loadInstances, 5000);
 
         // Wire up modal
-        document.getElementById('boards-btn').addEventListener('click', showBoardsModal);
-        document.getElementById('boards-modal-close').addEventListener('click', hideBoardsModal);
+        document
+          .getElementById('boards-btn')
+          .addEventListener('click', showBoardsModal);
+        document
+          .getElementById('boards-modal-close')
+          .addEventListener('click', hideBoardsModal);
 
         // Close modal when clicking outside (on backdrop)
-        document.getElementById('boards-modal').addEventListener('click', (e) => {
-          // Close if clicking the modal backdrop itself, not the content
-          if (e.target.classList.contains('modal')) {
-            hideBoardsModal();
-          }
-        });
+        document
+          .getElementById('boards-modal')
+          .addEventListener('click', (e) => {
+            // Close if clicking the modal backdrop itself, not the content
+            if (e.target.classList.contains('modal')) {
+              hideBoardsModal();
+            }
+          });
       });
     </script>
   </head>
@@ -117,7 +127,7 @@
           id="boards-btn"
           type="button"
           title="Switch between boards"
-          style="margin-right: 8px;"
+          style="margin-right: 8px"
         >
           Boards (<span id="boards-count">0</span>)
         </button>
@@ -144,9 +154,7 @@
             <h2>Running Boards</h2>
             <button class="modal-close" id="boards-modal-close">&times;</button>
           </div>
-          <div id="boards-list" class="boards-list">
-            Loading...
-          </div>
+          <div id="boards-list" class="boards-list">Loading...</div>
         </div>
       </div>
     </header>

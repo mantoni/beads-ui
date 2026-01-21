@@ -125,7 +125,7 @@ describe('handleMigrate --force integration', () => {
       fs.writeFileSync(old_pid_path, String(test_pid), 'utf8');
 
       // Wait for process to start
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       const code = await handleMigrate({ force: true });
 

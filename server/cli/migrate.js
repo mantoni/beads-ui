@@ -1,10 +1,10 @@
 /**
  * Migration utilities for upgrading from old global PID system to new project-local system.
  */
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
 
 /**
  * Get old global PID file location (pre-project-local architecture).
@@ -62,13 +62,13 @@ export async function killProcess(pid) {
   try {
     process.kill(pid, 'SIGTERM');
     // Wait a bit for graceful shutdown
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Check if still running
     if (isProcessRunning(pid)) {
       // Force kill
       process.kill(pid, 'SIGKILL');
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     return !isProcessRunning(pid);
@@ -176,7 +176,9 @@ export async function handleMigrate(options = {}) {
     }
   }
 
-  console.log('⚠ WARNING: Found running beads-ui instance from old global system.');
+  console.log(
+    '⚠ WARNING: Found running beads-ui instance from old global system.'
+  );
   console.log('');
   console.log('Migration options:');
   console.log('  a) Automatic: bdui migrate --force');
@@ -188,7 +190,9 @@ export async function handleMigrate(options = {}) {
   console.log('        - Create ~/.bduirc: {"discoveryPaths": ["~/code"]}');
   console.log('        - Or: export BDUI_DISCOVERY_PATHS="~/code:~/projects"');
   console.log('     3. Discover projects: bdui discover');
-  console.log('     4. Start instances: cd <project> && bdui start --port 4000');
+  console.log(
+    '     4. Start instances: cd <project> && bdui start --port 4000'
+  );
   console.log('');
   console.log('After migration, each project gets its own instance.');
   console.log('Use "bdui list" to see all running instances.');

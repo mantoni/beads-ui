@@ -14,7 +14,7 @@ import {
 
 /** @type {string} */
 let tmp_home;
-/** @type {string} */
+/** @type {string | undefined} */
 let prev_home;
 
 beforeEach(() => {
@@ -296,6 +296,7 @@ describe('registry', () => {
 
       const registry = readRegistry();
       expect(registry['my-project']).toBeDefined();
+      expect(registry['my-project'].stopped_at).toBeDefined();
       expect(registry['my-project'].stopped_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       expect(registry['my-project'].port).toBe(4000); // preserved
       expect(registry['my-project'].path).toBe('/test/my-project'); // preserved

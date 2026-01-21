@@ -10,10 +10,10 @@ import {
 } from './daemon.js';
 import { openUrl, registerWorkspaceWithServer, waitForServer } from './open.js';
 import {
-  registerInstance,
-  unregisterInstanceByPath,
+  cleanRegistry,
   getAllInstances,
-  cleanRegistry
+  registerInstance,
+  unregisterInstanceByPath
 } from './registry.js';
 
 /**
@@ -189,7 +189,7 @@ export async function handleList() {
  */
 export async function handleStopAll() {
   const instances = getAllInstances();
-  const running = instances.filter(i => i.running);
+  const running = instances.filter((i) => i.running);
 
   if (running.length === 0) {
     console.log('No running instances to stop.');
@@ -253,16 +253,20 @@ export async function handleRestartAll() {
 
     // Start in the project directory on registered port
     const { spawn } = await import('node:child_process');
-    const child = spawn(process.argv[1], ['start', '--port', String(instance.port)], {
-      cwd: instance.path,
-      detached: true,
-      stdio: 'ignore'
-    });
+    const child = spawn(
+      process.argv[1],
+      ['start', '--port', String(instance.port)],
+      {
+        cwd: instance.path,
+        detached: true,
+        stdio: 'ignore'
+      }
+    );
 
     child.unref();
 
     // Wait briefly for startup
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     if (child.pid) {
       restarted++;

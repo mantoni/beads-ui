@@ -250,7 +250,7 @@ describe('isProcessRunning', () => {
     // Mock process.kill to throw EPERM
     const orig_kill = process.kill;
     process.kill = vi.fn(() => {
-      const err = new Error('EPERM');
+      const err = /** @type {NodeJS.ErrnoException} */ (new Error('EPERM'));
       err.code = 'EPERM';
       throw err;
     });
@@ -277,19 +277,24 @@ describe('killProcess', () => {
     const orig_kill = process.kill;
     let kill_count = 0;
 
-    process.kill = vi.fn((pid, sig) => {
-      kill_count++;
-      if (sig === 0) {
-        // isProcessRunning check after SIGTERM
-        if (kill_count > 1) {
-          // Process exited after SIGTERM, report as dead
-          const err = new Error('ESRCH');
-          err.code = 'ESRCH';
-          throw err;
+    process.kill = /** @type {typeof process.kill} */ (
+      vi.fn((pid, sig) => {
+        kill_count++;
+        if (sig === 0) {
+          // isProcessRunning check after SIGTERM
+          if (kill_count > 1) {
+            // Process exited after SIGTERM, report as dead
+            const err = /** @type {NodeJS.ErrnoException} */ (
+              new Error('ESRCH')
+            );
+            err.code = 'ESRCH';
+            throw err;
+          }
         }
-      }
-      // SIGTERM sent successfully
-    });
+        // SIGTERM sent successfully
+        return true;
+      })
+    );
 
     const killed = await killProcess(12345);
 
@@ -299,32 +304,35 @@ describe('killProcess', () => {
     process.kill = orig_kill;
   });
 
-  test(
-    'tries SIGKILL if SIGTERM fails',
-    { timeout: 3000 },
-    async () => {
-      const orig_kill = process.kill;
-      const signals_sent = [];
+  test('tries SIGKILL if SIGTERM fails', { timeout: 3000 }, async () => {
+    const orig_kill = process.kill;
+    /** @type {Array<string | number | undefined>} */
+    const signals_sent = [];
 
-      process.kill = vi.fn((pid, sig) => {
+    process.kill = /** @type {typeof process.kill} */ (
+      vi.fn((pid, sig) => {
         signals_sent.push(sig);
         // Process stays alive until SIGKILL
-        if (sig === 0 && signals_sent.filter(s => s === 'SIGKILL').length > 0) {
-          const err = new Error('ESRCH');
+        if (
+          sig === 0 &&
+          signals_sent.filter((s) => s === 'SIGKILL').length > 0
+        ) {
+          const err = /** @type {NodeJS.ErrnoException} */ (new Error('ESRCH'));
           err.code = 'ESRCH';
           throw err;
         }
-      });
+        return true;
+      })
+    );
 
-      const killed = await killProcess(12345);
+    const killed = await killProcess(12345);
 
-      expect(signals_sent).toContain('SIGTERM');
-      expect(signals_sent).toContain('SIGKILL');
-      expect(killed).toBe(true);
+    expect(signals_sent).toContain('SIGTERM');
+    expect(signals_sent).toContain('SIGKILL');
+    expect(killed).toBe(true);
 
-      process.kill = orig_kill;
-    }
-  );
+    process.kill = orig_kill;
+  });
 
   test('returns false when kill throws non-ESRCH error', async () => {
     const orig_kill = process.kill;
@@ -341,6 +349,7 @@ describe('killProcess', () => {
 });
 
 describe('startInstanceForProject', () => {
+  /** @type {any} */
   let spawn_mock;
 
   beforeEach(async () => {

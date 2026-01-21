@@ -6,7 +6,7 @@ describe('workspace-picker', () => {
   let mount_element;
   /** @type {any} */
   let mock_store;
-  /** @type {Function} */
+  /** @type {(workspace_path: string) => Promise<void>} */
   let on_workspace_change;
 
   beforeEach(() => {
@@ -44,8 +44,8 @@ describe('workspace-picker', () => {
 
     const label = mount_element.querySelector('.workspace-picker__label');
     expect(label).toBeTruthy();
-    expect(label.textContent).toBe('my-project');
-    expect(label.getAttribute('title')).toBe('/home/user/my-project');
+    expect(label?.textContent).toBe('my-project');
+    expect(label?.getAttribute('title')).toBe('/home/user/my-project');
   });
 
   test('renders dropdown for multiple workspaces', () => {
@@ -61,16 +61,14 @@ describe('workspace-picker', () => {
 
     createWorkspacePicker(mount_element, mock_store, on_workspace_change);
 
-    const select = mount_element.querySelector(
-      '.workspace-picker__select'
-    );
+    const select = mount_element.querySelector('.workspace-picker__select');
     expect(select).toBeTruthy();
-    expect(select.tagName).toBe('SELECT');
+    expect(select?.tagName).toBe('SELECT');
 
-    const options = select.querySelectorAll('option');
+    const options = select?.querySelectorAll('option');
     expect(options).toHaveLength(2);
-    expect(options[0].textContent.trim()).toBe('project1');
-    expect(options[1].textContent.trim()).toBe('project2');
+    expect(options?.[0].textContent.trim()).toBe('project1');
+    expect(options?.[1].textContent.trim()).toBe('project2');
   });
 
   test('marks current workspace as selected', () => {
@@ -86,14 +84,14 @@ describe('workspace-picker', () => {
 
     createWorkspacePicker(mount_element, mock_store, on_workspace_change);
 
-    const select = mount_element.querySelector(
-      '.workspace-picker__select'
+    const select = /** @type {HTMLSelectElement | null} */ (
+      mount_element.querySelector('.workspace-picker__select')
     );
-    expect(select.value).toBe('/home/user/project2');
+    expect(select?.value).toBe('/home/user/project2');
 
-    const options = Array.from(select.querySelectorAll('option'));
+    const options = Array.from(select?.querySelectorAll('option') || []);
     const selected = options.find((o) => o.selected);
-    expect(selected.value).toBe('/home/user/project2');
+    expect(selected?.value).toBe('/home/user/project2');
   });
 
   test('calls onWorkspaceChange when selection changes', async () => {
@@ -109,11 +107,13 @@ describe('workspace-picker', () => {
 
     createWorkspacePicker(mount_element, mock_store, on_workspace_change);
 
-    const select = mount_element.querySelector(
-      '.workspace-picker__select'
+    const select = /** @type {HTMLSelectElement | null} */ (
+      mount_element.querySelector('.workspace-picker__select')
     );
-    select.value = '/home/user/project2';
-    select.dispatchEvent(new Event('change'));
+    if (select) {
+      select.value = '/home/user/project2';
+      select.dispatchEvent(new Event('change'));
+    }
 
     // Wait for async handler
     await new Promise((resolve) => setTimeout(resolve, 10));
@@ -134,12 +134,14 @@ describe('workspace-picker', () => {
 
     createWorkspacePicker(mount_element, mock_store, on_workspace_change);
 
-    const select = mount_element.querySelector(
-      '.workspace-picker__select'
+    const select = /** @type {HTMLSelectElement | null} */ (
+      mount_element.querySelector('.workspace-picker__select')
     );
     // Select same workspace
-    select.value = '/home/user/project1';
-    select.dispatchEvent(new Event('change'));
+    if (select) {
+      select.value = '/home/user/project1';
+      select.dispatchEvent(new Event('change'));
+    }
 
     await new Promise((resolve) => setTimeout(resolve, 10));
 
@@ -158,28 +160,33 @@ describe('workspace-picker', () => {
     };
 
     // Make onWorkspaceChange slow to test loading state
+    /** @type {(() => void) | undefined} */
     let resolve_switch;
-    const switch_promise = new Promise((r) => {
-      resolve_switch = r;
-    });
+    const switch_promise = new Promise(
+      (/** @type {(value?: any) => void} */ r) => {
+        resolve_switch = r;
+      }
+    );
     on_workspace_change = vi.fn(() => switch_promise);
 
     createWorkspacePicker(mount_element, mock_store, on_workspace_change);
 
-    const select = mount_element.querySelector(
-      '.workspace-picker__select'
+    const select = /** @type {HTMLSelectElement | null} */ (
+      mount_element.querySelector('.workspace-picker__select')
     );
-    select.value = '/home/user/project2';
-    select.dispatchEvent(new Event('change'));
+    if (select) {
+      select.value = '/home/user/project2';
+      select.dispatchEvent(new Event('change'));
+    }
 
     // Wait a tick for onChange to start
     await new Promise((resolve) => setTimeout(resolve, 10));
 
     // Select should be disabled during switch
-    expect(select.disabled).toBe(true);
+    expect(/** @type {HTMLSelectElement} */ (select).disabled).toBe(true);
 
     // Complete the switch
-    resolve_switch();
+    resolve_switch?.();
     await new Promise((resolve) => setTimeout(resolve, 10));
   });
 
@@ -194,29 +201,32 @@ describe('workspace-picker', () => {
       }
     };
 
+    /** @type {(() => void) | undefined} */
     let resolve_switch;
-    const switch_promise = new Promise((r) => {
-      resolve_switch = r;
-    });
+    const switch_promise = new Promise(
+      (/** @type {(value?: any) => void} */ r) => {
+        resolve_switch = r;
+      }
+    );
     on_workspace_change = vi.fn(() => switch_promise);
 
     createWorkspacePicker(mount_element, mock_store, on_workspace_change);
 
-    const select = mount_element.querySelector(
-      '.workspace-picker__select'
+    const select = /** @type {HTMLSelectElement | null} */ (
+      mount_element.querySelector('.workspace-picker__select')
     );
-    select.value = '/home/user/project2';
-    select.dispatchEvent(new Event('change'));
+    if (select) {
+      select.value = '/home/user/project2';
+      select.dispatchEvent(new Event('change'));
+    }
 
     await new Promise((resolve) => setTimeout(resolve, 10));
 
     // Loading indicator should be present
-    const loading = mount_element.querySelector(
-      '.workspace-picker__loading'
-    );
+    const loading = mount_element.querySelector('.workspace-picker__loading');
     expect(loading).toBeTruthy();
 
-    resolve_switch();
+    resolve_switch?.();
     await new Promise((resolve) => setTimeout(resolve, 10));
   });
 
@@ -232,22 +242,22 @@ describe('workspace-picker', () => {
     };
 
     // onWorkspaceChange rejects
-    on_workspace_change = vi
-      .fn()
-      .mockRejectedValue(new Error('Network error'));
+    on_workspace_change = vi.fn().mockRejectedValue(new Error('Network error'));
 
     createWorkspacePicker(mount_element, mock_store, on_workspace_change);
 
-    const select = mount_element.querySelector(
-      '.workspace-picker__select'
+    const select = /** @type {HTMLSelectElement | null} */ (
+      mount_element.querySelector('.workspace-picker__select')
     );
-    select.value = '/home/user/project2';
-    select.dispatchEvent(new Event('change'));
+    if (select) {
+      select.value = '/home/user/project2';
+      select.dispatchEvent(new Event('change'));
+    }
 
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     // Should not throw, handles error gracefully
-    expect(select.disabled).toBe(false);
+    expect(/** @type {HTMLSelectElement} */ (select).disabled).toBe(false);
   });
 
   test('subscribes to store updates', () => {
@@ -305,7 +315,7 @@ describe('workspace-picker', () => {
     createWorkspacePicker(mount_element, mock_store, on_workspace_change);
 
     const label = mount_element.querySelector('.workspace-picker__label');
-    expect(label.textContent).toBe('my-awesome-project');
+    expect(label?.textContent).toBe('my-awesome-project');
   });
 
   test('handles empty workspace path gracefully', () => {
@@ -319,10 +329,11 @@ describe('workspace-picker', () => {
     createWorkspacePicker(mount_element, mock_store, on_workspace_change);
 
     const label = mount_element.querySelector('.workspace-picker__label');
-    expect(label.textContent).toBe('Unknown');
+    expect(label?.textContent).toBe('Unknown');
   });
 
   test('re-renders on store updates', () => {
+    /** @type {any} */
     let subscriber_fn;
     mock_store.subscribe = vi.fn((fn) => {
       subscriber_fn = fn;
@@ -346,10 +357,10 @@ describe('workspace-picker', () => {
     };
 
     // Trigger subscriber
-    subscriber_fn(mock_store.state);
+    subscriber_fn?.(mock_store.state);
 
     // Should re-render with new workspace
     const label = mount_element.querySelector('.workspace-picker__label');
-    expect(label.textContent).toBe('new-project');
+    expect(label?.textContent).toBe('new-project');
   });
 });
