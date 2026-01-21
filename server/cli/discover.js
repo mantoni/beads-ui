@@ -3,10 +3,10 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import os from 'node:os';
 
 /**
- * Recursively find all directories containing .beads/ subdirectory
+ * Recursively find all directories containing .beads/ subdirectory.
+ *
  * @param {string} search_path - Root path to search
  * @param {number} max_depth - Maximum recursion depth (default: 4)
  * @returns {string[]} - Array of project paths (directories containing .beads/)
@@ -43,7 +43,7 @@ export function findBeadsProjects(search_path, max_depth = 4) {
 
         walk(path.join(dir, entry.name), depth + 1);
       }
-    } catch (err) {
+    } catch {
       // Permission denied or other errors - skip directory
     }
   }
@@ -53,7 +53,8 @@ export function findBeadsProjects(search_path, max_depth = 4) {
 }
 
 /**
- * Handle discover command
+ * Handle discover command.
+ *
  * @param {string[]} search_paths - Paths to search
  * @returns {Promise<number>}
  */

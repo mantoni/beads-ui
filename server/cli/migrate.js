@@ -5,11 +5,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { registerInstance } from './registry.js';
-import { findBeadsProjects } from './discover.js';
 
 /**
- * Get old global PID file location (pre-project-local architecture)
+ * Get old global PID file location (pre-project-local architecture).
+ *
  * @returns {string}
  */
 function getOldGlobalPidPath() {
@@ -21,7 +20,8 @@ function getOldGlobalPidPath() {
 }
 
 /**
- * Check if old global PID file exists
+ * Check if old global PID file exists.
+ *
  * @returns {number | null} - PID if exists and valid
  */
 export function checkOldGlobalPid() {
@@ -39,7 +39,7 @@ export function checkOldGlobalPid() {
 }
 
 /**
- * Clean up old global PID file
+ * Clean up old global PID file.
  */
 export function removeOldGlobalPid() {
   const old_pid_path = getOldGlobalPidPath();
@@ -52,8 +52,9 @@ export function removeOldGlobalPid() {
 }
 
 /**
- * Kill a process by PID
- * Exported for testing
+ * Kill a process by PID.
+ * Exported for testing.
+ *
  * @param {number} pid
  * @returns {Promise<boolean>}
  */
@@ -83,8 +84,9 @@ export async function killProcess(pid) {
 }
 
 /**
- * Start bdui for a project on a specific port
- * Exported for testing
+ * Start bdui for a project on a specific port.
+ * Exported for testing.
+ *
  * @param {string} project_path
  * @param {number} port
  * @returns {Promise<{ success: boolean, pid?: number, error?: string }>}
@@ -113,7 +115,8 @@ export async function startInstanceForProject(project_path, port) {
 }
 
 /**
- * Handle migration from old global system
+ * Handle migration from old global system.
+ *
  * @param {{ force?: boolean }} options
  * @returns {Promise<number>} Exit code
  */
@@ -194,8 +197,9 @@ export async function handleMigrate(options = {}) {
 }
 
 /**
- * Check if a process is running
- * Exported for testing
+ * Check if a process is running.
+ * Exported for testing.
+ *
  * @param {number} pid
  * @returns {boolean}
  */

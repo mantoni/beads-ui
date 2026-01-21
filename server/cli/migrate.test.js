@@ -18,15 +18,12 @@ vi.mock('node:child_process', () => ({
 
 /** @type {string} */
 let tmp_dir;
-/** @type {string} */
-let prev_xdg;
 /** @type {string | undefined} */
 let orig_xdg;
 
 beforeEach(() => {
   tmp_dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bdui-migrate-'));
   orig_xdg = process.env.XDG_RUNTIME_DIR;
-  prev_xdg = tmp_dir;
   process.env.XDG_RUNTIME_DIR = tmp_dir;
 
   // Mock console methods

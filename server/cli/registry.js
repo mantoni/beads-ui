@@ -7,7 +7,8 @@ import os from 'node:os';
 import path from 'node:path';
 
 /**
- * Get path to central registry file
+ * Get path to central registry file.
+ *
  * @returns {string}
  */
 function getRegistryPath() {
@@ -21,7 +22,8 @@ function getRegistryPath() {
 }
 
 /**
- * Read the registry file
+ * Read the registry file.
+ *
  * @returns {Record<string, { path: string, port: number, pid: number, started_at: string }>}
  */
 export function readRegistry() {
@@ -35,7 +37,8 @@ export function readRegistry() {
 }
 
 /**
- * Write the registry file
+ * Write the registry file.
+ *
  * @param {Record<string, any>} registry
  */
 function writeRegistry(registry) {
@@ -48,7 +51,8 @@ function writeRegistry(registry) {
 }
 
 /**
- * Get project name from path (last directory component)
+ * Get project name from path (last directory component).
+ *
  * @param {string} project_path
  * @returns {string}
  */
@@ -57,7 +61,8 @@ function getProjectName(project_path) {
 }
 
 /**
- * Register a running instance
+ * Register a running instance.
+ *
  * @param {{ project_path: string, port: number, pid: number }}
  */
 export function registerInstance({ project_path, port, pid }) {
@@ -75,7 +80,8 @@ export function registerInstance({ project_path, port, pid }) {
 }
 
 /**
- * Unregister an instance by project name
+ * Unregister an instance by project name.
+ *
  * @param {string} project_name
  */
 export function unregisterInstance(project_name) {
@@ -85,7 +91,8 @@ export function unregisterInstance(project_name) {
 }
 
 /**
- * Unregister by project path
+ * Unregister by project path.
+ *
  * @param {string} project_path
  */
 export function unregisterInstanceByPath(project_path) {
@@ -94,7 +101,8 @@ export function unregisterInstanceByPath(project_path) {
 }
 
 /**
- * Get all running instances (verified by PID check)
+ * Get all running instances (verified by PID check).
+ *
  * @returns {Array<{ project: string, path: string, port: number, pid: number, started_at: string, running: boolean }>}
  */
 export function getAllInstances() {
@@ -138,7 +146,8 @@ export function cleanRegistry() {
 }
 
 /**
- * Mark an instance as stopped in registry (without removing it)
+ * Mark an instance as stopped in registry (without removing it).
+ *
  * @param {string} project_path
  */
 export function markInstanceStopped(project_path) {
@@ -153,7 +162,8 @@ export function markInstanceStopped(project_path) {
 }
 
 /**
- * Check if a process is running
+ * Check if a process is running.
+ *
  * @param {number} pid
  * @returns {boolean}
  */

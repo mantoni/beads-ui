@@ -36,8 +36,9 @@ const explorer = cosmiconfig('bdui', {
 });
 
 /**
- * Load user configuration from standard locations
- * Searches from home directory for global config
+ * Load user configuration from standard locations.
+ * Searches from home directory for global config.
+ *
  * @returns {Promise<{ discoveryPaths?: string[], defaultPortStart?: number } | null>}
  */
 export async function loadUserConfig() {
@@ -50,8 +51,9 @@ export async function loadUserConfig() {
 }
 
 /**
- * Get discovery paths with precedence: ENV > config file > null
- * Supports BDUI_DISCOVERY_PATHS environment variable (colon-separated)
+ * Get discovery paths with precedence: ENV > config file > null.
+ * Supports BDUI_DISCOVERY_PATHS environment variable (colon-separated).
+ *
  * @returns {Promise<string[] | null>}
  */
 export async function getDiscoveryPaths() {
@@ -76,8 +78,9 @@ export async function getDiscoveryPaths() {
 }
 
 /**
- * Get default starting port for multi-instance mode
- * Supports BDUI_DEFAULT_PORT_START environment variable
+ * Get default starting port for multi-instance mode.
+ * Supports BDUI_DEFAULT_PORT_START environment variable.
+ *
  * @returns {Promise<number>} Default: 4000
  */
 export async function getDefaultPortStart() {

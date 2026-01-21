@@ -147,6 +147,7 @@ export async function handleRestart(options) {
 
 /**
  * Handle `list` command - show all running beads-ui instances.
+ *
  * @returns {Promise<number>} Exit code
  */
 export async function handleList() {
@@ -183,6 +184,7 @@ export async function handleList() {
 
 /**
  * Handle `stop-all` command - stop all running instances.
+ *
  * @returns {Promise<number>} Exit code
  */
 export async function handleStopAll() {
@@ -221,6 +223,7 @@ export async function handleStopAll() {
 
 /**
  * Handle `restart-all` command - restart all registered instances.
+ *
  * @returns {Promise<number>} Exit code
  */
 export async function handleRestartAll() {

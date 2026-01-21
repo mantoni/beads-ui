@@ -17,7 +17,7 @@ describe('workspace-picker', () => {
     mock_store = {
       state: { workspace: { current: null, available: [] } },
       getState: vi.fn(() => mock_store.state),
-      subscribe: vi.fn((fn) => {
+      subscribe: vi.fn(() => {
         const unsub = () => {};
         return unsub;
       })

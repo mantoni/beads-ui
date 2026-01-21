@@ -11,8 +11,6 @@ import { handleMigrate, isProcessRunning } from './migrate.js';
 
 /** @type {string} */
 let tmp_dir;
-/** @type {string} */
-let prev_xdg;
 /** @type {string | undefined} */
 let orig_xdg;
 /** @type {number[]} */
@@ -21,7 +19,6 @@ let spawned_pids;
 beforeEach(() => {
   tmp_dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bdui-migrate-int-'));
   orig_xdg = process.env.XDG_RUNTIME_DIR;
-  prev_xdg = tmp_dir;
   process.env.XDG_RUNTIME_DIR = tmp_dir;
   spawned_pids = [];
 });
@@ -54,7 +51,8 @@ afterEach(async () => {
 });
 
 /**
- * Spawn a long-running process to simulate old global bdui instance
+ * Spawn a long-running process to simulate old global bdui instance.
+ *
  * @returns {Promise<number>} PID of spawned process
  */
 async function spawnTestProcess() {
