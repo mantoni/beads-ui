@@ -95,13 +95,20 @@ export function createEpicsView(
   }
 
   /**
-   * Find the parent epic ID for a given epic ID based on ID pattern.
-   * e.g., "si-oqo.2" -> "si-oqo", "si-oqo" -> null
-   * @param {string} id
-   * @param {Set<string>} all_epic_ids
+   * Find the parent epic ID for a given epic.
+   * Uses explicit parent field first, then falls back to ID pattern detection.
+   * @param {any} epic - The epic object
+   * @param {Set<string>} all_epic_ids - Set of all epic IDs in the current view
+   * @returns {string | null}
    */
-  function findParentEpicId(id, all_epic_ids) {
-    // Check if removing the last .N suffix yields another epic ID
+  function findParentEpicId(epic, all_epic_ids) {
+    // First, check for explicit parent field from bd show
+    const explicit_parent = epic?.parent;
+    if (explicit_parent && typeof explicit_parent === 'string' && all_epic_ids.has(explicit_parent)) {
+      return explicit_parent;
+    }
+    // Fall back to ID pattern detection (e.g., "si-oqo.2" -> "si-oqo")
+    const id = String(epic?.id || '');
     const last_dot = id.lastIndexOf('.');
     if (last_dot === -1) {
       return null;
@@ -131,7 +138,7 @@ export function createEpicsView(
     const roots = [];
     for (const g of flat_groups) {
       const id = String(g.epic?.id || '');
-      const parent_id = findParentEpicId(id, all_epic_ids);
+      const parent_id = findParentEpicId(g.epic, all_epic_ids);
       const node = group_map.get(id);
       if (parent_id && group_map.has(parent_id)) {
         group_map.get(parent_id).children.push(node);
