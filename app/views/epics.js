@@ -34,6 +34,8 @@ export function createEpicsView(
   const expanded = new Set();
   /** @type {Set<string>} */
   const loading = new Set();
+  /** Whether to show closed epics */
+  let show_closed = false;
   /** @type {Map<string, () => Promise<void>>} */
   const epic_unsubs = new Map();
   // Centralized selection helpers
@@ -76,19 +78,56 @@ export function createEpicsView(
     return labels.includes('backlog');
   }
 
+  /**
+   * Check if an epic is closed.
+   * @param {any} epic
+   */
+  function isClosed(epic) {
+    return String(epic?.status || '').toLowerCase() === 'closed';
+  }
+
+  /**
+   * Toggle show_closed state.
+   */
+  function toggleShowClosed() {
+    show_closed = !show_closed;
+    doRender();
+  }
+
   function template() {
     if (!groups.length) {
       return html`<div class="panel__header muted">No epics found.</div>`;
     }
-    const active_groups = groups.filter((g) => !isBacklogged(g.epic));
-    const backlog_groups = groups.filter((g) => isBacklogged(g.epic));
+    // Filter closed epics unless show_closed is true
+    const visible_groups = show_closed
+      ? groups
+      : groups.filter((g) => !isClosed(g.epic));
+    const active_groups = visible_groups.filter((g) => !isBacklogged(g.epic));
+    const backlog_groups = visible_groups.filter((g) => isBacklogged(g.epic));
+
+    // Count closed epics for display
+    const closed_count = groups.filter((g) => isClosed(g.epic)).length;
 
     return html`
-      ${active_groups.length > 0
+      ${active_groups.length > 0 || closed_count > 0
         ? html`
             <div class="epics-section">
-              <h2 class="epics-section__header">Active Epics</h2>
-              ${active_groups.map((g) => groupTemplate(g))}
+              <h2 class="epics-section__header">
+                <span>Active Epics</span>
+                ${closed_count > 0
+                  ? html`<label class="epics-filter">
+                      <input
+                        type="checkbox"
+                        .checked=${show_closed}
+                        @change=${() => toggleShowClosed()}
+                      />
+                      <span>Show closed (${closed_count})</span>
+                    </label>`
+                  : null}
+              </h2>
+              ${active_groups.length > 0
+                ? active_groups.map((g) => groupTemplate(g))
+                : html`<div class="muted" style="margin: 12px;">No open epics</div>`}
             </div>
           `
         : null}

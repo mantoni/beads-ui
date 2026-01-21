@@ -1147,6 +1147,20 @@ input.inline-edit:focus {
   padding-bottom: var(--space-4);
   border-bottom: 1px solid var(--border);
 }
+.epics-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: 12px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+  user-select: none;
+}
+.epics-filter input[type="checkbox"] {
+  cursor: pointer;
+}
 .epics-section--backlog {
   opacity: 0.7;
 }
