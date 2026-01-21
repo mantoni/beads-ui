@@ -1167,6 +1167,41 @@ input.inline-edit:focus {
 .epics-section--backlog:hover {
   opacity: 1;
 }
+
+/* Epic hierarchy styles */
+.epic-hierarchy {
+  position: relative;
+}
+.epic-hierarchy__children {
+  position: relative;
+  margin-left: 24px;
+  padding-left: 20px;
+}
+.epic-hierarchy__children::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -10px;
+  bottom: 10px;
+  width: 2px;
+  background: var(--border);
+}
+.epic-hierarchy--child {
+  position: relative;
+}
+.epic-hierarchy--child::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 50%;
+  width: 16px;
+  height: 2px;
+  background: var(--border);
+  transform: translateY(-50%);
+}
+.epic-hierarchy--child > .epic-group {
+  margin-left: 0;
+}
 .epic-group {
   border: 1px solid var(--border);
   border-radius: 6px;

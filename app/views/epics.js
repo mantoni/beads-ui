@@ -94,6 +94,74 @@ export function createEpicsView(
     doRender();
   }
 
+  /**
+   * Find the parent epic ID for a given epic ID based on ID pattern.
+   * e.g., "si-oqo.2" -> "si-oqo", "si-oqo" -> null
+   * @param {string} id
+   * @param {Set<string>} all_epic_ids
+   */
+  function findParentEpicId(id, all_epic_ids) {
+    // Check if removing the last .N suffix yields another epic ID
+    const last_dot = id.lastIndexOf('.');
+    if (last_dot === -1) {
+      return null;
+    }
+    const potential_parent = id.substring(0, last_dot);
+    if (all_epic_ids.has(potential_parent)) {
+      return potential_parent;
+    }
+    return null;
+  }
+
+  /**
+   * Build hierarchical tree from flat groups.
+   * @param {any[]} flat_groups
+   * @returns {any[]} - Array of { group, children: [...] }
+   */
+  function buildHierarchy(flat_groups) {
+    const all_epic_ids = new Set(flat_groups.map((g) => String(g.epic?.id || '')));
+    /** @type {Map<string, any>} */
+    const group_map = new Map();
+    for (const g of flat_groups) {
+      const id = String(g.epic?.id || '');
+      group_map.set(id, { group: g, children: [] });
+    }
+
+    /** @type {any[]} */
+    const roots = [];
+    for (const g of flat_groups) {
+      const id = String(g.epic?.id || '');
+      const parent_id = findParentEpicId(id, all_epic_ids);
+      const node = group_map.get(id);
+      if (parent_id && group_map.has(parent_id)) {
+        group_map.get(parent_id).children.push(node);
+      } else {
+        roots.push(node);
+      }
+    }
+    return roots;
+  }
+
+  /**
+   * Render a hierarchy node (epic + its child epics).
+   * @param {any} node - { group, children }
+   * @param {boolean} is_child - Whether this is a child epic
+   */
+  function hierarchyTemplate(node, is_child = false) {
+    const { group, children } = node;
+    const has_children = children.length > 0;
+    return html`
+      <div class="epic-hierarchy ${is_child ? 'epic-hierarchy--child' : ''}">
+        ${groupTemplate(group)}
+        ${has_children
+          ? html`<div class="epic-hierarchy__children">
+              ${children.map((c) => hierarchyTemplate(c, true))}
+            </div>`
+          : null}
+      </div>
+    `;
+  }
+
   function template() {
     if (!groups.length) {
       return html`<div class="panel__header muted">No epics found.</div>`;
@@ -104,12 +172,14 @@ export function createEpicsView(
       : groups.filter((g) => !isClosed(g.epic));
     const active_groups = visible_groups.filter((g) => !isBacklogged(g.epic));
     const backlog_groups = visible_groups.filter((g) => isBacklogged(g.epic));
+    const active_hierarchy = buildHierarchy(active_groups);
+    const backlog_hierarchy = buildHierarchy(backlog_groups);
 
     // Count closed epics for display
     const closed_count = groups.filter((g) => isClosed(g.epic)).length;
 
     return html`
-      ${active_groups.length > 0 || closed_count > 0
+      ${active_hierarchy.length > 0 || closed_count > 0
         ? html`
             <div class="epics-section">
               <h2 class="epics-section__header">
@@ -125,17 +195,17 @@ export function createEpicsView(
                     </label>`
                   : null}
               </h2>
-              ${active_groups.length > 0
-                ? active_groups.map((g) => groupTemplate(g))
+              ${active_hierarchy.length > 0
+                ? active_hierarchy.map((node) => hierarchyTemplate(node))
                 : html`<div class="muted" style="margin: 12px;">No open epics</div>`}
             </div>
           `
         : null}
-      ${backlog_groups.length > 0
+      ${backlog_hierarchy.length > 0
         ? html`
             <div class="epics-section epics-section--backlog">
               <h2 class="epics-section__header">Backlog</h2>
-              ${backlog_groups.map((g) => groupTemplate(g))}
+              ${backlog_hierarchy.map((node) => hierarchyTemplate(node))}
             </div>
           `
         : null}
