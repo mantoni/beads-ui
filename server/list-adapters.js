@@ -143,9 +143,32 @@ export async function fetchListForSubscription(spec, options = {}) {
         ? [res.stdoutJson]
         : [];
 
-    // For epics, merge counters from `bd epic status` into the list data
+    // For epics, merge parent info and counters into the list data
     if (String(spec.type) === 'epics') {
-      raw = await mergeEpicCounters(raw, options);
+      // Run both merges in parallel for better performance
+      const [with_parents, counters_data] = await Promise.all([
+        mergeEpicParents(raw, options),
+        mergeEpicCounters(raw, options)
+      ]);
+      // Combine: use parent info from mergeEpicParents, counters from mergeEpicCounters
+      const counters_map = new Map();
+      for (const e of counters_data) {
+        const id = String(e?.id || '');
+        if (e.total_children !== undefined || e.closed_children !== undefined) {
+          counters_map.set(id, {
+            total_children: e.total_children,
+            closed_children: e.closed_children
+          });
+        }
+      }
+      raw = with_parents.map((e) => {
+        const id = String(e?.id || '');
+        const counters = counters_map.get(id);
+        if (counters) {
+          return { ...e, ...counters };
+        }
+        return e;
+      });
     }
 
     const items = normalizeIssueList(raw);
@@ -160,6 +183,55 @@ export async function fetchListForSubscription(spec, options = {}) {
           (err && /** @type {any} */ (err).message) || 'bd invocation failed'
       }
     };
+  }
+}
+
+/**
+ * Merge parent info from `bd show` into epic list data.
+ * This provides the parent field for proper hierarchy display.
+ *
+ * @param {any[]} epics - Epic list from `bd list --type epic`
+ * @param {{ cwd?: string }} options
+ * @returns {Promise<any[]>}
+ */
+async function mergeEpicParents(epics, options) {
+  try {
+    // Fetch parent info for all epics in parallel
+    const parent_promises = epics.map(async (epic) => {
+      const id = String(epic?.id || '');
+      if (!id) return { id, parent: null };
+      try {
+        const res = await runBdJson(['show', id, '--json'], { cwd: options.cwd });
+        if (res && res.code === 0 && res.stdoutJson) {
+          // bd show returns an array with one element
+          const detail = Array.isArray(res.stdoutJson)
+            ? res.stdoutJson[0]
+            : res.stdoutJson;
+          return { id, parent: detail?.parent || null };
+        }
+      } catch {
+        // ignore individual failures
+      }
+      return { id, parent: null };
+    });
+    const parent_results = await Promise.all(parent_promises);
+    // Build a map of parent by epic id
+    /** @type {Map<string, string | null>} */
+    const parents = new Map();
+    for (const { id, parent } of parent_results) {
+      parents.set(id, parent);
+    }
+    // Merge parent info into epic list
+    return epics.map((e) => {
+      const id = String(e?.id || '');
+      const parent = parents.get(id);
+      if (parent) {
+        return { ...e, parent };
+      }
+      return e;
+    });
+  } catch {
+    return epics; // Fall back on error
   }
 }
 
