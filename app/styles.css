@@ -1131,6 +1131,28 @@ input.inline-edit:focus {
 }
 
 /* Epics view styles */
+.epics-section {
+  margin-bottom: var(--space-10);
+}
+.epics-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: var(--space-6) var(--space-8);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+.epics-section--backlog {
+  opacity: 0.7;
+}
+.epics-section--backlog:hover {
+  opacity: 1;
+}
 .epic-group {
   border: 1px solid var(--border);
   border-radius: 6px;

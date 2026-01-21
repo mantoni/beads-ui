@@ -67,11 +67,40 @@ export function createEpicsView(
     render(template(), mount_element);
   }
 
+  /**
+   * Check if an epic has the 'backlog' label.
+   * @param {any} epic
+   */
+  function isBacklogged(epic) {
+    const labels = Array.isArray(epic?.labels) ? epic.labels : [];
+    return labels.includes('backlog');
+  }
+
   function template() {
     if (!groups.length) {
       return html`<div class="panel__header muted">No epics found.</div>`;
     }
-    return html`${groups.map((g) => groupTemplate(g))}`;
+    const active_groups = groups.filter((g) => !isBacklogged(g.epic));
+    const backlog_groups = groups.filter((g) => isBacklogged(g.epic));
+
+    return html`
+      ${active_groups.length > 0
+        ? html`
+            <div class="epics-section">
+              <h2 class="epics-section__header">Active Epics</h2>
+              ${active_groups.map((g) => groupTemplate(g))}
+            </div>
+          `
+        : null}
+      ${backlog_groups.length > 0
+        ? html`
+            <div class="epics-section epics-section--backlog">
+              <h2 class="epics-section__header">Backlog</h2>
+              ${backlog_groups.map((g) => groupTemplate(g))}
+            </div>
+          `
+        : null}
+    `;
   }
 
   /**
