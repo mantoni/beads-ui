@@ -46,18 +46,45 @@ export function createListView(
   const log = debug('views:list');
   // Touch unused param to satisfy lint rules without impacting behavior
   /** @type {any} */ (void _subscriptions);
-  /** @type {string} */
-  let status_filter = 'all';
+  /** @type {string[]} */
+  let status_filters = [];
   /** @type {string} */
   let search_text = '';
   /** @type {Issue[]} */
   let issues_cache = [];
-  /** @type {string} */
-  let type_filter = '';
+  /** @type {string[]} */
+  let type_filters = [];
   /** @type {string | null} */
   let selected_id = store ? store.getState().selected_id : null;
   /** @type {null | (() => void)} */
   let unsubscribe = null;
+  let status_dropdown_open = false;
+  let type_dropdown_open = false;
+
+  /**
+   * Normalize legacy string filter to array format.
+   *
+   * @param {string | string[] | undefined} val
+   * @returns {string[]}
+   */
+  function normalizeStatusFilter(val) {
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string' && val !== '' && val !== 'all') return [val];
+    return [];
+  }
+
+  /**
+   * Normalize legacy string filter to array format.
+   *
+   * @param {string | string[] | undefined} val
+   * @returns {string[]}
+   */
+  function normalizeTypeFilter(val) {
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string' && val !== '') return [val];
+    return [];
+  }
+
   // Shared row renderer (used in template below)
   const row_renderer = createIssueRowRenderer({
     navigate: (id) => {
@@ -73,21 +100,20 @@ export function createListView(
   });
 
   /**
-   * Event: select status change.
+   * Toggle a status filter chip.
+   *
+   * @param {string} status
    */
-  /**
-   * @param {Event} ev
-   */
-  const onStatusChange = async (ev) => {
-    const sel = /** @type {HTMLSelectElement} */ (ev.currentTarget);
-    status_filter = sel.value;
-    log('status change %s', status_filter);
-    if (store) {
-      store.setState({
-        filters: { status: status_filter }
-      });
+  const toggleStatusFilter = async (status) => {
+    if (status_filters.includes(status)) {
+      status_filters = status_filters.filter((s) => s !== status);
+    } else {
+      status_filters = [...status_filters, status];
     }
-    // Always reload on status changes
+    log('status toggle %s -> %o', status, status_filters);
+    if (store) {
+      store.setState({ filters: { status: status_filters } });
+    }
     await load();
   };
 
@@ -108,27 +134,68 @@ export function createListView(
   };
 
   /**
-   * Event: type select change.
+   * Toggle a type filter chip.
    *
-   * @param {Event} ev
+   * @param {string} type
    */
-  const onTypeChange = (ev) => {
-    const sel = /** @type {HTMLSelectElement} */ (ev.currentTarget);
-    type_filter = sel.value || '';
-    log('type change %s', type_filter || '(all)');
+  const toggleTypeFilter = (type) => {
+    if (type_filters.includes(type)) {
+      type_filters = type_filters.filter((t) => t !== type);
+    } else {
+      type_filters = [...type_filters, type];
+    }
+    log('type toggle %s -> %o', type, type_filters);
     if (store) {
-      store.setState({ filters: { type: type_filter } });
+      store.setState({ filters: { type: type_filters } });
     }
     doRender();
   };
+
+  /**
+   * Toggle status dropdown open/closed.
+   *
+   * @param {Event} e
+   */
+  const toggleStatusDropdown = (e) => {
+    e.stopPropagation();
+    status_dropdown_open = !status_dropdown_open;
+    type_dropdown_open = false;
+    doRender();
+  };
+
+  /**
+   * Toggle type dropdown open/closed.
+   *
+   * @param {Event} e
+   */
+  const toggleTypeDropdown = (e) => {
+    e.stopPropagation();
+    type_dropdown_open = !type_dropdown_open;
+    status_dropdown_open = false;
+    doRender();
+  };
+
+  /**
+   * Get display text for dropdown trigger.
+   *
+   * @param {string[]} selected
+   * @param {string} label
+   * @param {(val: string) => string} formatter
+   * @returns {string}
+   */
+  function getDropdownDisplayText(selected, label, formatter) {
+    if (selected.length === 0) return `${label}: Any`;
+    if (selected.length === 1) return `${label}: ${formatter(selected[0])}`;
+    return `${label} (${selected.length})`;
+  }
 
   // Initialize filters from store on first render so reload applies persisted state
   if (store) {
     const s = store.getState();
     if (s && s.filters && typeof s.filters === 'object') {
-      status_filter = s.filters.status || 'all';
+      status_filters = normalizeStatusFilter(s.filters.status);
       search_text = s.filters.search || '';
-      type_filter = typeof s.filters.type === 'string' ? s.filters.type : '';
+      type_filters = normalizeTypeFilter(s.filters.type);
     }
   }
   // Initial values are reflected via bound `.value` in the template
@@ -140,9 +207,9 @@ export function createListView(
    */
   function template() {
     let filtered = issues_cache;
-    if (status_filter !== 'all' && status_filter !== 'ready') {
-      filtered = filtered.filter(
-        (it) => String(it.status || '') === status_filter
+    if (status_filters.length > 0 && !status_filters.includes('ready')) {
+      filtered = filtered.filter((it) =>
+        status_filters.includes(String(it.status || ''))
       );
     }
     if (search_text) {
@@ -153,38 +220,61 @@ export function createListView(
         return a.includes(needle) || b.includes(needle);
       });
     }
-    if (type_filter) {
-      filtered = filtered.filter(
-        (it) => String(it.issue_type || '') === String(type_filter)
+    if (type_filters.length > 0) {
+      filtered = filtered.filter((it) =>
+        type_filters.includes(String(it.issue_type || ''))
       );
     }
     // Sorting: closed list is a special case → sort by closed_at desc only
-    if (status_filter === 'closed') {
+    if (status_filters.length === 1 && status_filters[0] === 'closed') {
       filtered = filtered.slice().sort(cmpClosedDesc);
     }
 
     return html`
       <div class="panel__header">
-        <select @change=${onStatusChange} .value=${status_filter}>
-          <option value="all">All</option>
-          <option value="ready">Ready</option>
-          <option value="open">${statusLabel('open')}</option>
-          <option value="in_progress">${statusLabel('in_progress')}</option>
-          <option value="closed">${statusLabel('closed')}</option>
-        </select>
-        <select
-          @change=${onTypeChange}
-          .value=${type_filter}
-          aria-label="Filter by type"
-        >
-          <option value="">All types</option>
-          ${ISSUE_TYPES.map(
-            (t) =>
-              html`<option value=${t} ?selected=${type_filter === t}>
-                ${typeLabel(t)}
-              </option>`
-          )}
-        </select>
+        <div class="filter-dropdown ${status_dropdown_open ? 'is-open' : ''}">
+          <button
+            class="filter-dropdown__trigger"
+            @click=${toggleStatusDropdown}
+          >
+            ${getDropdownDisplayText(status_filters, 'Status', statusLabel)}
+            <span class="filter-dropdown__arrow">▾</span>
+          </button>
+          <div class="filter-dropdown__menu">
+            ${['ready', 'open', 'in_progress', 'closed'].map(
+              (s) => html`
+                <label class="filter-dropdown__option">
+                  <input
+                    type="checkbox"
+                    .checked=${status_filters.includes(s)}
+                    @change=${() => toggleStatusFilter(s)}
+                  />
+                  ${s === 'ready' ? 'Ready' : statusLabel(s)}
+                </label>
+              `
+            )}
+          </div>
+        </div>
+        <div class="filter-dropdown ${type_dropdown_open ? 'is-open' : ''}">
+          <button class="filter-dropdown__trigger" @click=${toggleTypeDropdown}>
+            ${getDropdownDisplayText(type_filters, 'Types', typeLabel)}
+            <span class="filter-dropdown__arrow">▾</span>
+          </button>
+          <div class="filter-dropdown__menu">
+            ${ISSUE_TYPES.map(
+              (t) => html`
+                <label class="filter-dropdown__option">
+                  <input
+                    type="checkbox"
+                    .checked=${type_filters.includes(t)}
+                    @change=${() => toggleTypeFilter(t)}
+                  />
+                  ${typeLabel(t)}
+                </label>
+              `
+            )}
+          </div>
+        </div>
         <input
           type="search"
           placeholder="Search…"
@@ -211,6 +301,7 @@ export function createListView(
                   <col style="width: 120px" />
                   <col style="width: 160px" />
                   <col style="width: 130px" />
+                  <col style="width: 80px" />
                 </colgroup>
                 <thead>
                   <tr role="row">
@@ -220,6 +311,7 @@ export function createListView(
                     <th role="columnheader">Status</th>
                     <th role="columnheader">Assignee</th>
                     <th role="columnheader">Priority</th>
+                    <th role="columnheader">Deps</th>
                   </tr>
                 </thead>
                 <tbody role="rowgroup">
@@ -414,6 +506,20 @@ export function createListView(
     }
   });
 
+  // Click outside to close dropdowns
+  /** @param {MouseEvent} e */
+  const clickOutsideHandler = (e) => {
+    const target = /** @type {HTMLElement|null} */ (e.target);
+    if (target && !target.closest('.filter-dropdown')) {
+      if (status_dropdown_open || type_dropdown_open) {
+        status_dropdown_open = false;
+        type_dropdown_open = false;
+        doRender();
+      }
+    }
+  };
+  document.addEventListener('click', clickOutsideHandler);
+
   // Keep selection in sync with store
   if (store) {
     unsubscribe = store.subscribe((s) => {
@@ -423,13 +529,13 @@ export function createListView(
         doRender();
       }
       if (s.filters && typeof s.filters === 'object') {
-        const next_status = s.filters.status;
+        const next_status = normalizeStatusFilter(s.filters.status);
         const next_search = s.filters.search || '';
-        const next_type =
-          typeof s.filters.type === 'string' ? s.filters.type : '';
         let needs_render = false;
-        if (next_status !== status_filter) {
-          status_filter = next_status;
+        const status_changed =
+          JSON.stringify(next_status) !== JSON.stringify(status_filters);
+        if (status_changed) {
+          status_filters = next_status;
           // Reload on any status scope change to keep cache correct
           void load();
           return;
@@ -438,8 +544,11 @@ export function createListView(
           search_text = next_search;
           needs_render = true;
         }
-        if (next_type !== type_filter) {
-          type_filter = next_type;
+        const next_type_arr = normalizeTypeFilter(s.filters.type);
+        const type_changed =
+          JSON.stringify(next_type_arr) !== JSON.stringify(type_filters);
+        if (type_changed) {
+          type_filters = next_type_arr;
           needs_render = true;
         }
         if (needs_render) {
@@ -467,6 +576,7 @@ export function createListView(
     load,
     destroy() {
       mount_element.replaceChildren();
+      document.removeEventListener('click', clickOutsideHandler);
       if (unsubscribe) {
         unsubscribe();
         unsubscribe = null;

@@ -6,7 +6,7 @@ import { createListSelectors } from './data/list-selectors.js';
 import { createDataLayer } from './data/providers.js';
 import { createSubscriptionIssueStores } from './data/subscription-issue-stores.js';
 import { createSubscriptionStore } from './data/subscriptions-store.js';
-import { createHashRouter, parseHash } from './router.js';
+import { createHashRouter, parseHash, parseView } from './router.js';
 import { createStore } from './state.js';
 import { createActivityIndicator } from './utils/activity-indicator.js';
 import { debug } from './utils/logging.js';
@@ -19,6 +19,7 @@ import { createIssueDialog } from './views/issue-dialog.js';
 import { createListView } from './views/list.js';
 import { createTopNav } from './views/nav.js';
 import { createNewIssueDialog } from './views/new-issue-dialog.js';
+import { createWorkspacePicker } from './views/workspace-picker.js';
 import { createWsClient } from './ws.js';
 
 /**
@@ -147,6 +148,185 @@ export function bootstrap(root_element) {
     });
     // Derived list selectors: render from per-subscription snapshots
     const listSelectors = createListSelectors(sub_issue_stores);
+
+    // --- Workspace management ---
+    /**
+     * Clear all subscriptions and stores, then re-establish them.
+     * Called when switching workspaces.
+     */
+    async function clearAndResubscribe() {
+      log('clearing all subscriptions for workspace switch');
+      // Unsubscribe from server-side subscriptions first
+      if (unsub_issues_tab) {
+        void unsub_issues_tab().catch(() => {});
+        unsub_issues_tab = null;
+      }
+      if (unsub_epics_tab) {
+        void unsub_epics_tab().catch(() => {});
+        unsub_epics_tab = null;
+      }
+      if (unsub_board_ready) {
+        void unsub_board_ready().catch(() => {});
+        unsub_board_ready = null;
+      }
+      if (unsub_board_in_progress) {
+        void unsub_board_in_progress().catch(() => {});
+        unsub_board_in_progress = null;
+      }
+      if (unsub_board_closed) {
+        void unsub_board_closed().catch(() => {});
+        unsub_board_closed = null;
+      }
+      if (unsub_board_blocked) {
+        void unsub_board_blocked().catch(() => {});
+        unsub_board_blocked = null;
+      }
+      // Clear all subscription stores
+      const storeIds = [
+        'tab:issues',
+        'tab:epics',
+        'tab:board:ready',
+        'tab:board:in-progress',
+        'tab:board:closed',
+        'tab:board:blocked'
+      ];
+      for (const id of storeIds) {
+        try {
+          sub_issue_stores.unregister(id);
+        } catch {
+          // ignore
+        }
+      }
+      // Also clear any detail stores
+      const s = store.getState();
+      if (s.selected_id) {
+        try {
+          sub_issue_stores.unregister(`detail:${s.selected_id}`);
+        } catch {
+          // ignore
+        }
+      }
+      // Force re-subscribe by resetting last spec key
+      last_issues_spec_key = null;
+      // Re-establish subscriptions for current view
+      ensureTabSubscriptions(store.getState());
+    }
+
+    /**
+     * Handle workspace change request from the picker.
+     *
+     * @param {string} workspace_path
+     */
+    async function handleWorkspaceChange(workspace_path) {
+      log('requesting workspace switch to %s', workspace_path);
+      try {
+        const result = await client.send('set-workspace', {
+          path: workspace_path
+        });
+        log('workspace switch result: %o', result);
+        if (result && result.workspace) {
+          // Update state with new workspace
+          store.setState({
+            workspace: {
+              current: {
+                path: result.workspace.root_dir,
+                database: result.workspace.db_path
+              }
+            }
+          });
+          // Persist preference
+          window.localStorage.setItem('beads-ui.workspace', workspace_path);
+          // Clear and resubscribe if workspace actually changed
+          if (result.changed) {
+            await clearAndResubscribe();
+            showToast(
+              'Switched to ' + getProjectName(workspace_path),
+              'success',
+              2000
+            );
+          }
+        }
+      } catch (err) {
+        log('workspace switch failed: %o', err);
+        showToast('Failed to switch workspace', 'error', 3000);
+        throw err;
+      }
+    }
+
+    /**
+     * Extract project name from path.
+     *
+     * @param {string} path
+     * @returns {string}
+     */
+    function getProjectName(path) {
+      if (!path) return 'Unknown';
+      const parts = path.split('/').filter(Boolean);
+      return parts.length > 0 ? parts[parts.length - 1] : 'Unknown';
+    }
+
+    /**
+     * Load available workspaces from server and update state.
+     */
+    async function loadWorkspaces() {
+      try {
+        const result = await client.send('list-workspaces', {});
+        log('workspaces loaded: %o', result);
+        if (result && Array.isArray(result.workspaces)) {
+          const available = result.workspaces.map((/** @type {any} */ ws) => ({
+            path: ws.path,
+            database: ws.database,
+            pid: ws.pid,
+            version: ws.version
+          }));
+          const current = result.current
+            ? {
+                path: result.current.root_dir,
+                database: result.current.db_path
+              }
+            : null;
+          store.setState({ workspace: { current, available } });
+
+          // Check if we have a saved preference that differs from current
+          const savedWorkspace =
+            window.localStorage.getItem('beads-ui.workspace');
+          if (savedWorkspace && current && savedWorkspace !== current.path) {
+            // Check if saved workspace is in available list
+            const savedExists = available.some(
+              (/** @type {{ path: string }} */ ws) => ws.path === savedWorkspace
+            );
+            if (savedExists) {
+              log('restoring saved workspace preference: %s', savedWorkspace);
+              await handleWorkspaceChange(savedWorkspace);
+            }
+          }
+        }
+      } catch (err) {
+        log('failed to load workspaces: %o', err);
+      }
+    }
+
+    // Handle workspace-changed events from server (e.g., if another client changes workspace)
+    client.on('workspace-changed', (payload) => {
+      log('workspace-changed event: %o', payload);
+      if (payload && payload.root_dir) {
+        store.setState({
+          workspace: {
+            current: {
+              path: payload.root_dir,
+              database: payload.db_path
+            }
+          }
+        });
+        // Reload workspaces to get fresh list
+        void loadWorkspaces();
+        // Clear and resubscribe
+        void clearAndResubscribe();
+      }
+    });
+
+    // --- End workspace management (mounting happens after store is created) ---
+
     // Show toasts for WebSocket connectivity changes
     /** @type {boolean} */
     let had_disconnect = false;
@@ -257,6 +437,14 @@ export function bootstrap(root_element) {
       createTopNav(nav_mount, store, router);
     }
 
+    // Workspace picker (mount now that store exists)
+    const workspace_mount = document.getElementById('workspace-picker');
+    if (workspace_mount) {
+      createWorkspacePicker(workspace_mount, store, handleWorkspaceChange);
+    }
+    // Load workspaces after WebSocket is connected
+    void loadWorkspaces();
+
     // Global New Issue dialog (UI-106) mounted at root so it is always visible
     const new_issue_dialog = createNewIssueDialog(
       root_element,
@@ -349,6 +537,10 @@ export function bootstrap(root_element) {
         const id = parseHash(hash);
         if (id) {
           router.gotoIssue(id);
+        } else {
+          // No issue ID - navigate to view (closes dialog)
+          const view = parseView(hash);
+          router.gotoView(view);
         }
       },
       sub_issue_stores
@@ -446,7 +638,8 @@ export function bootstrap(root_element) {
       (id) => router.gotoIssue(id),
       store,
       subscriptions,
-      sub_issue_stores
+      sub_issue_stores,
+      transport
     );
     // Preload epics when switching to view
     /**
@@ -465,6 +658,18 @@ export function bootstrap(root_element) {
     let unsub_board_closed = null;
     /** @type {null | (() => Promise<void>)} */
     let unsub_board_blocked = null;
+
+    // Track in-flight subscriptions to prevent duplicates during rapid view switching
+    /** @type {Set<string>} */
+    const pending_subscriptions = new Set();
+
+    // Expose activity debug info globally for diagnostics
+    // @ts-ignore
+    window.__bdui_debug = {
+      getPendingSubscriptions: () => Array.from(pending_subscriptions),
+      getActivityCount: () => activity.getCount(),
+      getActiveRequests: () => activity.getActiveRequests()
+    };
 
     /**
      * Compute subscription spec for Issues tab based on filters.
@@ -505,8 +710,13 @@ export function bootstrap(root_element) {
         } catch (err) {
           log('register issues store failed: %o', err);
         }
-        // Only (re)subscribe if not yet subscribed or the spec changed
-        if (!unsub_issues_tab || key !== last_issues_spec_key) {
+        // Only (re)subscribe if not yet subscribed, spec changed, and not already in-flight
+        const issues_sub_key = `tab:issues:${key}`;
+        if (
+          (!unsub_issues_tab || key !== last_issues_spec_key) &&
+          !pending_subscriptions.has(issues_sub_key)
+        ) {
+          pending_subscriptions.add(issues_sub_key);
           void subscriptions
             .subscribeList('tab:issues', spec)
             .then((unsub) => {
@@ -516,6 +726,9 @@ export function bootstrap(root_element) {
             .catch((err) => {
               log('subscribe issues failed: %o', err);
               showFatalFromError(err, 'issues list');
+            })
+            .finally(() => {
+              pending_subscriptions.delete(issues_sub_key);
             });
         }
       } else if (unsub_issues_tab) {
@@ -537,15 +750,22 @@ export function bootstrap(root_element) {
         } catch (err) {
           log('register epics store failed: %o', err);
         }
-        void subscriptions
-          .subscribeList('tab:epics', { type: 'epics' })
-          .then((unsub) => {
-            unsub_epics_tab = unsub;
-          })
-          .catch((err) => {
-            log('subscribe epics failed: %o', err);
-            showFatalFromError(err, 'epics');
-          });
+        // Only subscribe if not already subscribed and not in-flight
+        if (!unsub_epics_tab && !pending_subscriptions.has('tab:epics')) {
+          pending_subscriptions.add('tab:epics');
+          void subscriptions
+            .subscribeList('tab:epics', { type: 'epics' })
+            .then((unsub) => {
+              unsub_epics_tab = unsub;
+            })
+            .catch((err) => {
+              log('subscribe epics failed: %o', err);
+              showFatalFromError(err, 'epics');
+            })
+            .finally(() => {
+              pending_subscriptions.delete('tab:epics');
+            });
+        }
       } else if (unsub_epics_tab) {
         void unsub_epics_tab().catch(() => {});
         unsub_epics_tab = null;
@@ -558,7 +778,11 @@ export function bootstrap(root_element) {
 
       // Board tab subscribes to lists used by columns
       if (s.view === 'board') {
-        if (!unsub_board_ready) {
+        // Ready column
+        if (
+          !unsub_board_ready &&
+          !pending_subscriptions.has('tab:board:ready')
+        ) {
           try {
             sub_issue_stores.register('tab:board:ready', {
               type: 'ready-issues'
@@ -566,15 +790,23 @@ export function bootstrap(root_element) {
           } catch (err) {
             log('register board:ready store failed: %o', err);
           }
+          pending_subscriptions.add('tab:board:ready');
           void subscriptions
             .subscribeList('tab:board:ready', { type: 'ready-issues' })
             .then((u) => (unsub_board_ready = u))
             .catch((err) => {
               log('subscribe board ready failed: %o', err);
               showFatalFromError(err, 'board (Ready)');
+            })
+            .finally(() => {
+              pending_subscriptions.delete('tab:board:ready');
             });
         }
-        if (!unsub_board_in_progress) {
+        // In Progress column
+        if (
+          !unsub_board_in_progress &&
+          !pending_subscriptions.has('tab:board:in-progress')
+        ) {
           try {
             sub_issue_stores.register('tab:board:in-progress', {
               type: 'in-progress-issues'
@@ -582,6 +814,7 @@ export function bootstrap(root_element) {
           } catch (err) {
             log('register board:in-progress store failed: %o', err);
           }
+          pending_subscriptions.add('tab:board:in-progress');
           void subscriptions
             .subscribeList('tab:board:in-progress', {
               type: 'in-progress-issues'
@@ -590,9 +823,16 @@ export function bootstrap(root_element) {
             .catch((err) => {
               log('subscribe board in-progress failed: %o', err);
               showFatalFromError(err, 'board (In Progress)');
+            })
+            .finally(() => {
+              pending_subscriptions.delete('tab:board:in-progress');
             });
         }
-        if (!unsub_board_closed) {
+        // Closed column
+        if (
+          !unsub_board_closed &&
+          !pending_subscriptions.has('tab:board:closed')
+        ) {
           try {
             sub_issue_stores.register('tab:board:closed', {
               type: 'closed-issues'
@@ -600,15 +840,23 @@ export function bootstrap(root_element) {
           } catch (err) {
             log('register board:closed store failed: %o', err);
           }
+          pending_subscriptions.add('tab:board:closed');
           void subscriptions
             .subscribeList('tab:board:closed', { type: 'closed-issues' })
             .then((u) => (unsub_board_closed = u))
             .catch((err) => {
               log('subscribe board closed failed: %o', err);
               showFatalFromError(err, 'board (Closed)');
+            })
+            .finally(() => {
+              pending_subscriptions.delete('tab:board:closed');
             });
         }
-        if (!unsub_board_blocked) {
+        // Blocked column
+        if (
+          !unsub_board_blocked &&
+          !pending_subscriptions.has('tab:board:blocked')
+        ) {
           try {
             sub_issue_stores.register('tab:board:blocked', {
               type: 'blocked-issues'
@@ -616,12 +864,16 @@ export function bootstrap(root_element) {
           } catch (err) {
             log('register board:blocked store failed: %o', err);
           }
+          pending_subscriptions.add('tab:board:blocked');
           void subscriptions
             .subscribeList('tab:board:blocked', { type: 'blocked-issues' })
             .then((u) => (unsub_board_blocked = u))
             .catch((err) => {
               log('subscribe board blocked failed: %o', err);
               showFatalFromError(err, 'board (Blocked)');
+            })
+            .finally(() => {
+              pending_subscriptions.delete('tab:board:blocked');
             });
         }
       } else {

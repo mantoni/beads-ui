@@ -97,3 +97,43 @@ export async function waitForServer(url, total_timeout_ms = 600) {
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+/**
+ * Register a workspace with the running server.
+ * Makes a POST request to /api/register-workspace.
+ *
+ * @param {string} base_url - Server base URL (e.g., "http://127.0.0.1:3000")
+ * @param {{ path: string, database: string }} workspace
+ * @returns {Promise<boolean>} True if registration succeeded
+ */
+export async function registerWorkspaceWithServer(base_url, workspace) {
+  return new Promise((resolve) => {
+    const url = new URL('/api/register-workspace', base_url);
+    const body = JSON.stringify(workspace);
+    const req = http.request(
+      url,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body)
+        }
+      },
+      (res) => {
+        res.resume();
+        resolve(res.statusCode === 200);
+      }
+    );
+    req.on('error', () => resolve(false));
+    req.setTimeout(2000, () => {
+      try {
+        req.destroy();
+      } catch {
+        void 0;
+      }
+      resolve(false);
+    });
+    req.write(body);
+    req.end();
+  });
+}

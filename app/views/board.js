@@ -4,6 +4,7 @@ import { cmpClosedDesc, cmpPriorityThenCreated } from '../data/sort.js';
 import { createIssueIdRenderer } from '../utils/issue-id-renderer.js';
 import { debug } from '../utils/logging.js';
 import { createPriorityBadge } from '../utils/priority-badge.js';
+import { showToast } from '../utils/toast.js';
 import { createTypeBadge } from '../utils/type-badge.js';
 
 /**
@@ -20,6 +21,18 @@ import { createTypeBadge } from '../utils/type-badge.js';
  */
 
 /**
+ * Map column IDs to their corresponding status values.
+ *
+ * @type {Record<string, 'open'|'in_progress'|'closed'>}
+ */
+const COLUMN_STATUS_MAP = {
+  'blocked-col': 'open',
+  'ready-col': 'open',
+  'in-progress-col': 'in_progress',
+  'closed-col': 'closed'
+};
+
+/**
  * Create the Board view with Blocked, Ready, In progress, Closed.
  * Push-only: derives items from per-subscription stores.
  *
@@ -33,6 +46,7 @@ import { createTypeBadge } from '../utils/type-badge.js';
  * @param {{ getState: () => any, setState: (patch: any) => void, subscribe?: (fn: (s:any)=>void)=>()=>void }} [store]
  * @param {{ selectors: { getIds: (client_id: string) => string[], count?: (client_id: string) => number } }} [subscriptions]
  * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void }} [issueStores]
+ * @param {(type: string, payload: unknown) => Promise<unknown>} [transport] - Transport function for sending updates
  * @returns {{ load: () => Promise<void>, clear: () => void }}
  */
 export function createBoardView(
@@ -41,7 +55,8 @@ export function createBoardView(
   gotoIssue,
   store,
   subscriptions = undefined,
-  issueStores = undefined
+  issueStores = undefined,
+  transport = undefined
 ) {
   const log = debug('views:board');
   /** @type {IssueLite[]} */
@@ -156,7 +171,10 @@ export function createBoardView(
         data-issue-id=${it.id}
         role="listitem"
         tabindex="-1"
-        @click=${() => gotoIssue(it.id)}
+        draggable="true"
+        @click=${(/** @type {MouseEvent} */ ev) => onCardClick(ev, it.id)}
+        @dragstart=${(/** @type {DragEvent} */ ev) => onDragStart(ev, it.id)}
+        @dragend=${onDragEnd}
       >
         <div class="board-card__title text-truncate">
           ${it.title || '(no title)'}
@@ -167,6 +185,91 @@ export function createBoardView(
         </div>
       </article>
     `;
+  }
+
+  /** @type {string|null} */
+  let dragging_id = null;
+
+  /**
+   * Handle card click, ignoring clicks during drag operations.
+   *
+   * @param {MouseEvent} ev
+   * @param {string} id
+   */
+  function onCardClick(ev, id) {
+    // Only navigate if this wasn't a drag operation
+    if (!dragging_id) {
+      gotoIssue(id);
+    }
+  }
+
+  /**
+   * Handle drag start: store issue id in dataTransfer and add dragging class.
+   *
+   * @param {DragEvent} ev
+   * @param {string} id
+   */
+  function onDragStart(ev, id) {
+    dragging_id = id;
+    if (ev.dataTransfer) {
+      ev.dataTransfer.setData('text/plain', id);
+      ev.dataTransfer.effectAllowed = 'move';
+    }
+    const target = /** @type {HTMLElement} */ (ev.target);
+    target.classList.add('board-card--dragging');
+    log('dragstart %s', id);
+  }
+
+  /**
+   * Handle drag end: remove dragging class.
+   *
+   * @param {DragEvent} ev
+   */
+  function onDragEnd(ev) {
+    const target = /** @type {HTMLElement} */ (ev.target);
+    target.classList.remove('board-card--dragging');
+    // Clear any highlighted drop target
+    clearDropTarget();
+    // Clear dragging_id after a short delay to allow click event to check it
+    setTimeout(() => {
+      dragging_id = null;
+    }, 0);
+    log('dragend');
+  }
+
+  /**
+   * Clear the currently highlighted drop target column.
+   */
+  function clearDropTarget() {
+    /** @type {HTMLElement[]} */
+    const all_cols = Array.from(
+      mount_element.querySelectorAll('.board-column--drag-over')
+    );
+    for (const c of all_cols) {
+      c.classList.remove('board-column--drag-over');
+    }
+  }
+
+  /**
+   * Update issue status via WebSocket transport.
+   *
+   * @param {string} issue_id
+   * @param {'open'|'in_progress'|'closed'} new_status
+   */
+  async function updateIssueStatus(issue_id, new_status) {
+    if (!transport) {
+      log('no transport available, status update skipped');
+      showToast('Cannot update status: not connected', 'error');
+      return;
+    }
+    try {
+      log('update-status %s → %s', issue_id, new_status);
+      await transport('update-status', { id: issue_id, status: new_status });
+      showToast('Status updated', 'success', 1500);
+    } catch (err) {
+      log('update-status failed: %o', err);
+      showToast('Failed to update status', 'error');
+    }
   }
 
   function doRender() {
@@ -319,6 +422,76 @@ export function createBoardView(
       }
       return;
     }
+  });
+
+  // Track the currently highlighted column to avoid flicker
+  /** @type {HTMLElement|null} */
+  let current_drop_target = null;
+
+  // Delegate drag and drop handling for columns
+  mount_element.addEventListener('dragover', (ev) => {
+    ev.preventDefault();
+    if (ev.dataTransfer) {
+      ev.dataTransfer.dropEffect = 'move';
+    }
+    // Find the column being dragged over
+    const target = /** @type {HTMLElement} */ (ev.target);
+    const col = /** @type {HTMLElement|null} */ (
+      target.closest('.board-column')
+    );
+
+    // Only update if we've entered a different column
+    if (col && col !== current_drop_target) {
+      // Remove highlight from previous column
+      if (current_drop_target) {
+        current_drop_target.classList.remove('board-column--drag-over');
+      }
+      // Highlight the new column
+      col.classList.add('board-column--drag-over');
+      current_drop_target = col;
+    }
+  });
+
+  mount_element.addEventListener('dragleave', (ev) => {
+    const related = /** @type {HTMLElement|null} */ (ev.relatedTarget);
+    // Only clear if we're leaving the mount element entirely
+    if (!related || !mount_element.contains(related)) {
+      if (current_drop_target) {
+        current_drop_target.classList.remove('board-column--drag-over');
+        current_drop_target = null;
+      }
+    }
+  });
+
+  mount_element.addEventListener('drop', (ev) => {
+    ev.preventDefault();
+    // Clear the drop target highlight
+    if (current_drop_target) {
+      current_drop_target.classList.remove('board-column--drag-over');
+      current_drop_target = null;
+    }
+
+    const target = /** @type {HTMLElement} */ (ev.target);
+    const col = target.closest('.board-column');
+    if (!col) {
+      return;
+    }
+
+    const col_id = col.id;
+    const new_status = COLUMN_STATUS_MAP[col_id];
+    if (!new_status) {
+      log('drop on unknown column: %s', col_id);
+      return;
+    }
+
+    const issue_id = ev.dataTransfer?.getData('text/plain');
+    if (!issue_id) {
+      log('drop without issue id');
+      return;
+    }
+
+    log('drop %s on %s → %s', issue_id, col_id, new_status);
+    void updateIssueStatus(issue_id, new_status);
   });
 
   /**

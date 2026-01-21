@@ -4,6 +4,7 @@
 import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
+import { registerWorkspace } from './registry-watcher.js';
 
 /**
  * Create and configure the Express application.
@@ -26,6 +27,9 @@ export function createApp(config) {
     res.type('application/json');
     res.status(200).send({ ok: true });
   });
+
+  // Enable JSON body parsing for API endpoints
+  app.use(express.json());
 
   // Config endpoint - provides project metadata to frontend
   /**
@@ -55,6 +59,26 @@ export function createApp(config) {
       instances: instances,
       current: config.project_name
     });
+  });
+
+  // Register workspace endpoint - allows CLI to register workspaces dynamically
+  // when the server is already running
+  /**
+   * @param {Request} req
+   * @param {Response} res
+   */
+  app.post('/api/register-workspace', (req, res) => {
+    const { path: workspace_path, database } = req.body || {};
+    if (!workspace_path || typeof workspace_path !== 'string') {
+      res.status(400).json({ ok: false, error: 'Missing or invalid path' });
+      return;
+    }
+    if (!database || typeof database !== 'string') {
+      res.status(400).json({ ok: false, error: 'Missing or invalid database' });
+      return;
+    }
+    registerWorkspace({ path: workspace_path, database });
+    res.status(200).json({ ok: true, registered: workspace_path });
   });
 
   if (
