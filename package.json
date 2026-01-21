@@ -31,9 +31,12 @@
     "version": "changes --commits --footer",
     "postversion": "git push --follow-tags && npm publish",
     "prepack": "npm run build",
-    "postpack": "rm app/main.bundle.js app/main.bundle.js.map"
+    "postpack": "rm app/main.bundle.js app/main.bundle.js.map",
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:ui": "vitest --ui --coverage"
   },
   "dependencies": {
+    "cosmiconfig": "^9.0.0",
     "debug": "^4.4.3",
     "dompurify": "^3.3.0",
     "express": "^5.2.1",
@@ -49,6 +52,7 @@
     "@types/express": "^5.0.6",
     "@types/node": "^22.19.1",
     "@types/ws": "^8.18.1",
+    "@vitest/coverage-v8": "^4.0.17",
     "esbuild": "^0.27.1",
     "eslint": "^9.39.1",
     "eslint-plugin-import": "^2.29.1",

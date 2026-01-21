@@ -142,14 +142,51 @@ running instances for CLI tools.
 
 See [ADR 003](docs/adr/003-multi-instance-runtime.md) for architecture details.
 
-## Environment variables
+## Configuration
 
-- `BD_BIN`: path to the `bd` binary.
-- `BDUI_RUNTIME_DIR`: override runtime directory for PID/logs.
-- `HOST`: overrides the bind address (default `127.0.0.1`).
-- `PORT`: overrides the listen port (default `3000`).
+📖 **See [CONFIGURATION.md](CONFIGURATION.md) for complete reference** (environment variables, config files, examples)
 
-These can also be set via CLI options: `bdui start --host 0.0.0.0 --port 8080`
+beads-ui supports multiple configuration methods with the following precedence:
+
+**1. Environment Variables** (highest priority)
+- `BD_BIN`: path to the `bd` binary
+- `BDUI_RUNTIME_DIR`: override runtime directory for PID/logs
+- `HOST`: bind address (default `127.0.0.1`)
+- `PORT`: listen port (default `3000`)
+- `BDUI_DISCOVERY_PATHS`: colon-separated paths for project discovery (e.g., `~/code:~/projects`)
+- `BDUI_DEFAULT_PORT_START`: starting port for multi-instance mode (default `4000`)
+
+**2. Config Files** (via [cosmiconfig](https://github.com/cosmiconfig/cosmiconfig))
+
+Create a config file in your home directory using any of these formats:
+
+```json
+// ~/.bduirc
+{
+  "discoveryPaths": ["~/code", "~/projects", "~/workspace"],
+  "defaultPortStart": 4000
+}
+```
+
+```yaml
+# ~/.bduirc.yaml
+discoveryPaths:
+  - ~/code
+  - ~/projects
+defaultPortStart: 4000
+```
+
+```javascript
+// ~/.config/bdui/config.js
+export default {
+  discoveryPaths: ['~/code', '~/projects'],
+  defaultPortStart: 4000
+};
+```
+
+**3. CLI Options** (per-command overrides)
+
+`bdui start --host 0.0.0.0 --port 8080`
 
 ### Runtime Directory Resolution
 
@@ -183,6 +220,17 @@ Project-local directories enable multiple instances with isolated state.
 - Enable logs for Node/CLI (server, build scripts) by setting `DEBUG`:
   - `DEBUG=beads-ui:* bdui start`
   - `DEBUG=beads-ui:* node scripts/build-frontend.js`
+
+## Documentation
+
+- **[CONFIGURATION.md](CONFIGURATION.md)** - Complete reference for environment variables, config files, and all configuration options
+- **[CHANGES.md](CHANGES.md)** - Version history and changelog
+- **[docs/adr/](docs/adr/)** - Architecture decision records
+  - [ADR 001: Push-Only Lists](docs/adr/001-push-only-lists.md)
+  - [ADR 002: Per-Subscription Stores](docs/adr/002-per-subscription-stores-and-full-issue-push.md)
+  - [ADR 003: Multi-Instance Runtime](docs/adr/003-multi-instance-runtime.md)
+- **[docs/architecture.md](docs/architecture.md)** - System architecture overview
+- **[AGENTS.md](AGENTS.md)** - Guidelines for AI coding agents
 
 ## License
 

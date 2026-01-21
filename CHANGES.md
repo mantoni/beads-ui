@@ -22,16 +22,53 @@
   >
   > See `docs/adr/003-multi-instance-runtime.md` for architecture details.
   >
+- feat: add cosmiconfig-based configuration system
+  >
+  > User preferences can now be configured via files in addition to
+  > environment variables. Supports multiple formats (JSON, YAML, JS)
+  > and standard locations (~/.bduirc, ~/.config/bdui/, package.json).
+  >
+  > Configuration precedence: ENV > config file > defaults
+  >
+  > New config options:
+  > - `discoveryPaths`: Array of paths to search for beads projects
+  > - `defaultPortStart`: Starting port for multi-instance mode
+  >
+  > Environment variables still supported for backward compatibility:
+  > - `BDUI_DISCOVERY_PATHS` (colon-separated)
+  > - `BDUI_DEFAULT_PORT_START`
+  >
 - feat: add migration tool for legacy instances
   >
   > `bdui migrate` detects old global instances and guides users through
-  > migrating to project-local runtime. Includes auto-discovery of beads
-  > projects and port assignment strategies.
+  > migrating to project-local runtime with configuration instructions.
   >
 - feat: add session completion workflow to AGENTS.md
   >
   > Document mandatory workflow for AI agents to ensure work is properly
   > committed and pushed before ending sessions.
+  >
+- test: comprehensive test suite for multi-instance features
+  >
+  > Added 142 new tests (240 → 382 total) with 72.89% overall coverage.
+  >
+  > New test files:
+  > - server/cli/config.test.js (21 tests, 100% coverage)
+  > - server/cli/registry.test.js (20 tests, 94% coverage)
+  > - server/cli/discover.test.js (18 tests, 100% coverage)
+  > - server/cli/migrate.test.js (29 tests, unit tests)
+  > - server/cli/migrate.integration.test.js (4 tests, real process spawning)
+  > - server/cli/commands.multi-instance.test.js (26 tests, 88% coverage)
+  > - app/views/workspace-picker.test.js (15 tests, 100% coverage)
+  > - app/utils/status-badge.test.js (8 tests, 100% coverage)
+  >
+  > server/cli coverage: 31.81% → 79.05% (+47.24%)
+  >
+- fix: board switcher modal UX improvements
+  >
+  > - Fixed click-outside to close (use classList.contains check)
+  > - Added dark mode support (modal text colors)
+  > - Improved close button hover states
   >
 
 _Released by [TBD] on TBD._

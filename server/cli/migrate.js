@@ -53,10 +53,11 @@ export function removeOldGlobalPid() {
 
 /**
  * Kill a process by PID
+ * Exported for testing
  * @param {number} pid
  * @returns {Promise<boolean>}
  */
-async function killProcess(pid) {
+export async function killProcess(pid) {
   try {
     process.kill(pid, 'SIGTERM');
     // Wait a bit for graceful shutdown
@@ -70,18 +71,25 @@ async function killProcess(pid) {
     }
 
     return !isProcessRunning(pid);
-  } catch {
+  } catch (err) {
+    const code = /** @type {{ code?: string }} */ (err).code;
+    // ESRCH = process doesn't exist, which means it's already "killed"
+    if (code === 'ESRCH') {
+      return true;
+    }
+    // Other errors (EPERM, etc.) mean we failed to kill it
     return false;
   }
 }
 
 /**
  * Start bdui for a project on a specific port
+ * Exported for testing
  * @param {string} project_path
  * @param {number} port
  * @returns {Promise<{ success: boolean, pid?: number, error?: string }>}
  */
-async function startInstanceForProject(project_path, port) {
+export async function startInstanceForProject(project_path, port) {
   return new Promise((resolve) => {
     const bdui_bin = process.argv[1]; // Path to bdui executable
 
@@ -144,47 +152,20 @@ export async function handleMigrate(options = {}) {
         console.log('✓ Cleaned up old PID file');
       }
 
-      // Auto-discover projects
-      console.log('\nDiscovering beads projects...');
-      const github_dir = path.join(os.homedir(), 'github');
-      const projects = findBeadsProjects(github_dir);
-
-      if (projects.length === 0) {
-        console.log('  No projects found in ~/github');
-        console.log('  Run "bdui discover <path>" to search other locations');
-        console.log('\nMigration complete!');
-        return 0;
-      }
-
-      console.log(`Found ${projects.length} beads project(s)`);
-      console.log('\nStarting instances automatically...\n');
-
-      let started = 0;
-      let failed = 0;
-      let base_port = 4000;
-
-      for (const project of projects) {
-        const project_name = path.basename(project);
-        const port = base_port + started;
-
-        console.log(`Starting ${project_name} on port ${port}...`);
-
-        const result = await startInstanceForProject(project, port);
-
-        if (result.success) {
-          started++;
-          console.log(`  ✓ Started (PID ${result.pid})`);
-        } else {
-          failed++;
-          console.log(`  ✗ Failed: ${result.error || 'Unknown error'}`);
-        }
-      }
-
-      console.log(`\n✓ Migration complete!`);
-      console.log(`   Started: ${started} instances`);
-      console.log(`   Failed: ${failed} instances`);
-      console.log('\nView all instances: bdui list');
-      return failed > 0 ? 1 : 0;
+      console.log('\n✓ Migration complete!');
+      console.log('Old global instance stopped and cleaned up.');
+      console.log('');
+      console.log('Next steps:');
+      console.log('  1. Find your beads projects:');
+      console.log('       bdui discover ~/code');
+      console.log('       bdui discover ~/projects');
+      console.log('');
+      console.log('  2. Start instances per-project:');
+      console.log('       cd <project> && bdui start --port 4000');
+      console.log('');
+      console.log('  3. View all instances:');
+      console.log('       bdui list');
+      return 0;
     } else {
       console.error('✗ Failed to stop process ' + old_pid);
       console.log('  Try manually: kill ' + old_pid);
@@ -196,12 +177,15 @@ export async function handleMigrate(options = {}) {
   console.log('');
   console.log('Migration options:');
   console.log('  a) Automatic: bdui migrate --force');
-  console.log('     (Stops old instance and cleans up)');
+  console.log('     (Stops old instance, provides next steps)');
   console.log('');
   console.log('  b) Manual:');
   console.log('     1. Stop the old instance: kill ' + old_pid);
-  console.log('     2. Run "bdui discover ~/github" to find projects');
-  console.log('     3. Restart instances: cd <project> && bdui start --port 400X');
+  console.log('     2. Configure discovery paths (choose one):');
+  console.log('        - Create ~/.bduirc: {"discoveryPaths": ["~/code"]}');
+  console.log('        - Or: export BDUI_DISCOVERY_PATHS="~/code:~/projects"');
+  console.log('     3. Discover projects: bdui discover');
+  console.log('     4. Start instances: cd <project> && bdui start --port 4000');
   console.log('');
   console.log('After migration, each project gets its own instance.');
   console.log('Use "bdui list" to see all running instances.');
@@ -211,10 +195,11 @@ export async function handleMigrate(options = {}) {
 
 /**
  * Check if a process is running
+ * Exported for testing
  * @param {number} pid
  * @returns {boolean}
  */
-function isProcessRunning(pid) {
+export function isProcessRunning(pid) {
   try {
     if (pid <= 0) return false;
     process.kill(pid, 0);

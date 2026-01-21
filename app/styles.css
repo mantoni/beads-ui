@@ -2009,6 +2009,7 @@ html[data-theme='dark'] {
 
 .modal-content {
   background: white;
+  color: #1a1a1a;
   border-radius: 8px;
   max-width: 600px;
   width: 90%;
@@ -2018,6 +2019,7 @@ html[data-theme='dark'] {
 
 body.dark .modal-content {
   background: #1e1e1e;
+  color: #e5e5e5;
 }
 
 .modal-header {
@@ -2032,6 +2034,11 @@ body.dark .modal-header {
   border-bottom-color: #333;
 }
 
+.modal-header h2 {
+  margin: 0;
+  color: inherit;
+}
+
 .modal-close {
   background: none;
   border: none;
@@ -2040,6 +2047,20 @@ body.dark .modal-header {
   padding: 0;
   width: 32px;
   height: 32px;
+  color: #666;
+  transition: color 0.15s;
+}
+
+.modal-close:hover {
+  color: #000;
+}
+
+body.dark .modal-close {
+  color: #999;
+}
+
+body.dark .modal-close:hover {
+  color: #fff;
 }
 
 .boards-list {

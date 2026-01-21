@@ -83,8 +83,13 @@
         // Wire up modal
         document.getElementById('boards-btn').addEventListener('click', showBoardsModal);
         document.getElementById('boards-modal-close').addEventListener('click', hideBoardsModal);
+
+        // Close modal when clicking outside (on backdrop)
         document.getElementById('boards-modal').addEventListener('click', (e) => {
-          if (e.target.id === 'boards-modal') hideBoardsModal();
+          // Close if clicking the modal backdrop itself, not the content
+          if (e.target.classList.contains('modal')) {
+            hideBoardsModal();
+          }
         });
       });
     </script>

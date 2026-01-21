@@ -140,4 +140,23 @@ describe('commands integration', () => {
     // cleanup
     await handleStop();
   });
+
+  test('start with --host option sets environment variable', async () => {
+    vi.spyOn(daemon, 'printServerUrl').mockImplementation(() => {});
+    const prev_host = process.env.HOST;
+
+    const code = await handleStart({ host: '0.0.0.0' });
+
+    expect(code).toBe(0);
+    // Env var should be set for the started daemon
+    expect(process.env.HOST).toBe('0.0.0.0');
+
+    await handleStop();
+    // Restore original env var
+    if (prev_host === undefined) {
+      delete process.env.HOST;
+    } else {
+      process.env.HOST = prev_host;
+    }
+  });
 });

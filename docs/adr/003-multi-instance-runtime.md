@@ -164,6 +164,24 @@ Testing
 - [x] Discovery tests with nested projects
 - [x] Migration tests with legacy setups
 
+## Configuration System
+
+User preferences are managed via [cosmiconfig](https://github.com/cosmiconfig/cosmiconfig), supporting multiple configuration formats and locations.
+
+**Precedence:**
+1. Environment variables (`BDUI_*`)
+2. Config files (`.bduirc`, `~/.config/bdui/config.json`, etc.)
+3. Defaults
+
+**Configuration options:**
+- `discoveryPaths`: Array of paths to search for beads projects
+- `defaultPortStart`: Starting port number for multi-instance mode
+
+**Supported formats:** JSON, YAML, JavaScript (CJS/ESM)
+**Supported locations:** `~/.bduirc`, `~/.config/bdui/`, package.json property
+
+This provides flexible configuration while maintaining backward compatibility with environment variables.
+
 ## Compatibility with Workspace Switching (v0.8.0+)
 
 This feature is **complementary** to the workspace switching feature added in v0.8.0:

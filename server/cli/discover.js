@@ -53,56 +53,41 @@ export function findBeadsProjects(search_path, max_depth = 4) {
 }
 
 /**
- * Check if a beads-ui server is running for a project by trying to connect
- * @param {number} port - Port to check
- * @returns {Promise<boolean>}
- */
-async function isServerRunningOnPort(port) {
-  try {
-    const response = await fetch(`http://127.0.0.1:${port}/healthz`, {
-      signal: AbortSignal.timeout(1000)
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Try common ports to find running instance for a project
- * @param {string} project_path
- * @returns {Promise<number | null>} - Port if found
- */
-async function findRunningPort(project_path) {
-  // Try common ports
-  const common_ports = [4000, 4001, 4002, 4003, 4004, 4005, 3000, 3001, 3002];
-
-  for (const port of common_ports) {
-    if (await isServerRunningOnPort(port)) {
-      // Found a server, but we can't be 100% sure it's for this project
-      // Return it as a candidate
-      return port;
-    }
-  }
-
-  return null;
-}
-
-/**
  * Handle discover command
- * @param {string[]} search_paths - Paths to search (defaults to ~/github)
- * @param {{ register?: boolean }} options
+ * @param {string[]} search_paths - Paths to search
  * @returns {Promise<number>}
  */
-export async function handleDiscover(search_paths = [], options = {}) {
-  // Default to ~/github if no paths provided
+export async function handleDiscover(search_paths = []) {
+  const { getDiscoveryPaths } = await import('./config.js');
+
+  // If no paths provided, try to use configured paths
   if (search_paths.length === 0) {
-    const github_dir = path.join(os.homedir(), 'github');
-    if (fs.existsSync(github_dir)) {
-      search_paths = [github_dir];
+    const configured_paths = await getDiscoveryPaths();
+
+    if (configured_paths && configured_paths.length > 0) {
+      search_paths = configured_paths;
+      const source = process.env.BDUI_DISCOVERY_PATHS ? 'BDUI_DISCOVERY_PATHS' : 'config file';
+      console.log(`Using discovery paths from ${source}\n`);
     } else {
-      console.error('No search paths provided and ~/github not found.');
-      console.log('Usage: bdui discover <path> [<path>...]');
+      console.error('No search paths provided and none configured.');
+      console.log('');
+      console.log('Usage:');
+      console.log('  bdui discover <path> [<path>...]');
+      console.log('');
+      console.log('Configuration options:');
+      console.log('  1. Environment variable (recommended for scripts):');
+      console.log('       export BDUI_DISCOVERY_PATHS="~/code:~/projects"');
+      console.log('');
+      console.log('  2. Config file (recommended for interactive use):');
+      console.log('       Create ~/.bduirc:');
+      console.log('       {');
+      console.log('         "discoveryPaths": ["~/code", "~/projects"]');
+      console.log('       }');
+      console.log('');
+      console.log('  3. One-time search (no config):');
+      console.log('       bdui discover ~/code ~/projects');
+      console.log('');
+      console.log('See: https://github.com/cosmiconfig/cosmiconfig for config formats');
       return 1;
     }
   }
@@ -132,11 +117,6 @@ export async function handleDiscover(search_paths = [], options = {}) {
 
   console.log('\nTo start an instance for any project:');
   console.log('  cd <project-path> && bdui start --port 4000\n');
-
-  if (options.register) {
-    console.log('Note: Auto-registration not yet implemented.');
-    console.log('Instances will self-register when you start them.');
-  }
 
   return 0;
 }
