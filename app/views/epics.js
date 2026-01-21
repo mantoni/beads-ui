@@ -3,6 +3,29 @@ import { createListSelectors } from '../data/list-selectors.js';
 import { createIssueIdRenderer } from '../utils/issue-id-renderer.js';
 import { createIssueRowRenderer } from './issue-row.js';
 
+const COOKIE_EXPANDED = 'beads_epics_expanded';
+const COOKIE_SHOW_CLOSED = 'beads_epics_show_closed';
+
+/**
+ * Get a cookie value by name.
+ * @param {string} name
+ * @returns {string | null}
+ */
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
+/**
+ * Set a cookie with a 1-year expiry.
+ * @param {string} name
+ * @param {string} value
+ */
+function setCookie(name, value) {
+  const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+}
+
 /**
  * @typedef {{ id: string, title?: string, status?: string, priority?: number, issue_type?: string, assignee?: string, created_at?: number, updated_at?: number }} IssueLite
  */
@@ -31,11 +54,33 @@ export function createEpicsView(
   /** @type {any[]} */
   let groups = [];
   /** @type {Set<string>} */
-  const expanded = new Set();
+  const expanded = new Set(loadExpandedFromCookie());
   /** @type {Set<string>} */
   const loading = new Set();
   /** Whether to show closed epics */
-  let show_closed = false;
+  let show_closed = getCookie(COOKIE_SHOW_CLOSED) === 'true';
+
+  /**
+   * Load expanded epic IDs from cookie.
+   * @returns {string[]}
+   */
+  function loadExpandedFromCookie() {
+    const raw = getCookie(COOKIE_EXPANDED);
+    if (!raw) return [];
+    try {
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr.filter((x) => typeof x === 'string') : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Save expanded epic IDs to cookie.
+   */
+  function saveExpandedToCookie() {
+    setCookie(COOKIE_EXPANDED, JSON.stringify([...expanded]));
+  }
   /** @type {Map<string, () => Promise<void>>} */
   const epic_unsubs = new Map();
   // Centralized selection helpers
@@ -43,16 +88,8 @@ export function createEpicsView(
   // Live re-render on pushes: recompute groups when stores change
   if (selectors) {
     selectors.subscribe(() => {
-      const had_none = groups.length === 0;
       groups = buildGroupsFromSnapshot();
       doRender();
-      // Auto-expand first epic when transitioning from empty to non-empty
-      if (had_none && groups.length > 0) {
-        const first_id = String(groups[0].epic?.id || '');
-        if (first_id && !expanded.has(first_id)) {
-          void toggle(first_id);
-        }
-      }
     });
   }
 
@@ -87,10 +124,11 @@ export function createEpicsView(
   }
 
   /**
-   * Toggle show_closed state.
+   * Toggle show_closed state and persist to cookie.
    */
   function toggleShowClosed() {
     show_closed = !show_closed;
+    setCookie(COOKIE_SHOW_CLOSED, String(show_closed));
     doRender();
   }
 
@@ -310,6 +348,7 @@ export function createEpicsView(
   async function toggle(epic_id) {
     if (!expanded.has(epic_id)) {
       expanded.add(epic_id);
+      saveExpandedToCookie();
       loading.add(epic_id);
       doRender();
       // Subscribe to epic detail; children are rendered from `dependents`
@@ -339,6 +378,7 @@ export function createEpicsView(
       loading.delete(epic_id);
     } else {
       expanded.delete(epic_id);
+      saveExpandedToCookie();
       // Unsubscribe when collapsing
       if (epic_unsubs.has(epic_id)) {
         try {
@@ -409,17 +449,25 @@ export function createEpicsView(
     async load() {
       groups = buildGroupsFromSnapshot();
       doRender();
-      // Auto-expand first epic on screen
-      try {
-        if (groups.length > 0) {
-          const first_id = String(groups[0].epic?.id || '');
-          if (first_id && !expanded.has(first_id)) {
-            // This will render and load children lazily
-            await toggle(first_id);
+      // Restore subscriptions for previously expanded epics from cookie
+      for (const epic_id of expanded) {
+        if (subscriptions && typeof subscriptions.subscribeList === 'function') {
+          try {
+            if (issue_stores && /** @type {any} */ (issue_stores).register) {
+              /** @type {any} */ (issue_stores).register(`detail:${epic_id}`, {
+                type: 'issue-detail',
+                params: { id: epic_id }
+              });
+            }
+            const u = await subscriptions.subscribeList(`detail:${epic_id}`, {
+              type: 'issue-detail',
+              params: { id: epic_id }
+            });
+            epic_unsubs.set(epic_id, u);
+          } catch {
+            // ignore subscription failures
           }
         }
-      } catch {
-        // ignore auto-expand failures
       }
     }
   };
