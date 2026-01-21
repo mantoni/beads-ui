@@ -200,3 +200,59 @@ export async function handleStopAll() {
   console.log(`\nStopped: ${stopped}, Failed: ${failed}`);
   return failed > 0 ? 1 : 0;
 }
+
+/**
+ * Handle `restart-all` command - restart all registered instances.
+ * @returns {Promise<number>} Exit code
+ */
+export async function handleRestartAll() {
+  const instances = getAllInstances();
+
+  if (instances.length === 0) {
+    console.log('No instances in registry.');
+    console.log('Run "bdui discover ~/github" to find projects.');
+    return 0;
+  }
+
+  console.log(`Restarting ${instances.length} instance(s)...\n`);
+
+  let restarted = 0;
+  let failed = 0;
+
+  for (const instance of instances) {
+    console.log(`Restarting ${instance.project} on port ${instance.port}...`);
+
+    // Stop if running
+    if (instance.running) {
+      const terminated = await terminateProcess(instance.pid, 5000);
+      if (!terminated) {
+        console.log(`  ⚠ Warning: Failed to stop old instance`);
+      }
+    }
+
+    // Start in the project directory on registered port
+    const { spawn } = await import('node:child_process');
+    const child = spawn(process.argv[1], ['start', '--port', String(instance.port)], {
+      cwd: instance.path,
+      detached: true,
+      stdio: 'ignore'
+    });
+
+    child.unref();
+
+    // Wait briefly for startup
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    if (child.pid) {
+      restarted++;
+      console.log(`  ✓ Restarted (PID ${child.pid})`);
+    } else {
+      failed++;
+      console.log(`  ✗ Failed to start`);
+    }
+  }
+
+  console.log(`\nRestarted: ${restarted}, Failed: ${failed}`);
+  console.log('View instances: bdui list');
+  return failed > 0 ? 1 : 0;
+}

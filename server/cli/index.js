@@ -1,5 +1,5 @@
 import { enableAllDebug } from '../logging.js';
-import { handleRestart, handleStart, handleStop, handleList, handleStopAll } from './commands.js';
+import { handleRestart, handleStart, handleStop, handleList, handleStopAll, handleRestartAll } from './commands.js';
 import { handleMigrate } from './migrate.js';
 import { handleDiscover } from './discover.js';
 import { printUsage } from './usage.js';
@@ -49,7 +49,7 @@ export function parseArgs(args) {
     }
     if (
       !command &&
-      (token === 'start' || token === 'stop' || token === 'restart' || token === 'list' || token === 'stop-all' || token === 'migrate' || token === 'discover')
+      (token === 'start' || token === 'stop' || token === 'restart' || token === 'list' || token === 'stop-all' || token === 'restart-all' || token === 'migrate' || token === 'discover')
     ) {
       command = token;
       continue;
@@ -113,6 +113,9 @@ export async function main(args) {
   }
   if (command === 'stop-all') {
     return await handleStopAll();
+  }
+  if (command === 'restart-all') {
+    return await handleRestartAll();
   }
   if (command === 'migrate') {
     return await handleMigrate({ force: flags.includes('force') });

@@ -20,6 +20,73 @@
         .catch(() => {
           // Fallback to default if config fetch fails
         });
+
+      // Board switcher functionality
+      let instancesData = null;
+
+      function loadInstances() {
+        fetch('/api/instances')
+          .then(r => r.json())
+          .then(data => {
+            instancesData = data;
+            const running = data.instances.filter(i => i.running);
+            document.getElementById('boards-count').textContent = running.length;
+          })
+          .catch(() => {
+            document.getElementById('boards-count').textContent = '?';
+          });
+      }
+
+      function showBoardsModal() {
+        if (!instancesData) return;
+
+        const modal = document.getElementById('boards-modal');
+        const listEl = document.getElementById('boards-list');
+
+        const running = instancesData.instances.filter(i => i.running);
+        const current = instancesData.current;
+
+        if (running.length === 0) {
+          listEl.innerHTML = '<p style="padding: 1rem;">No other boards running.</p>';
+        } else {
+          const items = running.map(instance => {
+            const isCurrent = instance.project === current;
+            const url = `http://127.0.0.1:${instance.port}`;
+            return `
+              <div class="board-item ${isCurrent ? 'current' : ''}">
+                <div class="board-info">
+                  <strong>${instance.project}</strong>
+                  ${isCurrent ? '<span class="badge">Current</span>' : ''}
+                  <div class="board-meta">Port ${instance.port} • PID ${instance.pid}</div>
+                </div>
+                ${!isCurrent ? `<a href="${url}" target="_blank" class="board-link">Open →</a>` : ''}
+              </div>
+            `;
+          }).join('');
+
+          listEl.innerHTML = items;
+        }
+
+        modal.removeAttribute('hidden');
+      }
+
+      function hideBoardsModal() {
+        document.getElementById('boards-modal').setAttribute('hidden', '');
+      }
+
+      // Initialize on load
+      document.addEventListener('DOMContentLoaded', () => {
+        loadInstances();
+        // Refresh every 5 seconds
+        setInterval(loadInstances, 5000);
+
+        // Wire up modal
+        document.getElementById('boards-btn').addEventListener('click', showBoardsModal);
+        document.getElementById('boards-modal-close').addEventListener('click', hideBoardsModal);
+        document.getElementById('boards-modal').addEventListener('click', (e) => {
+          if (e.target.id === 'boards-modal') hideBoardsModal();
+        });
+      });
     </script>
   </head>
   <body>
@@ -40,6 +107,14 @@
           <span class="header-loading__spinner" aria-hidden="true"></span>
           <span class="visually-hidden">Loading</span>
         </div>
+        <button
+          id="boards-btn"
+          type="button"
+          title="Switch between boards"
+          style="margin-right: 8px;"
+        >
+          Boards (<span id="boards-count">0</span>)
+        </button>
         <label class="theme-toggle" title="Toggle dark mode">
           <span>Dark</span>
           <input
@@ -56,6 +131,17 @@
         >
           New issue
         </button>
+      </div>
+      <div id="boards-modal" class="modal" hidden>
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>Running Boards</h2>
+            <button class="modal-close" id="boards-modal-close">&times;</button>
+          </div>
+          <div id="boards-list" class="boards-list">
+            Loading...
+          </div>
+        </div>
       </div>
     </header>
     <main id="app" class="app-shell" aria-live="polite"></main>

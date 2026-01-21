@@ -13,6 +13,7 @@ export function printUsage(out_stream) {
     '  restart            Restart the UI server',
     '  list               List all running beads-ui instances',
     '  stop-all           Stop all running instances',
+    '  restart-all        Restart all registered instances',
     '  discover [paths]   Find beads projects (default: ~/github)',
     '  migrate            Migrate from old global PID system',
     '',

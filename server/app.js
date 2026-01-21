@@ -40,6 +40,23 @@ export function createApp(config) {
     });
   });
 
+  // Instances endpoint - provides list of all running boards
+  /**
+   * @param {Request} _req
+   * @param {Response} res
+   */
+  app.get('/api/instances', async (_req, res) => {
+    // Import registry functions dynamically
+    const { getAllInstances } = await import('./cli/registry.js');
+    const instances = getAllInstances();
+
+    res.type('application/json');
+    res.status(200).send({
+      instances: instances,
+      current: config.project_name
+    });
+  });
+
   if (
     !fs.statSync(path.resolve(config.app_dir, 'main.bundle.js'), {
       throwIfNoEntry: false

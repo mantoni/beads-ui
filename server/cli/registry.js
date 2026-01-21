@@ -118,19 +118,38 @@ export function getAllInstances() {
 
 /**
  * Clean stale entries from registry (PIDs that are no longer running)
+ * NOTE: This only removes entries, it doesn't update running status.
+ * The registry is persistent and keeps stopped instances for restart-all.
+ * Only call this when you want to purge truly stale entries.
  */
 export function cleanRegistry() {
   const registry = readRegistry();
   const clean_registry = {};
 
   for (const [project, data] of Object.entries(registry)) {
-    if (isProcessRunning(data.pid)) {
+    // Keep entry even if stopped - only remove if PID is invalid
+    if (data.pid > 0) {
       clean_registry[project] = data;
     }
   }
 
   writeRegistry(clean_registry);
   return Object.keys(registry).length - Object.keys(clean_registry).length;
+}
+
+/**
+ * Mark an instance as stopped in registry (without removing it)
+ * @param {string} project_path
+ */
+export function markInstanceStopped(project_path) {
+  const registry = readRegistry();
+  const project_name = getProjectName(project_path);
+
+  if (registry[project_name]) {
+    registry[project_name].stopped_at = new Date().toISOString();
+    // Keep the port/path for restart-all to use
+    writeRegistry(registry);
+  }
 }
 
 /**
