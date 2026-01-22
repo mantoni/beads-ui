@@ -160,6 +160,7 @@ export async function fetchListForSubscription(spec, options = {}) {
             created_at: e.created_at,
             updated_at: e.updated_at,
             closed_at: e.closed_at ?? null,
+            deleted_at: e.deleted_at ?? null,
             // Preserve useful counters from bd output
             total_children: /** @type {any} */ (it).total_children,
             closed_children: /** @type {any} */ (it).closed_children,
@@ -168,6 +169,23 @@ export async function fetchListForSubscription(spec, options = {}) {
           return flat;
         }
         return it;
+      });
+      raw = raw.filter((it) => {
+        if (!it || typeof it !== 'object') {
+          return false;
+        }
+        const status =
+          typeof (/** @type {any} */ (it).status) === 'string'
+            ? /** @type {any} */ (it).status
+            : '';
+        if (status === 'tombstone') {
+          return false;
+        }
+        const deleted_at = /** @type {any} */ (it).deleted_at;
+        if (deleted_at !== undefined && deleted_at !== null) {
+          return false;
+        }
+        return true;
       });
     }
 
