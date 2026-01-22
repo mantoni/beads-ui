@@ -1,5 +1,12 @@
 # Changes
 
+## 0.9.2
+
+- [`ffa376c`](https://github.com/mantoni/beads-ui/commit/ffa376cab432b0e321232e8bc0de2caca20a6b17)
+  Filter tombstone epics in list adapter (#44) (Brent Traut)
+
+_Released by [Maximilian Antoni](https://github.com/mantoni) on 2026-01-22._
+
 ## 0.9.1
 
 - [`bd6f412`](https://github.com/mantoni/beads-ui/commit/bd6f412570a6cb774a683106f9b6efa6ee0e318b)
