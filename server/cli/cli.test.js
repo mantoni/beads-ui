@@ -1,7 +1,12 @@
+import { readFile } from 'node:fs/promises';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import * as logging from '../logging.js';
 import * as commands from './commands.js';
 import { main, parseArgs } from './index.js';
+
+vi.mock('node:fs/promises', () => ({
+  readFile: vi.fn()
+}));
 
 vi.mock('../logging.js', () => ({
   enableAllDebug: vi.fn(),
@@ -16,9 +21,13 @@ vi.mock('./commands.js', () => ({
 
 /** @type {import('vitest').MockInstance} */
 let write_mock;
+/** @type {import('vitest').MockInstance} */
+let read_file_mock;
 
 beforeEach(() => {
   write_mock = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+  read_file_mock = vi.mocked(readFile);
+  read_file_mock.mockResolvedValue(JSON.stringify({ version: '1.2.3' }));
 });
 
 describe('parseArgs', () => {
@@ -49,6 +58,14 @@ describe('parseArgs', () => {
     expect(r.flags.includes('open')).toBe(true);
   });
 
+  test('recognizes -v and --version flags', () => {
+    const r1 = parseArgs(['-v']);
+    const r2 = parseArgs(['--version']);
+
+    expect(r1.flags.includes('version')).toBe(true);
+    expect(r2.flags.includes('version')).toBe(true);
+  });
+
   test('parses --host option', () => {
     const r = parseArgs(['start', '--host', '0.0.0.0']);
 
@@ -74,6 +91,15 @@ describe('main', () => {
 
     expect(code).toBe(0);
     expect(write_mock).toHaveBeenCalled();
+  });
+
+  test('prints version and exits 0 on --version', async () => {
+    const code = await main(['--version']);
+
+    expect(code).toBe(0);
+    expect(write_mock).toHaveBeenCalled();
+    const output = write_mock.mock.calls.map((c) => String(c[0])).join('');
+    expect(output.trim()).toBe('1.2.3');
   });
 
   test('enables debug when --debug passed', async () => {

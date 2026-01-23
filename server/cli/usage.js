@@ -14,6 +14,7 @@ export function printUsage(out_stream) {
     '',
     'Options:',
     '  -h, --help        Show this help message',
+    '  -v, --version     Show the CLI version',
     '  -d, --debug       Enable debug logging',
     '      --open        Open the browser after start/restart',
     '      --host <addr> Bind to a specific host (default: 127.0.0.1)',
