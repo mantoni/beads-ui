@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { enableAllDebug } from '../logging.js';
 import { handleRestart, handleStart, handleStop } from './commands.js';
 import { printUsage } from './usage.js';
@@ -30,6 +31,10 @@ export function parseArgs(args) {
       flags.push('open');
       continue;
     }
+    if (token === '--version' || token === '-v') {
+      flags.push('version');
+      continue;
+    }
     if (token === '--host' && i + 1 < args.length) {
       options.host = args[++i];
       continue;
@@ -55,6 +60,22 @@ export function parseArgs(args) {
 }
 
 /**
+ * Load the package.json version string.
+ *
+ * @returns {Promise<string>}
+ */
+async function loadVersion() {
+  const package_url = new URL('../../package.json', import.meta.url);
+  const package_text = await readFile(package_url, 'utf8');
+  const package_data = JSON.parse(package_text);
+  const version = package_data.version;
+  if (typeof version !== 'string') {
+    throw new Error('Invalid package.json version');
+  }
+  return version;
+}
+
+/**
  * CLI main entry. Returns an exit code and prints usage on `--help` or errors.
  * No side effects beyond invoking stub handlers.
  *
@@ -69,6 +90,11 @@ export async function main(args) {
     enableAllDebug();
   }
 
+  if (flags.includes('version')) {
+    const version = await loadVersion();
+    process.stdout.write(`${version}\n`);
+    return 0;
+  }
   if (flags.includes('help')) {
     printUsage(process.stdout);
     return 0;
