@@ -1,5 +1,12 @@
 # Changes
 
+## 0.9.3
+
+- [`2e04bc1`](https://github.com/mantoni/beads-ui/commit/2e04bc1eeb5c43e6934d858cd017d80f745a38bb)
+  Add -v/—version flag to CLI (#46) (Brent Traut)
+
+_Released by [Maximilian Antoni](https://github.com/mantoni) on 2026-01-23._
+
 ## 0.9.2
 
 - [`ffa376c`](https://github.com/mantoni/beads-ui/commit/ffa376cab432b0e321232e8bc0de2caca20a6b17)
