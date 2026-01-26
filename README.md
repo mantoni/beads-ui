@@ -22,6 +22,8 @@
 - ⛰️ **Epics view** – Show progress per epic, expand rows, edit inline
 - 🏂 **Board view** – Blocked / Ready / In progress / Closed columns
 - ⌨️ **Keyboard navigation** – Navigate and edit without touching the mouse
+- 🔀 **Multi-workspace** – Switch between projects via dropdown, auto-registers
+  workspaces
 
 ## Setup
 
