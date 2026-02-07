@@ -1007,6 +1007,23 @@ input.inline-edit:focus {
   flex: 1;
 }
 
+.bulk-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3) var(--space-2) var(--space-3);
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--panel-bg) 84%, transparent);
+}
+
+.bulk-toolbar__count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-right: var(--space-1);
+}
+
 /* Issues list polish */
 #list-panel .panel__body ul {
   list-style: none;
@@ -1198,6 +1215,18 @@ input.inline-edit:focus {
     font-weight: 600;
   }
 }
+
+.row-select-cell {
+  text-align: center !important;
+  padding-left: var(--space-4) !important;
+  padding-right: var(--space-4) !important;
+}
+
+.row-select-checkbox,
+.row-select-all-checkbox {
+  margin: 0;
+}
+
 .epic-row:hover {
   background: color-mix(in srgb, var(--control-bg) 55%, transparent);
 }
