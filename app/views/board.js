@@ -16,7 +16,9 @@ import { createTypeBadge } from '../utils/type-badge.js';
  *   issue_type?: string,
  *   created_at?: number,
  *   updated_at?: number,
- *   closed_at?: number
+ *   closed_at?: number,
+ *   created_by?: string,
+ *   assignee?: string
  * }} IssueLite
  */
 
@@ -80,6 +82,35 @@ export function createBoardView(
    * @type {'today'|'3'|'7'}
    */
   let closed_filter_mode = 'today';
+
+  /**
+   * Creator filter: empty string means 'Any'.
+   *
+   * @type {string}
+   */
+  let creator_filter = '';
+
+  /**
+   * Assignee filter: empty string means 'Any'.
+   *
+   * @type {string}
+   */
+  let assignee_filter = '';
+
+  /**
+   * Unique creators extracted from all issues.
+   *
+   * @type {string[]}
+   */
+  let unique_creators = [];
+
+  /**
+   * Unique assignees extracted from all issues.
+   *
+   * @type {string[]}
+   */
+  let unique_assignees = [];
+
   if (store) {
     try {
       const s = store.getState();
@@ -88,13 +119,150 @@ export function createBoardView(
       if (cf === 'today' || cf === '3' || cf === '7') {
         closed_filter_mode = /** @type {any} */ (cf);
       }
+      // Load creator/assignee filters from store
+      if (s && s.board) {
+        creator_filter = String(s.board.creator_filter || '');
+        assignee_filter = String(s.board.assignee_filter || '');
+      }
     } catch {
       // ignore store init errors
     }
   }
 
+  let creator_dropdown_open = false;
+  let assignee_dropdown_open = false;
+
+  /**
+   * Toggle creator dropdown open/closed.
+   *
+   * @param {Event} e
+   */
+  function toggleCreatorDropdown(e) {
+    e.stopPropagation();
+    creator_dropdown_open = !creator_dropdown_open;
+    assignee_dropdown_open = false;
+    doRender();
+  }
+
+  /**
+   * Toggle assignee dropdown open/closed.
+   *
+   * @param {Event} e
+   */
+  function toggleAssigneeDropdown(e) {
+    e.stopPropagation();
+    assignee_dropdown_open = !assignee_dropdown_open;
+    creator_dropdown_open = false;
+    doRender();
+  }
+
+  /**
+   * Select a creator filter value.
+   *
+   * @param {string} value
+   */
+  function selectCreatorFilter(value) {
+    creator_filter = value;
+    creator_dropdown_open = false;
+    log('creator filter %s', creator_filter || '(any)');
+    if (store) {
+      try {
+        store.setState({ board: { creator_filter } });
+      } catch {
+        // ignore store errors
+      }
+    }
+    refreshFromStores();
+  }
+
+  /**
+   * Select an assignee filter value.
+   *
+   * @param {string} value
+   */
+  function selectAssigneeFilter(value) {
+    assignee_filter = value;
+    assignee_dropdown_open = false;
+    log('assignee filter %s', assignee_filter || '(any)');
+    if (store) {
+      try {
+        store.setState({ board: { assignee_filter } });
+      } catch {
+        // ignore store errors
+      }
+    }
+    refreshFromStores();
+  }
+
+  /**
+   * Get display text for filter dropdown trigger.
+   *
+   * @param {string} value
+   * @param {string} label
+   * @returns {string}
+   */
+  function getFilterDisplayText(value, label) {
+    return value ? `${label}: ${value}` : `${label}: Any`;
+  }
+
   function template() {
     return html`
+      <div class="panel__header">
+        <div class="filter-dropdown ${creator_dropdown_open ? 'is-open' : ''}">
+          <button
+            class="filter-dropdown__trigger"
+            @click=${toggleCreatorDropdown}
+          >
+            ${getFilterDisplayText(creator_filter, 'Creator')}
+            <span class="filter-dropdown__arrow">▾</span>
+          </button>
+          <div class="filter-dropdown__menu">
+            <div
+              class="filter-dropdown__option ${creator_filter === '' ? 'is-selected' : ''}"
+              @click=${() => selectCreatorFilter('')}
+            >
+              Any
+            </div>
+            ${unique_creators.map(
+              (c) => html`
+                <div
+                  class="filter-dropdown__option ${creator_filter === c ? 'is-selected' : ''}"
+                  @click=${() => selectCreatorFilter(c)}
+                >
+                  ${c}
+                </div>
+              `
+            )}
+          </div>
+        </div>
+        <div class="filter-dropdown ${assignee_dropdown_open ? 'is-open' : ''}">
+          <button
+            class="filter-dropdown__trigger"
+            @click=${toggleAssigneeDropdown}
+          >
+            ${getFilterDisplayText(assignee_filter, 'Assignee')}
+            <span class="filter-dropdown__arrow">▾</span>
+          </button>
+          <div class="filter-dropdown__menu">
+            <div
+              class="filter-dropdown__option ${assignee_filter === '' ? 'is-selected' : ''}"
+              @click=${() => selectAssigneeFilter('')}
+            >
+              Any
+            </div>
+            ${unique_assignees.map(
+              (a) => html`
+                <div
+                  class="filter-dropdown__option ${assignee_filter === a ? 'is-selected' : ''}"
+                  @click=${() => selectAssigneeFilter(a)}
+                >
+                  ${a}
+                </div>
+              `
+            )}
+          </div>
+        </div>
+      </div>
       <div class="panel__body board-root">
         ${columnTemplate('Blocked', 'blocked-col', list_blocked)}
         ${columnTemplate('Ready', 'ready-col', list_ready)}
@@ -572,37 +740,76 @@ export function createBoardView(
   }
 
   /**
+   * Apply creator/assignee filters to an issue list.
+   *
+   * @param {IssueLite[]} items
+   * @returns {IssueLite[]}
+   */
+  function applyUserFilters(items) {
+    let result = items;
+    if (creator_filter) {
+      result = result.filter((it) => it.created_by === creator_filter);
+    }
+    if (assignee_filter) {
+      result = result.filter((it) => it.assignee === assignee_filter);
+    }
+    return result;
+  }
+
+  /**
+   * Extract unique non-empty values from an array.
+   *
+   * @param {(string|undefined|null)[]} values
+   * @returns {string[]}
+   */
+  function uniqueNonEmpty(values) {
+    const set = new Set(values.filter((v) => v && typeof v === 'string'));
+    return Array.from(set).sort();
+  }
+
+  /**
    * Compose lists from subscriptions + issues store and render.
    */
   function refreshFromStores() {
     try {
       if (selectors) {
-        const in_progress = selectors.selectBoardColumn(
+        const in_progress_raw = selectors.selectBoardColumn(
           'tab:board:in-progress',
           'in_progress'
         );
-        const blocked = selectors.selectBoardColumn(
+        const blocked_raw = selectors.selectBoardColumn(
           'tab:board:blocked',
           'blocked'
         );
-        const ready_raw = selectors.selectBoardColumn(
+        const ready_all = selectors.selectBoardColumn(
           'tab:board:ready',
           'ready'
         );
-        const closed = selectors.selectBoardColumn(
+        const closed_raw = selectors.selectBoardColumn(
           'tab:board:closed',
           'closed'
         );
 
+        // Extract unique creators/assignees from all raw lists for dropdown options
+        const all_items = [
+          ...in_progress_raw,
+          ...blocked_raw,
+          ...ready_all,
+          ...closed_raw
+        ];
+        unique_creators = uniqueNonEmpty(all_items.map((it) => it.created_by));
+        unique_assignees = uniqueNonEmpty(all_items.map((it) => it.assignee));
+
         // Ready excludes items that are in progress
         /** @type {Set<string>} */
-        const in_prog_ids = new Set(in_progress.map((i) => i.id));
-        const ready = ready_raw.filter((i) => !in_prog_ids.has(i.id));
+        const in_prog_ids = new Set(in_progress_raw.map((i) => i.id));
+        const ready_raw = ready_all.filter((i) => !in_prog_ids.has(i.id));
 
-        list_ready = ready;
-        list_blocked = blocked;
-        list_in_progress = in_progress;
-        list_closed_raw = closed;
+        // Apply creator/assignee filters
+        list_ready = applyUserFilters(ready_raw);
+        list_blocked = applyUserFilters(blocked_raw);
+        list_in_progress = applyUserFilters(in_progress_raw);
+        list_closed_raw = applyUserFilters(closed_raw);
       }
       applyClosedFilter();
       doRender();
@@ -625,6 +832,20 @@ export function createBoardView(
       }
     });
   }
+
+  // Click outside to close dropdowns
+  /** @param {MouseEvent} e */
+  const clickOutsideHandler = (e) => {
+    const target = /** @type {HTMLElement|null} */ (e.target);
+    if (target && !target.closest('.filter-dropdown')) {
+      if (creator_dropdown_open || assignee_dropdown_open) {
+        creator_dropdown_open = false;
+        assignee_dropdown_open = false;
+        doRender();
+      }
+    }
+  };
+  document.addEventListener('click', clickOutsideHandler);
 
   return {
     async load() {
@@ -713,6 +934,7 @@ export function createBoardView(
       }
     },
     clear() {
+      document.removeEventListener('click', clickOutsideHandler);
       mount_element.replaceChildren();
       list_ready = [];
       list_blocked = [];

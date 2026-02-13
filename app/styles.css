@@ -986,6 +986,11 @@ html[data-theme='dark'] {
   margin: 0;
 }
 
+.filter-dropdown__option.is-selected {
+  background: color-mix(in srgb, var(--link) 15%, transparent);
+  font-weight: 500;
+}
+
 /* Inline, minimal text input for table editing */
 input.inline-edit {
   border: none;
@@ -1325,6 +1330,12 @@ input.inline-edit:focus {
 
 .board-column--drag-over .board-column__body {
   min-height: 100px;
+}
+
+/* Ensure board header filters appear above column headers */
+#board-root .panel__header {
+  position: relative;
+  z-index: 10;
 }
 
 @media (max-width: 1100px) {
