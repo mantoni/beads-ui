@@ -146,7 +146,6 @@ export function getServerEntryPath() {
 export function startDaemon(options = {}) {
   const server_entry = getServerEntryPath();
   const log_file = getLogFilePath();
-  const spawn_cwd = process.cwd();
 
   // Open the log file for appending; reuse for both stdout and stderr
   /** @type {number} */
@@ -172,7 +171,7 @@ export function startDaemon(options = {}) {
 
   /** @type {SpawnOptions} */
   const opts = {
-    cwd: spawn_cwd,
+    cwd: process.cwd(),
     detached: true,
     env: spawn_env,
     stdio: log_fd >= 0 ? ['ignore', log_fd, log_fd] : 'ignore',

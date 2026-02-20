@@ -19,24 +19,18 @@ describe('list adapters for subscription types', () => {
 
   test('mapSubscriptionToBdArgs returns args for epics', () => {
     const args = mapSubscriptionToBdArgs({ type: 'epics' });
-    expect(args).toEqual(['epic', 'status', '--json']);
+    expect(args).toEqual(['list', '--json', '--type', 'epic']);
   });
 
   test('mapSubscriptionToBdArgs returns args for blocked-issues', () => {
     const args = mapSubscriptionToBdArgs({ type: 'blocked-issues' });
-    expect(args).toEqual(['list', '--json', '--status', 'open', '--blocked']);
+    // We choose dedicated subcommand mapping for blocked
+    expect(args).toEqual(['blocked', '--json']);
   });
 
   test('mapSubscriptionToBdArgs returns args for ready-issues', () => {
     const args = mapSubscriptionToBdArgs({ type: 'ready-issues' });
-    expect(args).toEqual([
-      'list',
-      '--json',
-      '--status',
-      'open',
-      '--limit',
-      '1000'
-    ]);
+    expect(args).toEqual(['ready', '--limit', '1000', '--json']);
   });
 
   test('mapSubscriptionToBdArgs returns args for in-progress-issues', () => {
@@ -46,14 +40,7 @@ describe('list adapters for subscription types', () => {
 
   test('mapSubscriptionToBdArgs returns args for closed-issues', () => {
     const args = mapSubscriptionToBdArgs({ type: 'closed-issues' });
-    expect(args).toEqual([
-      'list',
-      '--json',
-      '--status',
-      'closed',
-      '--limit',
-      '1000'
-    ]);
+    expect(args).toEqual(['list', '--json', '--status', 'closed', '--limit', '1000']);
   });
 
   test('mapSubscriptionToBdArgs returns args for issue-detail', () => {

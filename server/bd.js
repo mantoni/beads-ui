@@ -1,8 +1,15 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { resolveDbPath } from './db.js';
 import { debug } from './logging.js';
 
 const log = debug('bd');
+
+// Serialize bd commands to prevent concurrent Dolt embedded engine access
+// which causes SIGSEGV panics due to noms lock contention.
+/** @type {Promise<unknown>} */
+let _queue = Promise.resolve();
 
 /**
  * Get the git user name from git config.
@@ -51,31 +58,40 @@ export function getBdBin() {
 }
 
 /**
- * Run the `bd` CLI with provided arguments.
- * Shell is not used to avoid injection; args must be pre-split.
+ * Spawn a single `bd` process. Not serialized – use `runBd` instead.
  *
- * @param {string[]} args - Arguments to pass (e.g., ["list", "--json"]).
- * @param {{ cwd?: string, env?: Record<string, string | undefined>, timeout_ms?: number }} [options]
+ * @param {string[]} args
+ * @param {{ cwd?: string, env?: Record<string, string | undefined>, timeout_ms?: number }} options
  * @returns {Promise<{ code: number, stdout: string, stderr: string }>}
  */
-export function runBd(args, options = {}) {
+function _spawnBd(args, options) {
   const bin = getBdBin();
 
-  // Ensure a consistent DB by setting BEADS_DB only when a DB actually exists.
-  const db_path = resolveDbPath({
-    cwd: options.cwd || process.cwd(),
-    env: options.env || process.env
-  });
-  /** @type {Record<string, string | undefined>} */
+  // Ensure a consistent DB by setting BEADS_DB environment variable.
+  // However, if the workspace uses a Dolt backend (indicated by
+  // .beads/metadata.json), skip setting BEADS_DB so `bd` resolves
+  // the Dolt database itself.
+  const effective_cwd = options.cwd || process.cwd();
+  const has_dolt_workspace = existsSync(
+    join(effective_cwd, '.beads', 'metadata.json')
+  );
   const env_with_db = {
     ...(options.env || process.env)
   };
-  if (db_path.exists) {
-    env_with_db.BEADS_DB = db_path.path;
+  if (!has_dolt_workspace) {
+    const db_path = resolveDbPath({
+      cwd: effective_cwd,
+      env: options.env || process.env
+    });
+    if (db_path.exists) {
+      env_with_db.BEADS_DB = db_path.path;
+    }
+  } else {
+    delete env_with_db.BEADS_DB;
   }
 
   const spawn_opts = {
-    cwd: options.cwd || process.cwd(),
+    cwd: effective_cwd,
     env: env_with_db,
     shell: false,
     windowsHide: true
@@ -140,12 +156,36 @@ export function runBd(args, options = {}) {
 }
 
 /**
+ * Run the `bd` CLI with provided arguments.
+ * Shell is not used to avoid injection; args must be pre-split.
+ * Commands are serialized to prevent concurrent Dolt engine access.
+ *
+ * @param {string[]} args - Arguments to pass (e.g., ["list", "--json"]).
+ * @param {{ cwd?: string, env?: Record<string, string | undefined>, timeout_ms?: number }} [options]
+ * @returns {Promise<{ code: number, stdout: string, stderr: string }>}
+ */
+export function runBd(args, options = {}) {
+  // Chain onto the queue so only one bd process runs at a time.
+  const task = _queue.then(() => _spawnBd(args, options));
+  // Swallow rejections so the queue never gets stuck.
+  _queue = task.catch(() => {});
+  return task;
+}
+
+/**
  * Run `bd` and parse JSON from stdout if exit code is 0.
  *
  * @param {string[]} args - Must include flags that cause JSON to be printed (e.g., `--json`).
  * @param {{ cwd?: string, env?: Record<string, string | undefined>, timeout_ms?: number }} [options]
  * @returns {Promise<{ code: number, stdoutJson?: unknown, stderr?: string }>}
  */
+/**
+ * Reset the command queue. Only for use in tests.
+ */
+export function _resetQueue() {
+  _queue = Promise.resolve();
+}
+
 export async function runBdJson(args, options = {}) {
   const result = await runBd(args, options);
   if (result.code !== 0) {
