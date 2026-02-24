@@ -20,16 +20,16 @@ export function mapSubscriptionToBdArgs(spec) {
       return ['epic', 'status', '--json'];
     }
     case 'blocked-issues': {
-      return ['blocked', '--json'];
+      return ['list', '--json', '--status', 'open', '--blocked'];
     }
     case 'ready-issues': {
-      return ['ready', '--limit', '1000', '--json'];
+      return ['list', '--json', '--status', 'open', '--limit', '1000'];
     }
     case 'in-progress-issues': {
       return ['list', '--json', '--status', 'in_progress'];
     }
     case 'closed-issues': {
-      return ['list', '--json', '--status', 'closed'];
+      return ['list', '--json', '--status', 'closed', '--limit', '1000'];
     }
     case 'issue-detail': {
       const p = spec.params || {};

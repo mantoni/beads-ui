@@ -3,9 +3,17 @@ import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { getBdBin, getGitUserName, runBd, runBdJson } from './bd.js';
+import { resolveDbPath } from './db.js';
 
 // Mock child_process.spawn before importing the module under test
 vi.mock('node:child_process', () => ({ spawn: vi.fn() }));
+vi.mock('./db.js', () => ({
+  resolveDbPath: vi.fn(() => ({
+    path: '/mock/test.db',
+    source: 'nearest',
+    exists: true
+  }))
+}));
 
 /**
  * @param {string} stdoutText
@@ -37,6 +45,12 @@ const mockedSpawn = /** @type {import('vitest').Mock} */ (spawnMock);
 
 beforeEach(() => {
   mockedSpawn.mockReset();
+  /** @type {import('vitest').Mock} */ (resolveDbPath).mockReset();
+  /** @type {import('vitest').Mock} */ (resolveDbPath).mockReturnValue({
+    path: '/mock/test.db',
+    source: 'nearest',
+    exists: true
+  });
 });
 
 describe('getBdBin', () => {
@@ -65,6 +79,22 @@ describe('runBd', () => {
     const res = await runBd(['list']);
     expect(res.code).toBe(1);
     expect(res.stderr).toContain('boom');
+  });
+
+  test('does not set BEADS_DB when resolved DB does not exist', async () => {
+    /** @type {import('vitest').Mock} */ (resolveDbPath).mockReturnValueOnce({
+      path: '/mock/missing.db',
+      source: 'nearest',
+      exists: false
+    });
+    mockedSpawn.mockReturnValueOnce(makeFakeProc('ok', '', 0));
+
+    await runBd(['list']);
+
+    const spawn_args = mockedSpawn.mock.calls[0];
+    expect(spawn_args).toBeTruthy();
+    const opts = /** @type {any} */ (spawn_args[2]);
+    expect(opts.env.BEADS_DB).toBeUndefined();
   });
 });
 

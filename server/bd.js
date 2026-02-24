@@ -61,15 +61,18 @@ export function getBdBin() {
 export function runBd(args, options = {}) {
   const bin = getBdBin();
 
-  // Ensure a consistent DB by setting BEADS_DB environment variable
+  // Ensure a consistent DB by setting BEADS_DB only when a DB actually exists.
   const db_path = resolveDbPath({
     cwd: options.cwd || process.cwd(),
     env: options.env || process.env
   });
+  /** @type {Record<string, string | undefined>} */
   const env_with_db = {
-    ...(options.env || process.env),
-    BEADS_DB: db_path.path
+    ...(options.env || process.env)
   };
+  if (db_path.exists) {
+    env_with_db.BEADS_DB = db_path.path;
+  }
 
   const spawn_opts = {
     cwd: options.cwd || process.cwd(),
