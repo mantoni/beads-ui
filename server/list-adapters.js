@@ -26,10 +26,14 @@ export function mapSubscriptionToBdArgs(spec) {
       return ['list', '--json', '--status', 'open', '--limit', '1000'];
     }
     case 'in-progress-issues': {
-      return ['list', '--json', '--status', 'in_progress'];
+      // Workaround for bd/dolt instability on some status-filtered queries.
+      // Fetch broad list safely, then filter in-process below.
+      return ['list', '--json', '--limit', '2000'];
     }
     case 'closed-issues': {
-      return ['list', '--json', '--status', 'closed', '--limit', '1000'];
+      // Workaround for bd/dolt instability on some `--status closed` queries.
+      // Fetch broad list safely, then filter to closed in-process below.
+      return ['list', '--json', '--limit', '2000'];
     }
     case 'issue-detail': {
       const p = spec.params || {};
@@ -186,6 +190,35 @@ export async function fetchListForSubscription(spec, options = {}) {
           return false;
         }
         return true;
+      });
+    }
+
+    // Workaround for status-filter crashes in some bd/dolt combos:
+    // derive feeds from full list rather than status-specific queries.
+    if (String(spec.type) === 'closed-issues') {
+      raw = raw.filter((it) => {
+        if (!it || typeof it !== 'object') {
+          return false;
+        }
+        const status =
+          typeof (/** @type {any} */ (it).status) === 'string'
+            ? String(/** @type {any} */ (it).status).toLowerCase()
+            : '';
+        const closedAt = /** @type {any} */ (it).closed_at;
+        return status === 'closed' || (!!closedAt && String(closedAt).length > 0);
+      });
+    }
+
+    if (String(spec.type) === 'in-progress-issues') {
+      raw = raw.filter((it) => {
+        if (!it || typeof it !== 'object') {
+          return false;
+        }
+        const status =
+          typeof (/** @type {any} */ (it).status) === 'string'
+            ? String(/** @type {any} */ (it).status).toLowerCase()
+            : '';
+        return status === 'in_progress' || status === 'in-progress';
       });
     }
 

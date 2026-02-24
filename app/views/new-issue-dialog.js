@@ -2,6 +2,36 @@ import { ISSUE_TYPES, typeLabel } from '../utils/issue-type.js';
 import { priority_levels } from '../utils/priority.js';
 
 /**
+ * @param {string} key
+ * @returns {string | null}
+ */
+function readStorage(key) {
+  try {
+    const storage = window.localStorage;
+    return storage && typeof storage.getItem === 'function'
+      ? storage.getItem(key)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param {string} key
+ * @param {string} value
+ */
+function writeStorage(key, value) {
+  try {
+    const storage = window.localStorage;
+    if (storage && typeof storage.setItem === 'function') {
+      storage.setItem(key, value);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+/**
  * Create and manage the New Issue dialog (native <dialog>).
  *
  * @param {HTMLElement} mount_element - Container to attach dialog (e.g., main#app)
@@ -150,13 +180,13 @@ export function createNewIssueDialog(mount_element, sendFn, router, store) {
 
   function loadDefaults() {
     try {
-      const t = window.localStorage.getItem('beads-ui.new.type');
+      const t = readStorage('beads-ui.new.type');
       if (t) {
         sel_type.value = t;
       } else {
         sel_type.value = '';
       }
-      const p = window.localStorage.getItem('beads-ui.new.priority');
+      const p = readStorage('beads-ui.new.priority');
       if (p && /^\d$/.test(p)) {
         sel_priority.value = p;
       } else {
@@ -172,10 +202,10 @@ export function createNewIssueDialog(mount_element, sendFn, router, store) {
     const t = sel_type.value || '';
     const p = sel_priority.value || '';
     if (t.length > 0) {
-      window.localStorage.setItem('beads-ui.new.type', t);
+      writeStorage('beads-ui.new.type', t);
     }
     if (p.length > 0) {
-      window.localStorage.setItem('beads-ui.new.priority', p);
+      writeStorage('beads-ui.new.priority', p);
     }
   }
 

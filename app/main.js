@@ -23,6 +23,40 @@ import { createWorkspacePicker } from './views/workspace-picker.js';
 import { createWsClient } from './ws.js';
 
 /**
+ * Safe localStorage read helper for mixed browser/test environments.
+ *
+ * @param {string} key
+ * @returns {string | null}
+ */
+function readStorage(key) {
+  try {
+    const storage = window.localStorage;
+    return storage && typeof storage.getItem === 'function'
+      ? storage.getItem(key)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Safe localStorage write helper for mixed browser/test environments.
+ *
+ * @param {string} key
+ * @param {string} value
+ */
+function writeStorage(key, value) {
+  try {
+    const storage = window.localStorage;
+    if (storage && typeof storage.setItem === 'function') {
+      storage.setItem(key, value);
+    }
+  } catch {
+    // ignore storage write errors
+  }
+}
+
+/**
  * Bootstrap the SPA shell with two panels.
  *
  * @param {HTMLElement} root_element - The container element to render into.
@@ -235,7 +269,7 @@ export function bootstrap(root_element) {
             }
           });
           // Persist preference
-          window.localStorage.setItem('beads-ui.workspace', workspace_path);
+          writeStorage('beads-ui.workspace', workspace_path);
           // Clear and resubscribe if workspace actually changed
           if (result.changed) {
             await clearAndResubscribe();
@@ -289,7 +323,7 @@ export function bootstrap(root_element) {
 
           // Check if we have a saved preference that differs from current
           const savedWorkspace =
-            window.localStorage.getItem('beads-ui.workspace');
+            readStorage('beads-ui.workspace');
           if (savedWorkspace && current && savedWorkspace !== current.path) {
             // Check if saved workspace is in available list
             const savedExists = available.some(
@@ -348,7 +382,7 @@ export function bootstrap(root_element) {
     /** @type {{ status: 'all'|'open'|'in_progress'|'closed'|'ready', search: string, type: string }} */
     let persisted_filters = { status: 'all', search: '', type: '' };
     try {
-      const raw = window.localStorage.getItem('beads-ui.filters');
+      const raw = readStorage('beads-ui.filters');
       if (raw) {
         const obj = JSON.parse(raw);
         if (obj && typeof obj === 'object') {
@@ -385,7 +419,7 @@ export function bootstrap(root_element) {
     /** @type {'issues'|'epics'|'board'} */
     let last_view = 'issues';
     try {
-      const raw_view = window.localStorage.getItem('beads-ui.view');
+      const raw_view = readStorage('beads-ui.view');
       if (
         raw_view === 'issues' ||
         raw_view === 'epics' ||
@@ -400,7 +434,7 @@ export function bootstrap(root_element) {
     /** @type {{ closed_filter: 'today'|'3'|'7' }} */
     let persistedBoard = { closed_filter: 'today' };
     try {
-      const raw_board = window.localStorage.getItem('beads-ui.board');
+      const raw_board = readStorage('beads-ui.board');
       if (raw_board) {
         const obj = JSON.parse(raw_board);
         if (obj && typeof obj === 'object') {
@@ -502,11 +536,11 @@ export function bootstrap(root_element) {
         search: s.filters.search,
         type: typeof s.filters.type === 'string' ? s.filters.type : ''
       };
-      window.localStorage.setItem('beads-ui.filters', JSON.stringify(data));
+      writeStorage('beads-ui.filters', JSON.stringify(data));
     });
     // Persist board preferences
     store.subscribe((s) => {
-      window.localStorage.setItem(
+      writeStorage(
         'beads-ui.board',
         JSON.stringify({ closed_filter: s.board.closed_filter })
       );
@@ -939,7 +973,7 @@ export function bootstrap(root_element) {
       if (!s.selected_id && s.view === 'board') {
         void board_view.load();
       }
-      window.localStorage.setItem('beads-ui.view', s.view);
+      writeStorage('beads-ui.view', s.view);
     };
     store.subscribe(onRouteChange);
     // Ensure initial state is reflected (fixes reload on #/epics)
@@ -976,7 +1010,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   window.addEventListener('DOMContentLoaded', () => {
     // Initialize theme from saved preference or OS preference
     try {
-      const saved = window.localStorage.getItem('beads-ui.theme');
+      const saved = readStorage('beads-ui.theme');
       const prefersDark =
         window.matchMedia &&
         window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -1005,7 +1039,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       themeSwitch.addEventListener('change', () => {
         const mode = themeSwitch.checked ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', mode);
-        window.localStorage.setItem('beads-ui.theme', mode);
+        writeStorage('beads-ui.theme', mode);
       });
     }
 
