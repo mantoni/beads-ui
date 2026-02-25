@@ -5,8 +5,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   findNearestBeadsDb,
   findNearestBeadsMetadata,
-  findWorkspaceBeadsDb,
-  resolveDbPath
+  resolveDbPath,
+  resolveWorkspaceDatabase
 } from './db.js';
 
 /** @type {string[]} */
@@ -71,32 +71,21 @@ describe('resolveDbPath', () => {
     expect(res.path).toBe(path.join(home, '.beads', 'default.db'));
     expect(res.source).toBe('home-default');
   });
-});
 
-describe('findWorkspaceBeadsDb', () => {
-  test('returns .beads db from workspace root', () => {
-    const root = mkdtemp();
-    const beads = path.join(root, '.beads');
-    fs.mkdirSync(beads, { recursive: true });
-    const workspace_db = path.join(beads, 'workspace.db');
-    fs.writeFileSync(workspace_db, '');
-
-    const found = findWorkspaceBeadsDb(root);
-
-    expect(found).toBe(workspace_db);
-  });
-
-  test('does not walk parent directories', () => {
-    const root = mkdtemp();
-    const parent_beads = path.join(root, '.beads');
-    fs.mkdirSync(parent_beads, { recursive: true });
-    fs.writeFileSync(path.join(parent_beads, 'parent.db'), '');
-    const nested = path.join(root, 'a', 'b');
+  test('treats ~/.beads/default.db as fallback, not nearest workspace db', async () => {
+    const home = mkdtemp();
+    const nested = path.join(home, 'projects', 'repo', 'deep');
     fs.mkdirSync(nested, { recursive: true });
+    const home_beads = path.join(home, '.beads');
+    fs.mkdirSync(home_beads, { recursive: true });
+    fs.writeFileSync(path.join(home_beads, 'default.db'), '');
+    vi.spyOn(os, 'homedir').mockReturnValue(home);
+    const mod = await import('./db.js');
 
-    const found = findWorkspaceBeadsDb(nested);
+    const res = mod.resolveDbPath({ cwd: nested, env: {} });
 
-    expect(found).toBeNull();
+    expect(res.path).toBe(path.join(home, '.beads', 'default.db'));
+    expect(res.source).toBe('home-default');
   });
 });
 
@@ -121,5 +110,60 @@ describe('findNearestBeadsMetadata', () => {
     const found = findNearestBeadsMetadata(root);
 
     expect(found).toBeNull();
+  });
+});
+
+describe('resolveWorkspaceDatabase', () => {
+  test('uses metadata directory for non-SQLite workspace', () => {
+    const root = mkdtemp();
+    const nested = path.join(root, 'workspace', 'nested');
+    fs.mkdirSync(nested, { recursive: true });
+    const beads_dir = path.join(root, '.beads');
+    fs.mkdirSync(beads_dir, { recursive: true });
+    fs.writeFileSync(path.join(beads_dir, 'metadata.json'), '{}');
+
+    const found = resolveWorkspaceDatabase({ cwd: nested, env: {} });
+
+    expect(found.path).toBe(beads_dir);
+    expect(found.source).toBe('metadata');
+    expect(found.exists).toBe(true);
+  });
+
+  test('prefers metadata workspace when home default db exists', async () => {
+    const home = mkdtemp();
+    const root = path.join(home, 'project');
+    const nested = path.join(root, 'workspace', 'nested');
+    fs.mkdirSync(nested, { recursive: true });
+    const home_beads = path.join(home, '.beads');
+    fs.mkdirSync(home_beads, { recursive: true });
+    fs.writeFileSync(path.join(home_beads, 'default.db'), '');
+    const beads_dir = path.join(root, '.beads');
+    fs.mkdirSync(beads_dir, { recursive: true });
+    fs.writeFileSync(path.join(beads_dir, 'metadata.json'), '{}');
+    vi.spyOn(os, 'homedir').mockReturnValue(home);
+    const mod = await import('./db.js');
+
+    const found = mod.resolveWorkspaceDatabase({ cwd: nested, env: {} });
+
+    expect(found.path).toBe(beads_dir);
+    expect(found.source).toBe('metadata');
+    expect(found.exists).toBe(true);
+  });
+
+  test('prefers nearest sqlite database when present', () => {
+    const root = mkdtemp();
+    const nested = path.join(root, 'workspace', 'nested');
+    fs.mkdirSync(nested, { recursive: true });
+    const beads_dir = path.join(root, '.beads');
+    fs.mkdirSync(beads_dir, { recursive: true });
+    fs.writeFileSync(path.join(beads_dir, 'metadata.json'), '{}');
+    const sqlite_db = path.join(beads_dir, 'workspace.db');
+    fs.writeFileSync(sqlite_db, '');
+
+    const found = resolveWorkspaceDatabase({ cwd: nested, env: {} });
+
+    expect(found.path).toBe(sqlite_db);
+    expect(found.source).toBe('nearest');
+    expect(found.exists).toBe(true);
   });
 });

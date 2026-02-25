@@ -7,7 +7,7 @@ import path from 'node:path';
 import { WebSocketServer } from 'ws';
 import { isRequest, makeError, makeOk } from '../app/protocol.js';
 import { getGitUserName, runBd, runBdJson } from './bd.js';
-import { resolveDbPath } from './db.js';
+import { resolveWorkspaceDatabase } from './db.js';
 import { fetchListForSubscription } from './list-adapters.js';
 import { debug } from './logging.js';
 import { getAvailableWorkspaces } from './registry-watcher.js';
@@ -427,7 +427,7 @@ export function attachWsServer(http_server, options = {}) {
 
   // Initialize workspace state
   const initial_root = options.root_dir || process.cwd();
-  const initial_db = resolveDbPath({ cwd: initial_root });
+  const initial_db = resolveWorkspaceDatabase({ cwd: initial_root });
   CURRENT_WORKSPACE = {
     root_dir: initial_root,
     db_path: initial_db.path
@@ -521,7 +521,7 @@ export function attachWsServer(http_server, options = {}) {
    */
   function setWorkspace(new_root_dir) {
     const resolved_root = path.resolve(new_root_dir);
-    const new_db = resolveDbPath({ cwd: resolved_root });
+    const new_db = resolveWorkspaceDatabase({ cwd: resolved_root });
     const old_path = CURRENT_WORKSPACE?.db_path || '';
 
     CURRENT_WORKSPACE = {
@@ -1298,7 +1298,7 @@ export async function handleMessage(ws, data) {
     const resolved = path.resolve(workspace_path);
 
     // Update workspace (this will rebind watcher, clear registry, broadcast change)
-    const new_db = resolveDbPath({ cwd: resolved });
+    const new_db = resolveWorkspaceDatabase({ cwd: resolved });
     const old_path = CURRENT_WORKSPACE?.db_path || '';
 
     CURRENT_WORKSPACE = {

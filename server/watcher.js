@@ -1,11 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { resolveDbPath } from './db.js';
+import { resolveWorkspaceDatabase } from './db.js';
 import { debug } from './logging.js';
 
 /**
- * Watch the resolved beads SQLite DB file and invoke a callback after a debounce window.
- * The DB path is resolved following beads precedence and can be overridden via options.
+ * Watch the resolved workspace database target and invoke a callback after a
+ * debounce window.
+ *
+ * For SQLite workspaces this watches the DB file's parent directory and filters
+ * by file name. For non-SQLite backends (for example Dolt), this watches the
+ * workspace `.beads` directory.
  *
  * @param {string} root_dir - Project root directory (starting point for resolution).
  * @param {() => void} onChange - Called when changes are detected.
@@ -47,13 +51,18 @@ export function watchDb(root_dir, onChange, options = {}) {
    * @param {string | undefined} explicit_db
    */
   const bind = (base_dir, explicit_db) => {
-    const resolved = resolveDbPath({ cwd: base_dir, explicit_db });
+    const resolved = resolveWorkspaceDatabase({ cwd: base_dir, explicit_db });
     current_path = resolved.path;
-    current_dir = path.dirname(current_path);
-    current_file = path.basename(current_path);
+    if (pathIsDirectory(current_path)) {
+      current_dir = current_path;
+      current_file = '';
+    } else {
+      current_dir = path.dirname(current_path);
+      current_file = path.basename(current_path);
+    }
     if (!resolved.exists) {
       log(
-        'resolved DB missing: %s – Hint: set --db, export BEADS_DB, or run `bd init` in your workspace.',
+        'resolved workspace database missing: %s – Hint: set --db, export BEADS_DB, or run `bd init` in your workspace.',
         current_path
       );
     }
@@ -64,7 +73,7 @@ export function watchDb(root_dir, onChange, options = {}) {
         current_dir,
         { persistent: true },
         (event_type, filename) => {
-          if (filename && String(filename) !== current_file) {
+          if (current_file && filename && String(filename) !== current_file) {
             return;
           }
           if (event_type === 'change' || event_type === 'rename') {
@@ -103,7 +112,7 @@ export function watchDb(root_dir, onChange, options = {}) {
     rebind(opts = {}) {
       const next_root = opts.root_dir ? String(opts.root_dir) : root_dir;
       const next_explicit = opts.explicit_db ?? options.explicit_db;
-      const next_resolved = resolveDbPath({
+      const next_resolved = resolveWorkspaceDatabase({
         cwd: next_root,
         explicit_db: next_explicit
       });
@@ -116,4 +125,15 @@ export function watchDb(root_dir, onChange, options = {}) {
       }
     }
   };
+}
+
+/**
+ * @param {string} file_path
+ */
+function pathIsDirectory(file_path) {
+  try {
+    return fs.statSync(file_path).isDirectory();
+  } catch {
+    return false;
+  }
 }
