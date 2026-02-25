@@ -1,8 +1,9 @@
 import { createServer } from 'node:http';
+import path from 'node:path';
 import { createApp } from './app.js';
 import { printServerUrl } from './cli/daemon.js';
 import { getConfig } from './config.js';
-import { resolveDbPath } from './db.js';
+import { findNearestBeadsMetadata, resolveDbPath } from './db.js';
 import { debug, enableAllDebug } from './logging.js';
 import { registerWorkspace, watchRegistry } from './registry-watcher.js';
 import { watchDb } from './watcher.js';
@@ -30,8 +31,16 @@ const log = debug('server');
 // Register the initial workspace (from cwd) so it appears in the workspace picker
 // even without the beads daemon running
 const db_info = resolveDbPath({ cwd: config.root_dir });
-if (db_info.exists) {
-  registerWorkspace({ path: config.root_dir, database: db_info.path });
+const sqlite_db =
+  db_info.source === 'nearest' && db_info.exists ? db_info.path : null;
+const metadata_path = findNearestBeadsMetadata(config.root_dir);
+const workspace_beads_dir = metadata_path ? path.dirname(metadata_path) : null;
+const workspace_database = sqlite_db || workspace_beads_dir;
+if (workspace_database) {
+  registerWorkspace({
+    path: config.root_dir,
+    database: workspace_database
+  });
 }
 
 // Watch the active beads DB and schedule subscription refresh for active lists

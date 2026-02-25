@@ -47,6 +47,52 @@ export function resolveDbPath(options = {}) {
 }
 
 /**
+ * Find a SQLite DB in the current workspace only (no parent traversal).
+ * Returns the first alphabetical `.db` found in `<workspace>/.beads`.
+ *
+ * @param {string} workspace_path
+ * @returns {string | null}
+ */
+export function findWorkspaceBeadsDb(workspace_path) {
+  const beads_dir = path.join(path.resolve(workspace_path), '.beads');
+  try {
+    const entries = fs.readdirSync(beads_dir, { withFileTypes: true });
+    const dbs = entries
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.db'))
+      .map((entry) => entry.name)
+      .sort();
+    if (dbs.length > 0) {
+      return path.join(beads_dir, dbs[0]);
+    }
+  } catch {
+    // ignore and return null
+  }
+  return null;
+}
+
+/**
+ * Find nearest `.beads/metadata.json` by walking up from start.
+ *
+ * @param {string} start
+ * @returns {string | null}
+ */
+export function findNearestBeadsMetadata(start) {
+  let dir = path.resolve(start);
+  for (let i = 0; i < 100; i++) {
+    const metadata_path = path.join(dir, '.beads', 'metadata.json');
+    if (fileExists(metadata_path)) {
+      return metadata_path;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      break;
+    }
+    dir = parent;
+  }
+  return null;
+}
+
+/**
  * Find nearest .beads/*.db by walking up from start.
  * First alphabetical .db.
  *

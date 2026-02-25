@@ -40,7 +40,14 @@ describe('list adapters for subscription types', () => {
 
   test('mapSubscriptionToBdArgs returns args for closed-issues', () => {
     const args = mapSubscriptionToBdArgs({ type: 'closed-issues' });
-    expect(args).toEqual(['list', '--json', '--status', 'closed']);
+    expect(args).toEqual([
+      'list',
+      '--json',
+      '--status',
+      'closed',
+      '--limit',
+      '1000'
+    ]);
   });
 
   test('mapSubscriptionToBdArgs returns args for issue-detail', () => {
