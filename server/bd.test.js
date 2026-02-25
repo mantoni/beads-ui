@@ -22,7 +22,7 @@ function makeFakeProc(stdoutText, stderrText, code) {
   cp.stdout = out;
   cp.stderr = err;
   // Simulate async emission
-  queueMicrotask(() => {
+  setTimeout(() => {
     if (stdoutText) {
       out.write(stdoutText);
     }
@@ -32,7 +32,7 @@ function makeFakeProc(stdoutText, stderrText, code) {
     }
     err.end();
     cp.emit('close', code);
-  });
+  }, 0);
   return cp;
 }
 

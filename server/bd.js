@@ -3,6 +3,8 @@ import { resolveDbPath } from './db.js';
 import { debug } from './logging.js';
 
 const log = debug('bd');
+/** @type {Promise<void>} */
+let bd_run_queue = Promise.resolve();
 
 /**
  * Get the git user name from git config.
@@ -59,6 +61,17 @@ export function getBdBin() {
  * @returns {Promise<{ code: number, stdout: string, stderr: string }>}
  */
 export function runBd(args, options = {}) {
+  return withBdRunQueue(async () => runBdUnlocked(args, options));
+}
+
+/**
+ * Run the `bd` CLI with provided arguments without queueing.
+ *
+ * @param {string[]} args
+ * @param {{ cwd?: string, env?: Record<string, string | undefined>, timeout_ms?: number }} [options]
+ * @returns {Promise<{ code: number, stdout: string, stderr: string }>}
+ */
+function runBdUnlocked(args, options = {}) {
   const bin = getBdBin();
 
   // Set BEADS_DB only when the workspace has a local SQLite DB.
@@ -136,6 +149,31 @@ export function runBd(args, options = {}) {
       finish(code);
     });
   });
+}
+
+/**
+ * Serialize `bd` invocations.
+ * Dolt embedded mode can crash when multiple `bd` processes run concurrently
+ * against the same workspace.
+ *
+ * @template T
+ * @param {() => Promise<T>} operation
+ * @returns {Promise<T>}
+ */
+async function withBdRunQueue(operation) {
+  const previous = bd_run_queue;
+  /** @type {() => void} */
+  let release = () => {};
+  bd_run_queue = new Promise((resolve) => {
+    release = resolve;
+  });
+
+  await previous.catch(() => {});
+  try {
+    return await operation();
+  } finally {
+    release();
+  }
 }
 
 /**
