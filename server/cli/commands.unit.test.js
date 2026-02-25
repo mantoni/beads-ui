@@ -13,11 +13,14 @@ vi.mock('./open.js', () => ({
 
 // Mock db resolution
 vi.mock('../db.js', () => ({
-  findNearestBeadsMetadata: () =>
-    path.join(process.cwd(), '.beads', 'metadata.json'),
   resolveDbPath: () => ({
-    path: '/mock/default.db',
-    source: 'home-default',
+    path: path.join(process.cwd(), '.beads', 'workspace.db'),
+    source: 'nearest',
+    exists: true
+  }),
+  resolveWorkspaceDatabase: () => ({
+    path: path.join(process.cwd(), '.beads'),
+    source: 'metadata',
     exists: true
   })
 }));
