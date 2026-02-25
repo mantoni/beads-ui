@@ -523,6 +523,7 @@ button.id-copy {
   margin: 0;
   line-height: inherit;
   font: inherit;
+  white-space: nowrap;
 }
 button.id-copy:hover {
   text-decoration: underline;
