@@ -61,15 +61,17 @@ export function getBdBin() {
 export function runBd(args, options = {}) {
   const bin = getBdBin();
 
-  // Ensure a consistent DB by setting BEADS_DB environment variable
+  // Set BEADS_DB only when the workspace has a local SQLite DB.
+  // Do not force BEADS_DB from global fallback paths; this can override
+  // backend autodetection in non-SQLite workspaces (for example Dolt).
   const db_path = resolveDbPath({
     cwd: options.cwd || process.cwd(),
     env: options.env || process.env
   });
-  const env_with_db = {
-    ...(options.env || process.env),
-    BEADS_DB: db_path.path
-  };
+  const env_with_db = { ...(options.env || process.env) };
+  if (db_path.source === 'nearest' && db_path.exists) {
+    env_with_db.BEADS_DB = db_path.path;
+  }
 
   const spawn_opts = {
     cwd: options.cwd || process.cwd(),

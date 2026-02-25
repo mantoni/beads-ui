@@ -22,10 +22,12 @@ vi.mock('./open.js', () => ({
 
 // Mock db resolution to avoid file system dependencies
 vi.mock('../db.js', () => ({
+  findNearestBeadsMetadata: () =>
+    path.join(process.cwd(), '.beads', 'metadata.json'),
   resolveDbPath: () => ({
     path: '/mock/test.db',
     source: 'nearest',
-    exists: false
+    exists: true
   })
 }));
 

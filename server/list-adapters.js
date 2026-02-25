@@ -29,7 +29,7 @@ export function mapSubscriptionToBdArgs(spec) {
       return ['list', '--json', '--status', 'in_progress'];
     }
     case 'closed-issues': {
-      return ['list', '--json', '--status', 'closed'];
+      return ['list', '--json', '--status', 'closed', '--limit', '1000'];
     }
     case 'issue-detail': {
       const p = spec.params || {};

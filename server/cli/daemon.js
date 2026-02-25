@@ -171,6 +171,7 @@ export function startDaemon(options = {}) {
 
   /** @type {SpawnOptions} */
   const opts = {
+    cwd: process.cwd(),
     detached: true,
     env: spawn_env,
     stdio: log_fd >= 0 ? ['ignore', log_fd, log_fd] : 'ignore',

@@ -1,5 +1,6 @@
+import path from 'node:path';
 import { getConfig } from '../config.js';
-import { resolveDbPath } from '../db.js';
+import { findNearestBeadsMetadata, resolveDbPath } from '../db.js';
 import {
   isProcessRunning,
   printServerUrl,
@@ -26,11 +27,18 @@ export async function handleStart(options) {
     // Server is already running - register this workspace dynamically
     const cwd = process.cwd();
     const db_info = resolveDbPath({ cwd });
-    if (db_info.exists) {
+    const sqlite_db =
+      db_info.source === 'nearest' && db_info.exists ? db_info.path : null;
+    const metadata_path = findNearestBeadsMetadata(cwd);
+    const workspace_beads_dir = metadata_path
+      ? path.dirname(metadata_path)
+      : null;
+    const workspace_database = sqlite_db || workspace_beads_dir;
+    if (workspace_database) {
       const { url } = getConfig();
       const registered = await registerWorkspaceWithServer(url, {
         path: cwd,
-        database: db_info.path
+        database: workspace_database
       });
       if (registered) {
         console.log('Workspace registered: %s', cwd);

@@ -1,20 +1,24 @@
+import path from 'node:path';
 import { describe, expect, test, vi } from 'vitest';
 import { handleStart, handleStop } from './commands.js';
 import * as daemon from './daemon.js';
+import * as open from './open.js';
 
 // Mock open.js to avoid external effects
 vi.mock('./open.js', () => ({
   openUrl: async () => true,
   waitForServer: async () => {},
-  registerWorkspaceWithServer: async () => true
+  registerWorkspaceWithServer: vi.fn(async () => true)
 }));
 
 // Mock db resolution
 vi.mock('../db.js', () => ({
+  findNearestBeadsMetadata: () =>
+    path.join(process.cwd(), '.beads', 'metadata.json'),
   resolveDbPath: () => ({
-    path: '/mock/test.db',
-    source: 'nearest',
-    exists: false
+    path: '/mock/default.db',
+    source: 'home-default',
+    exists: true
   })
 }));
 
@@ -45,6 +49,26 @@ describe('handleStart (unit)', () => {
 
     expect(code).toBe(0);
     expect(print_url).not.toHaveBeenCalled();
+  });
+
+  test('registers workspace from metadata when already running', async () => {
+    const register_workspace_with_server =
+      /** @type {import('vitest').Mock} */ (open.registerWorkspaceWithServer);
+    register_workspace_with_server.mockReset();
+    vi.spyOn(daemon, 'readPidFile').mockReturnValue(12345);
+    vi.spyOn(daemon, 'isProcessRunning').mockReturnValue(true);
+
+    const code = await handleStart({ open: false });
+
+    expect(code).toBe(0);
+    expect(register_workspace_with_server).toHaveBeenCalledTimes(1);
+    expect(register_workspace_with_server).toHaveBeenCalledWith(
+      'http://127.0.0.1:3000',
+      {
+        path: process.cwd(),
+        database: path.join(process.cwd(), '.beads')
+      }
+    );
   });
 });
 
