@@ -25,26 +25,46 @@ export function createIssueIdRenderer(id, opts) {
 
   /** Copy handler with feedback. */
   async function doCopy() {
-    // Prevent accidental row navigation and parent handlers
-    // (click/key handlers call this inside an event context)
     try {
+      let copied = false;
       if (
         navigator.clipboard &&
         typeof navigator.clipboard.writeText === 'function'
       ) {
         await navigator.clipboard.writeText(String(id));
+        copied = true;
+      } else {
+        // Fallback for non-secure contexts (HTTP, non-localhost)
+        // where navigator.clipboard is undefined.
+        const ta = document.createElement('textarea');
+        ta.value = String(id);
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.style.opacity = '0';
+        // Append inside the nearest open <dialog> if any — showModal()
+        // creates a top-layer that makes document.body inert.
+        const container = btn.closest('dialog[open]') || document.body;
+        container.appendChild(ta);
+        ta.focus();
+        ta.select();
+        try {
+          copied = document.execCommand('copy');
+        } finally {
+          container.removeChild(ta);
+        }
       }
-      btn.textContent = 'Copied';
-      // Keep accessible label consistent with feedback
-      const oldAria = btn.getAttribute('aria-label') || '';
-      btn.setAttribute('aria-label', 'Copied');
-      setTimeout(
-        () => {
-          btn.textContent = id;
-          btn.setAttribute('aria-label', oldAria);
-        },
-        Math.max(80, duration)
-      );
+      if (copied) {
+        btn.textContent = 'Copied';
+        const oldAria = btn.getAttribute('aria-label') || '';
+        btn.setAttribute('aria-label', 'Copied');
+        setTimeout(
+          () => {
+            btn.textContent = id;
+            btn.setAttribute('aria-label', oldAria);
+          },
+          Math.max(80, duration)
+        );
+      }
     } catch {
       // On failure, leave text as-is; no throw to avoid disruptive UX
     }

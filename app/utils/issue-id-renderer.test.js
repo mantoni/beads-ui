@@ -71,4 +71,46 @@ describe('utils/issue-id-renderer', () => {
     el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('P-42');
   });
+
+  test('falls back to execCommand when clipboard API is unavailable', async () => {
+    // Simulate non-secure context: navigator.clipboard is undefined
+    // @ts-ignore
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: undefined
+    });
+    // jsdom does not define execCommand; provide a mock implementation
+    document.execCommand = vi.fn().mockReturnValue(true);
+
+    const el = createIssueIdRenderer('FB-1');
+    document.body.appendChild(el);
+    el.click();
+    await Promise.resolve();
+
+    expect(document.execCommand).toHaveBeenCalledWith('copy');
+    expect(el.textContent).toBe('Copied');
+
+    vi.advanceTimersByTime(1200);
+    expect(el.textContent).toBe('FB-1');
+    // @ts-ignore
+    delete document.execCommand;
+  });
+
+  test('does not show Copied when fallback execCommand fails', async () => {
+    // @ts-ignore
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: undefined
+    });
+    document.execCommand = vi.fn().mockReturnValue(false);
+
+    const el = createIssueIdRenderer('FB-2');
+    document.body.appendChild(el);
+    el.click();
+    await Promise.resolve();
+
+    expect(el.textContent).toBe('FB-2');
+    // @ts-ignore
+    delete document.execCommand;
+  });
 });
