@@ -1,5 +1,12 @@
 # Changes
 
+## 0.10.1
+
+- [`62017f7`](https://github.com/mantoni/beads-ui/commit/62017f74fadb439c7270160ac03866d3554f36a3)
+  fix: clipboard copy fallback for non-secure contexts (Rodrigo Blasi)
+
+_Released by [Maximilian Antoni](https://github.com/mantoni) on 2026-03-02._
+
 ## 0.10.0
 
 - [`998f256`](https://github.com/mantoni/beads-ui/commit/998f2562b3ad3203c9dd1f627d44b1c2d5ef03a4)
