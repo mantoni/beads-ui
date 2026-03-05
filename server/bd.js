@@ -94,7 +94,7 @@ function runBdUnlocked(args, options = {}) {
   };
 
   /** @type {string[]} */
-  const final_args = args.slice();
+  const final_args = buildBdArgs(args);
 
   return new Promise((resolve) => {
     const child = spawn(bin, final_args, spawn_opts);
@@ -149,6 +149,27 @@ function runBdUnlocked(args, options = {}) {
       finish(code);
     });
   });
+}
+
+/**
+ * Build final bd CLI arguments.
+ * bdui defaults to sandbox mode to avoid sync/autopush overhead on interactive
+ * UI requests. Set `BDUI_BD_SANDBOX=0` (or "false") to opt out.
+ *
+ * @param {string[]} args
+ * @returns {string[]}
+ */
+function buildBdArgs(args) {
+  const arg_set = new Set(args);
+  const raw_sandbox = String(process.env.BDUI_BD_SANDBOX || '').toLowerCase();
+  const sandbox_disabled = raw_sandbox === '0' || raw_sandbox === 'false';
+  const should_prepend_sandbox = !sandbox_disabled && !arg_set.has('--sandbox');
+
+  if (!should_prepend_sandbox) {
+    return args.slice();
+  }
+
+  return ['--sandbox', ...args];
 }
 
 /**
