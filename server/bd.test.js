@@ -74,6 +74,40 @@ describe('getBdBin', () => {
 });
 
 describe('runBd', () => {
+  test('prepends --sandbox by default', async () => {
+    mockedSpawn.mockReturnValueOnce(makeFakeProc('ok', '', 0));
+    await runBd(['list', '--json']);
+
+    const args = mockedSpawn.mock.calls[0][1];
+    expect(args[0]).toBe('--sandbox');
+    expect(args.slice(1)).toEqual(['list', '--json']);
+  });
+
+  test('does not duplicate --sandbox when caller already provides it', async () => {
+    mockedSpawn.mockReturnValueOnce(makeFakeProc('ok', '', 0));
+    await runBd(['--sandbox', 'list', '--json']);
+
+    const args = mockedSpawn.mock.calls[0][1];
+    expect(args).toEqual(['--sandbox', 'list', '--json']);
+  });
+
+  test('allows disabling default sandbox via BDUI_BD_SANDBOX', async () => {
+    const prev = process.env.BDUI_BD_SANDBOX;
+    process.env.BDUI_BD_SANDBOX = '0';
+    mockedSpawn.mockReturnValueOnce(makeFakeProc('ok', '', 0));
+
+    await runBd(['list', '--json']);
+
+    const args = mockedSpawn.mock.calls[0][1];
+    expect(args).toEqual(['list', '--json']);
+
+    if (prev === undefined) {
+      delete process.env.BDUI_BD_SANDBOX;
+    } else {
+      process.env.BDUI_BD_SANDBOX = prev;
+    }
+  });
+
   test('returns stdout/stderr and exit code', async () => {
     mockedSpawn.mockReturnValueOnce(makeFakeProc('ok', '', 0));
     const res = await runBd(['--version']);
