@@ -1,5 +1,14 @@
 # Changes
 
+## 0.11.0
+
+- [`fc00b87`](https://github.com/mantoni/beads-ui/commit/fc00b87cfd1b6600a9b9088a9f62c2f6e8fc919e)
+  fix(ui): harden daemon restart workspace registration (Leon Letto)
+- [`2ea0dd0`](https://github.com/mantoni/beads-ui/commit/2ea0dd08eb71625fa3ae51e64ea6501b4d058154)
+  perf(ui): reduce list latency by default sandbox bd calls (Leon Letto)
+
+_Released by [Maximilian Antoni](https://github.com/mantoni) on 2026-03-05._
+
 ## 0.10.1
 
 - [`62017f7`](https://github.com/mantoni/beads-ui/commit/62017f74fadb439c7270160ac03866d3554f36a3)
