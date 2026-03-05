@@ -73,6 +73,62 @@ describe('handleStart (unit)', () => {
       }
     );
   });
+
+  test('registers workspace with existing server when spawned daemon exits early', async () => {
+    const register_workspace_with_server =
+      /** @type {import('vitest').Mock} */ (open.registerWorkspaceWithServer);
+    register_workspace_with_server.mockReset();
+
+    const remove_pid = vi
+      .spyOn(daemon, 'removePidFile')
+      .mockImplementation(() => {});
+
+    vi.spyOn(daemon, 'readPidFile').mockReturnValue(null);
+    vi.spyOn(daemon, 'startDaemon').mockReturnValue({ pid: 7777 });
+    vi.spyOn(daemon, 'isProcessRunning').mockImplementation((pid) => pid === 1);
+
+    const code = await handleStart({ open: false });
+
+    expect(code).toBe(0);
+    expect(remove_pid).toHaveBeenCalledTimes(1);
+    expect(register_workspace_with_server).toHaveBeenCalledTimes(1);
+    expect(register_workspace_with_server).toHaveBeenCalledWith(
+      'http://127.0.0.1:3000',
+      {
+        path: process.cwd(),
+        database: path.join(process.cwd(), '.beads')
+      }
+    );
+  });
+
+  test('attempts workspace registration after successful daemon start', async () => {
+    const register_workspace_with_server =
+      /** @type {import('vitest').Mock} */ (open.registerWorkspaceWithServer);
+    register_workspace_with_server.mockReset();
+
+    const print_url = vi
+      .spyOn(daemon, 'printServerUrl')
+      .mockImplementation(() => {});
+
+    vi.spyOn(daemon, 'readPidFile').mockReturnValue(null);
+    vi.spyOn(daemon, 'startDaemon').mockReturnValue({ pid: 4321 });
+    vi.spyOn(daemon, 'isProcessRunning').mockImplementation(
+      (pid) => pid === 4321
+    );
+
+    const code = await handleStart({ open: false });
+
+    expect(code).toBe(0);
+    expect(print_url).toHaveBeenCalledTimes(1);
+    expect(register_workspace_with_server).toHaveBeenCalledTimes(1);
+    expect(register_workspace_with_server).toHaveBeenCalledWith(
+      'http://127.0.0.1:3000',
+      {
+        path: process.cwd(),
+        database: path.join(process.cwd(), '.beads')
+      }
+    );
+  });
 });
 
 describe('handleStop (unit)', () => {
