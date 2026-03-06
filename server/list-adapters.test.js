@@ -35,7 +35,13 @@ describe('list adapters for subscription types', () => {
 
   test('mapSubscriptionToBdArgs returns args for in-progress-issues', () => {
     const args = mapSubscriptionToBdArgs({ type: 'in-progress-issues' });
-    expect(args).toEqual(['list', '--json', '--tree=false', '--status', 'in_progress']);
+    expect(args).toEqual([
+      'list',
+      '--json',
+      '--tree=false',
+      '--status',
+      'in_progress'
+    ]);
   });
 
   test('mapSubscriptionToBdArgs returns args for closed-issues', () => {
