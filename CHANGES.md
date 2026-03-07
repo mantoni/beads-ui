@@ -1,5 +1,14 @@
 # Changes
 
+## 0.11.1
+
+- [`0fc2df7`](https://github.com/mantoni/beads-ui/commit/0fc2df7cbaeb6f0500900ce2bf87e6b3fa8e8ac0)
+  style: fix prettier formatting in list-adapters test (Leon Letto)
+- [`e00ddfc`](https://github.com/mantoni/beads-ui/commit/e00ddfc9b9d421dc31b7d7703f4bfbc9790546f8)
+  fix: add --tree=false to bd list calls for bd 0.59.0 compat (Leon Letto)
+
+_Released by [Maximilian Antoni](https://github.com/mantoni) on 2026-03-07._
+
 ## 0.11.0
 
 - [`fc00b87`](https://github.com/mantoni/beads-ui/commit/fc00b87cfd1b6600a9b9088a9f62c2f6e8fc919e)
