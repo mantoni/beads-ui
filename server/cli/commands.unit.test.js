@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { handleStart, handleStop } from './commands.js';
 import * as daemon from './daemon.js';
 import * as open from './open.js';
@@ -25,10 +25,19 @@ vi.mock('../db.js', () => ({
   })
 }));
 
-// Mock config
+// Mock config - mirrors real getConfig() so env var overrides are testable
 vi.mock('../config.js', () => ({
-  getConfig: () => ({ url: 'http://127.0.0.1:3000' })
+  getConfig: () => {
+    const port = Number.parseInt(process.env.PORT || '', 10) || 3000;
+    const host = process.env.HOST || '127.0.0.1';
+    return { url: `http://${host}:${port}` };
+  }
 }));
+
+afterEach(() => {
+  delete process.env.PORT;
+  delete process.env.HOST;
+});
 
 describe('handleStart (unit)', () => {
   test('returns 1 when daemon start fails', async () => {
@@ -67,6 +76,26 @@ describe('handleStart (unit)', () => {
     expect(register_workspace_with_server).toHaveBeenCalledTimes(1);
     expect(register_workspace_with_server).toHaveBeenCalledWith(
       'http://127.0.0.1:3000',
+      {
+        path: process.cwd(),
+        database: path.join(process.cwd(), '.beads')
+      }
+    );
+  });
+
+  test('registers workspace at custom port when already running', async () => {
+    const register_workspace_with_server =
+      /** @type {import('vitest').Mock} */ (open.registerWorkspaceWithServer);
+    register_workspace_with_server.mockReset();
+    vi.spyOn(daemon, 'readPidFile').mockReturnValue(12345);
+    vi.spyOn(daemon, 'isProcessRunning').mockReturnValue(true);
+
+    const code = await handleStart({ open: false, port: 3030 });
+
+    expect(code).toBe(0);
+    expect(register_workspace_with_server).toHaveBeenCalledTimes(1);
+    expect(register_workspace_with_server).toHaveBeenCalledWith(
+      'http://127.0.0.1:3030',
       {
         path: process.cwd(),
         database: path.join(process.cwd(), '.beads')
