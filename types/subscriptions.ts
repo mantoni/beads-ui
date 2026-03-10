@@ -14,6 +14,7 @@ export interface Issue extends IssueRef {
   // Additional fields are server-defined; keep minimal here to guide clients.
   title?: string;
   status?: string;
+  close_reason?: string | null;
   epic_id?: string | null;
   priority?: number;
   issue_type?: string;
