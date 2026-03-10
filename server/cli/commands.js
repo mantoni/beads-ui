@@ -26,6 +26,16 @@ export async function handleStart(options) {
   // Default: do not open a browser unless explicitly requested via `open: true`.
   const should_open = options?.open === true;
   const cwd = process.cwd();
+
+  // Set env vars early so getConfig() reflects CLI overrides in ALL branches,
+  // including the "already running" path that registers workspaces via HTTP.
+  if (options?.host) {
+    process.env.HOST = options.host;
+  }
+  if (options?.port) {
+    process.env.PORT = String(options.port);
+  }
+
   const existing_pid = readPidFile();
   if (existing_pid && isProcessRunning(existing_pid)) {
     // Server is already running - register this workspace dynamically
@@ -45,13 +55,6 @@ export async function handleStart(options) {
     removePidFile();
   }
 
-  // Set env vars in current process so getConfig() reflects the overrides
-  if (options?.host) {
-    process.env.HOST = options.host;
-  }
-  if (options?.port) {
-    process.env.PORT = String(options.port);
-  }
   const { url } = getConfig();
 
   const started = startDaemon({
