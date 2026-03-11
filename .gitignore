@@ -4,3 +4,7 @@ app/main.bundle.js
 app/main.bundle.js.map
 .DS_Store
 .beads/issues.jsonl
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db
