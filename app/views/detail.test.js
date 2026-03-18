@@ -416,6 +416,70 @@ describe('views/detail', () => {
     expect(commentItems[0].textContent).toContain('Fetched');
   });
 
+  test('renders close reason when present on closed issue', async () => {
+    document.body.innerHTML =
+      '<section class="panel"><div id="mount"></div></section>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const issue = {
+      id: 'UI-60',
+      title: 'Closed with reason',
+      status: 'closed',
+      close_reason: 'Duplicate of UI-55',
+      dependencies: [],
+      dependents: []
+    };
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-60' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const view = createDetailView(mount, async () => ({}), undefined, stores);
+    await view.load('UI-60');
+
+    const props = mount.querySelectorAll('.props-card .prop');
+    const closeReasonProp = Array.from(props).find(
+      (p) => p.querySelector('.label')?.textContent === 'Close Reason'
+    );
+    expect(closeReasonProp).toBeTruthy();
+    expect(closeReasonProp?.querySelector('.value')?.textContent).toBe(
+      'Duplicate of UI-55'
+    );
+  });
+
+  test('does not render close reason when absent', async () => {
+    document.body.innerHTML =
+      '<section class="panel"><div id="mount"></div></section>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const issue = {
+      id: 'UI-61',
+      title: 'Open issue',
+      status: 'open',
+      dependencies: [],
+      dependents: []
+    };
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-61' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const view = createDetailView(mount, async () => ({}), undefined, stores);
+    await view.load('UI-61');
+
+    const props = mount.querySelectorAll('.props-card .prop');
+    const closeReasonProp = Array.from(props).find(
+      (p) => p.querySelector('.label')?.textContent === 'Close Reason'
+    );
+    expect(closeReasonProp).toBeUndefined();
+  });
+
   describe('delete issue', () => {
     test('renders delete button in detail view', async () => {
       document.body.innerHTML =

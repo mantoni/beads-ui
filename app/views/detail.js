@@ -58,6 +58,7 @@ function formatCommentDate(dateStr) {
  * @property {string} [acceptance]
  * @property {string} [notes]
  * @property {string} [status]
+ * @property {(string|null)} [close_reason]
  * @property {string} [assignee]
  * @property {number} [priority]
  * @property {string[]} [labels]
@@ -1236,6 +1237,14 @@ export function createDetailView(
                   <div class="label">Status</div>
                   <div class="value">${status_select}</div>
                 </div>
+                ${
+                  issue.close_reason
+                    ? html`<div class="prop">
+                        <div class="label">Close Reason</div>
+                        <div class="value">${issue.close_reason}</div>
+                      </div>`
+                    : ''
+                }
                 <div class="prop">
                   <div class="label">Priority</div>
                   <div class="value">${priority_select}</div>
