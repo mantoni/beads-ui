@@ -58,7 +58,7 @@ function formatCommentDate(dateStr) {
  * @property {string} [acceptance]
  * @property {string} [notes]
  * @property {string} [status]
- * @property {string} [close_reason]
+ * @property {(string|null)} [close_reason]
  * @property {string} [assignee]
  * @property {number} [priority]
  * @property {string[]} [labels]
