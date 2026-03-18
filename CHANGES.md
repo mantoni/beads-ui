@@ -1,5 +1,14 @@
 # Changes
 
+## 0.11.2
+
+- [`929a15d`](https://github.com/mantoni/beads-ui/commit/929a15da79ead6819044e50580093e3cbe87758b)
+  Fix beads setup
+- [`b354aa6`](https://github.com/mantoni/beads-ui/commit/b354aa63a7d04abe50b0da74c5c0e62077f44b69)
+  fix: apply --port/--host overrides before workspace registration (Ryan Peterson)
+
+_Released by [Maximilian Antoni](https://github.com/mantoni) on 2026-03-11._
+
 ## 0.11.1
 
 - [`0fc2df7`](https://github.com/mantoni/beads-ui/commit/0fc2df7cbaeb6f0500900ce2bf87e6b3fa8e8ac0)
