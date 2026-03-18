@@ -1,5 +1,12 @@
 # Changes
 
+## 0.11.3
+
+- [`47261a7`](https://github.com/mantoni/beads-ui/commit/47261a7a95d5a17b480ae56c4a10b5eeb49d1007)
+  feat: show close reason in issue detail view (#63) (Tom Preece)
+
+_Released by [Maximilian Antoni](https://github.com/mantoni) on 2026-03-18._
+
 ## 0.11.2
 
 - [`929a15d`](https://github.com/mantoni/beads-ui/commit/929a15da79ead6819044e50580093e3cbe87758b)
