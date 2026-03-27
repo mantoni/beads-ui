@@ -1,0 +1,23 @@
+time=2026-03-27T18:06:45.124+03:00 level=INFO msg="daemon already running (lock held), exiting"
+time=2026-03-27T18:06:45.142+03:00 level=INFO msg="Daemon started (interval: %v, auto-commit: %v, auto-push: %v)" !BADKEY=5s !BADKEY=false !BADKEY=false
+time=2026-03-27T18:06:45.142+03:00 level=INFO msg="using database" path=D:\coding\beads-enhanced-ui\.beads\beads.db
+time=2026-03-27T18:06:45.220+03:00 level=INFO msg="database opened" path=D:\coding\beads-enhanced-ui\.beads\dolt backend=sqlite freshness_checking=true
+time=2026-03-27T18:06:45.220+03:00 level=INFO msg="upgrading .beads/.gitignore"
+time=2026-03-27T18:06:45.220+03:00 level=WARN msg="failed to upgrade .gitignore" error="open .beads\\.gitignore: The system cannot find the path specified."
+time=2026-03-27T18:06:45.221+03:00 level=ERROR msg="repository fingerprint validation failed" error="\nLEGACY DATABASE DETECTED!\n\nThis database was created before version 0.17.5 and lacks a repository fingerprint.\nTo continue using this database, you must explicitly set its repository ID:\n\n  bd migrate --update-repo-id\n\nThis ensures the database is bound to this repository and prevents accidental\ndatabase sharing between different repositories.\n\nIf this is a fresh clone, run:\n  rm -rf .beads && bd init\n\nNote: Auto-claiming legacy databases is intentionally disabled to prevent\nsilent corruption when databases are copied between repositories.\n"
+time=2026-03-27T18:07:40.152+03:00 level=INFO msg="Daemon started (interval: %v, auto-commit: %v, auto-push: %v)" !BADKEY=5s !BADKEY=false !BADKEY=false
+time=2026-03-27T18:07:40.152+03:00 level=ERROR msg="non-canonical database name" name=dolt expected=beads.db
+time=2026-03-27T18:07:40.152+03:00 level=INFO msg="run 'bd init' to migrate to canonical name"
+time=2026-03-27T18:07:51.557+03:00 level=INFO msg="Daemon started (interval: %v, auto-commit: %v, auto-push: %v)" !BADKEY=5s !BADKEY=false !BADKEY=false
+time=2026-03-27T18:07:51.558+03:00 level=ERROR msg="non-canonical database name" name=dolt expected=beads.db
+time=2026-03-27T18:07:51.558+03:00 level=INFO msg="run 'bd init' to migrate to canonical name"
+time=2026-03-27T18:18:15.138+03:00 level=INFO msg="daemon already running (lock held), exiting"
+time=2026-03-27T18:18:15.162+03:00 level=INFO msg="Daemon started (interval: %v, auto-commit: %v, auto-push: %v)" !BADKEY=5s !BADKEY=false !BADKEY=false
+time=2026-03-27T18:18:15.163+03:00 level=ERROR msg="non-canonical database name" name=dolt expected=beads.db
+time=2026-03-27T18:18:15.163+03:00 level=INFO msg="run 'bd init' to migrate to canonical name"
+time=2026-03-27T21:46:01.148+03:00 level=INFO msg="Daemon started (interval: %v, auto-commit: %v, auto-push: %v)" !BADKEY=5s !BADKEY=false !BADKEY=false
+time=2026-03-27T21:46:01.148+03:00 level=ERROR msg="non-canonical database name" name=dolt expected=beads.db
+time=2026-03-27T21:46:01.148+03:00 level=INFO msg="run 'bd init' to migrate to canonical name"
+time=2026-03-27T21:49:34.236+03:00 level=INFO msg="Daemon started (interval: %v, auto-commit: %v, auto-push: %v)" !BADKEY=5s !BADKEY=false !BADKEY=false
+time=2026-03-27T21:49:34.237+03:00 level=ERROR msg="non-canonical database name" name=dolt expected=beads.db
+time=2026-03-27T21:49:34.237+03:00 level=INFO msg="run 'bd init' to migrate to canonical name"

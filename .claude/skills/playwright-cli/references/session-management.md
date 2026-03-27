@@ -21,6 +21,7 @@ playwright-cli -s=public snapshot
 ## Browser Session Isolation Properties
 
 Each browser session has independent:
+
 - Cookies
 - LocalStorage / SessionStorage
 - IndexedDB
@@ -95,7 +96,8 @@ playwright-cli -s=variant-b screenshot
 
 ### Persistent Profile
 
-By default, browser profile is kept in memory only. Use `--persistent` flag on `open` to persist the browser profile to disk:
+By default, browser profile is kept in memory only. Use `--persistent` flag on
+`open` to persist the browser profile to disk:
 
 ```bash
 # Use persistent profile (auto-generated location)

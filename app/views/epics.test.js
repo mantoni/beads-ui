@@ -527,4 +527,201 @@ describe('views/epics', () => {
     );
     expect(input).not.toBeNull();
   });
+
+  test('renders status beside epic name and toggles expand-collapse label', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+    const data = {
+      updateIssue: vi.fn(),
+      getIssue: vi.fn(async (id) => ({ id }))
+    };
+    const stores6 = new Map();
+    const listeners6 = new Set();
+    /** @param {string} id */
+    const getStore6 = (id) => {
+      let s = stores6.get(id);
+      if (!s) {
+        s = createSubscriptionIssueStore(id);
+        stores6.set(id, s);
+        s.subscribe(() => {
+          for (const fn of Array.from(listeners6)) {
+            try {
+              fn();
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      }
+      return s;
+    };
+    const issueStores6 = {
+      getStore: getStore6,
+      /** @param {string} id */
+      snapshotFor(id) {
+        return getStore6(id).snapshot().slice();
+      },
+      /** @param {() => void} fn */
+      subscribe(fn) {
+        listeners6.add(fn);
+        return () => listeners6.delete(fn);
+      }
+    };
+    const subscriptions = createSubscriptionStore(async () => {});
+    issueStores6.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-50',
+          title: 'Epic Status',
+          status: 'in_progress',
+          issue_type: 'epic',
+          dependents: [{ id: 'UI-51' }]
+        }
+      ]
+    });
+    const view = createEpicsView(
+      mount,
+      /** @type {any} */ (data),
+      () => {},
+      subscriptions,
+      /** @type {any} */ (issueStores6)
+    );
+    await view.load();
+
+    const inline_label = mount.querySelector('.epic-inline-status-label');
+    expect(inline_label?.textContent?.trim()).toBe('Status');
+
+    const name_badge = /** @type {HTMLElement|null} */ (
+      mount.querySelector('.epic-header__cell--name .status-badge')
+    );
+    expect(name_badge?.textContent?.trim()).toBe('In progress');
+
+    const toggle_button = /** @type {HTMLButtonElement|null} */ (
+      mount.querySelector('.epic-toggle-button')
+    );
+    expect(toggle_button?.textContent?.trim()).toBe('Collapse');
+
+    toggle_button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const updated_toggle_button = /** @type {HTMLButtonElement|null} */ (
+      mount.querySelector('.epic-toggle-button')
+    );
+    expect(updated_toggle_button?.textContent?.trim()).toBe('Expand');
+  });
+
+  test('sorts epics by id, name, and status in both directions', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+    const data = {
+      updateIssue: vi.fn(),
+      getIssue: vi.fn(async (id) => ({ id }))
+    };
+    const stores7 = new Map();
+    const listeners7 = new Set();
+    /** @param {string} id */
+    const getStore7 = (id) => {
+      let s = stores7.get(id);
+      if (!s) {
+        s = createSubscriptionIssueStore(id);
+        stores7.set(id, s);
+        s.subscribe(() => {
+          for (const fn of Array.from(listeners7)) {
+            try {
+              fn();
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      }
+      return s;
+    };
+    const issueStores7 = {
+      getStore: getStore7,
+      /** @param {string} id */
+      snapshotFor(id) {
+        return getStore7(id).snapshot().slice();
+      },
+      /** @param {() => void} fn */
+      subscribe(fn) {
+        listeners7.add(fn);
+        return () => listeners7.delete(fn);
+      }
+    };
+    const subscriptions = createSubscriptionStore(async () => {});
+    issueStores7.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-30',
+          title: 'Gamma',
+          status: 'closed',
+          issue_type: 'epic',
+          dependents: []
+        },
+        {
+          id: 'UI-10',
+          title: 'Beta',
+          status: 'open',
+          issue_type: 'epic',
+          dependents: []
+        },
+        {
+          id: 'UI-20',
+          title: 'Alpha',
+          status: 'in_progress',
+          issue_type: 'epic',
+          dependents: []
+        }
+      ]
+    });
+    const view = createEpicsView(
+      mount,
+      /** @type {any} */ (data),
+      () => {},
+      subscriptions,
+      /** @type {any} */ (issueStores7)
+    );
+    await view.load();
+
+    const group_ids = () =>
+      Array.from(mount.querySelectorAll('.epic-group')).map((group) =>
+        group.getAttribute('data-epic-id')
+      );
+
+    expect(group_ids()).toEqual(['UI-10', 'UI-20', 'UI-30']);
+
+    const name_sort = /** @type {HTMLButtonElement|null} */ (
+      mount.querySelector('[data-sort-column="name"]')
+    );
+    name_sort?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(group_ids()).toEqual(['UI-20', 'UI-10', 'UI-30']);
+
+    name_sort?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(group_ids()).toEqual(['UI-30', 'UI-10', 'UI-20']);
+
+    const status_sort = /** @type {HTMLButtonElement|null} */ (
+      mount.querySelector('[data-sort-column="status"]')
+    );
+    status_sort?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(group_ids()).toEqual(['UI-10', 'UI-20', 'UI-30']);
+
+    status_sort?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(group_ids()).toEqual(['UI-30', 'UI-20', 'UI-10']);
+
+    const id_sort = /** @type {HTMLButtonElement|null} */ (
+      mount.querySelector('[data-sort-column="id"]')
+    );
+    id_sort?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(group_ids()).toEqual(['UI-10', 'UI-20', 'UI-30']);
+
+    id_sort?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(group_ids()).toEqual(['UI-30', 'UI-20', 'UI-10']);
+  });
 });

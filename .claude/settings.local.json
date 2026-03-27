@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(bd create:*)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(find d:codingbeads-enhanced-ui -maxdepth 2 -type f \\\\\\(-name *.md -o -name *.txt -o -name *.json \\\\\\) ! -path */node_modules/*)"
     ]
   }
 }

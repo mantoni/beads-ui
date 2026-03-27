@@ -1132,6 +1132,43 @@ input.inline-edit:focus {
 }
 
 /* Epics view styles */
+.epics-list-header {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1.5fr) 150px auto;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 10px 12px 0;
+  padding: var(--space-3) var(--space-6);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--panel-bg) 95%, transparent);
+}
+.epics-list-header__meta {
+  min-width: 0;
+}
+.epics-sort-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.epics-sort-button:hover,
+.epics-sort-button:focus-visible,
+.epics-sort-button.is-active {
+  color: var(--fg);
+}
+.epics-sort-button__direction {
+  font-size: 13px;
+}
 .epic-group {
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -1148,7 +1185,8 @@ input.inline-edit:focus {
   background: var(--bg);
 }
 .epic-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1.5fr) 150px auto;
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-5) var(--space-6);
@@ -1167,9 +1205,61 @@ input.inline-edit:focus {
     accent-color: var(--status-closed-base);
   }
 }
+.epic-header__cell {
+  min-width: 0;
+}
+.epic-header__cell--name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.epic-header__cell--status {
+  justify-self: start;
+}
+.epic-inline-status-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+.epic-header__meta {
+  display: inline-flex;
+  align-items: center;
+  justify-self: end;
+  gap: var(--space-5);
+}
+.epic-toggle-button {
+  min-width: 76px;
+  text-align: center;
+}
+.epic-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
 .epic-children {
   padding: 8px 12px 12px;
 }
+
+@media (max-width: 900px) {
+  .epics-list-header {
+    display: none;
+  }
+
+  .epic-header {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .epic-header__cell--status {
+    display: none;
+  }
+
+  .epic-header__meta {
+    justify-self: stretch;
+    justify-content: space-between;
+  }
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

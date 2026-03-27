@@ -1,6 +1,7 @@
 import { html, render } from 'lit-html';
 import { createListSelectors } from '../data/list-selectors.js';
 import { createIssueIdRenderer } from '../utils/issue-id-renderer.js';
+import { statusLabel } from '../utils/status.js';
 import { createIssueRowRenderer } from './issue-row.js';
 
 /**
@@ -30,6 +31,10 @@ export function createEpicsView(
 ) {
   /** @type {any[]} */
   let groups = [];
+  /** @type {'id'|'name'|'status'} */
+  let sort_column = 'id';
+  /** @type {'asc'|'desc'} */
+  let sort_direction = 'asc';
   /** @type {Set<string>} */
   const expanded = new Set();
   /** @type {Set<string>} */
@@ -46,7 +51,7 @@ export function createEpicsView(
       doRender();
       // Auto-expand first epic when transitioning from empty to non-empty
       if (had_none && groups.length > 0) {
-        const first_id = String(groups[0].epic?.id || '');
+        const first_id = String(getSortedGroups(groups)[0]?.epic?.id || '');
         if (first_id && !expanded.has(first_id)) {
           void toggle(first_id);
         }
@@ -55,7 +60,7 @@ export function createEpicsView(
   }
 
   // Shared row renderer used for children rows
-  const renderRow = createIssueRowRenderer({
+  const render_row = createIssueRowRenderer({
     navigate: (id) => goto_issue(id),
     onUpdate: updateInline,
     requestRender: doRender,
@@ -71,17 +76,57 @@ export function createEpicsView(
     if (!groups.length) {
       return html`<div class="panel__header muted">No epics found.</div>`;
     }
-    return html`${groups.map((g) => groupTemplate(g))}`;
+    const sorted_groups = getSortedGroups(groups);
+    return html`
+      <div class="epics-list-header" role="toolbar" aria-label="Sort epics">
+        ${sortHeaderTemplate('id', 'Id')} ${sortHeaderTemplate('name', 'Name')}
+        ${sortHeaderTemplate('status', 'Status')}
+        <div class="epics-list-header__meta" aria-hidden="true"></div>
+      </div>
+      ${sorted_groups.map((group) => groupTemplate(group))}
+    `;
   }
 
   /**
-   * @param {any} g
+   * @param {'id'|'name'|'status'} column
+   * @param {string} label
    */
-  function groupTemplate(g) {
-    const epic = g.epic || {};
+  function sortHeaderTemplate(column, label) {
+    const is_active = sort_column === column;
+    const next_direction =
+      is_active && sort_direction === 'asc' ? 'desc' : 'asc';
+    const direction_label = is_active
+      ? sort_direction === 'asc'
+        ? 'ASC'
+        : 'DESC'
+      : 'SORT';
+    return html`
+      <button
+        type="button"
+        class="epics-sort-button ${is_active ? 'is-active' : ''}"
+        data-sort-column=${column}
+        aria-label=${`Sort by ${label} ${next_direction}`}
+        aria-pressed=${is_active}
+        @click=${() => toggleSort(column)}
+      >
+        <span>${label}</span>
+        <span class="epics-sort-button__direction" aria-hidden="true"
+          >${direction_label}</span
+        >
+      </button>
+    `;
+  }
+
+  /**
+   * @param {any} group
+   */
+  function groupTemplate(group) {
+    const epic = group.epic || {};
     const id = String(epic.id || '');
     const is_open = expanded.has(id);
-    // Compose children via selectors
+    const status = String(epic.status || 'open');
+    const status_text = statusLabel(status);
+    const toggle_label = is_open ? 'Collapse' : 'Expand';
     const list = selectors ? selectors.selectEpicChildren(id) : [];
     const is_loading = loading.has(id);
     return html`
@@ -89,26 +134,45 @@ export function createEpicsView(
         <div
           class="epic-header"
           @click=${() => toggle(id)}
+          @keydown=${
+            /** @param {KeyboardEvent} ev */ (ev) => onHeaderKeydown(ev, id)
+          }
           role="button"
           tabindex="0"
           aria-expanded=${is_open}
         >
-          ${createIssueIdRenderer(id, { class_name: 'mono' })}
-          <span class="text-truncate" style="margin-left:8px"
-            >${epic.title || '(no title)'}</span
-          >
-          <span
-            class="epic-progress"
-            style="margin-left:auto; display:flex; align-items:center; gap:8px;"
-          >
-            <progress
-              value=${Number(g.closed_children || 0)}
-              max=${Math.max(1, Number(g.total_children || 0))}
-            ></progress>
-            <span class="muted mono"
-              >${g.closed_children}/${g.total_children}</span
+          <div class="epic-header__cell epic-header__cell--id">
+            ${createIssueIdRenderer(id, { class_name: 'mono' })}
+          </div>
+          <div class="epic-header__cell epic-header__cell--name">
+            <span class="text-truncate">${epic.title || '(no title)'}</span>
+            <span class="epic-inline-status-label muted">Status</span>
+            <span class="status-badge is-${status}">${status_text}</span>
+          </div>
+          <div class="epic-header__cell epic-header__cell--status">
+            <span class="status-badge is-${status}">${status_text}</span>
+          </div>
+          <div class="epic-header__meta">
+            <button
+              type="button"
+              class="epic-toggle-button"
+              @click=${
+                /** @param {MouseEvent} ev */ (ev) =>
+                  onToggleButtonClick(ev, id)
+              }
             >
-          </span>
+              ${toggle_label}
+            </button>
+            <span class="epic-progress">
+              <progress
+                value=${Number(group.closed_children || 0)}
+                max=${Math.max(1, Number(group.total_children || 0))}
+              ></progress>
+              <span class="muted mono"
+                >${group.closed_children}/${group.total_children}</span
+              >
+            </span>
+          </div>
         </div>
         ${is_open
           ? html`<div class="epic-children">
@@ -136,13 +200,111 @@ export function createEpicsView(
                         </tr>
                       </thead>
                       <tbody>
-                        ${list.map((it) => renderRow(it))}
+                        ${list.map((item) => render_row(item))}
                       </tbody>
                     </table>`}
             </div>`
           : null}
       </div>
     `;
+  }
+
+  /**
+   * @param {KeyboardEvent} ev
+   * @param {string} epic_id
+   */
+  function onHeaderKeydown(ev, epic_id) {
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      void toggle(epic_id);
+    }
+  }
+
+  /**
+   * @param {MouseEvent} ev
+   * @param {string} epic_id
+   */
+  function onToggleButtonClick(ev, epic_id) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    void toggle(epic_id);
+  }
+
+  /**
+   * @param {'id'|'name'|'status'} column
+   */
+  function toggleSort(column) {
+    if (sort_column === column) {
+      sort_direction = sort_direction === 'asc' ? 'desc' : 'asc';
+    } else {
+      sort_column = column;
+      sort_direction = 'asc';
+    }
+    doRender();
+  }
+
+  /**
+   * @param {any[]} next_groups
+   */
+  function getSortedGroups(next_groups) {
+    return next_groups.slice().sort(compareGroups);
+  }
+
+  /**
+   * @param {any} left_group
+   * @param {any} right_group
+   */
+  function compareGroups(left_group, right_group) {
+    let result = 0;
+    if (sort_column === 'id') {
+      result = compareText(left_group?.epic?.id, right_group?.epic?.id);
+    } else if (sort_column === 'name') {
+      result = compareText(left_group?.epic?.title, right_group?.epic?.title);
+    } else {
+      result = compareStatus(
+        left_group?.epic?.status,
+        right_group?.epic?.status
+      );
+    }
+    if (result === 0) {
+      result = compareText(left_group?.epic?.id, right_group?.epic?.id);
+    }
+    return sort_direction === 'asc' ? result : result * -1;
+  }
+
+  /**
+   * @param {string | undefined} left
+   * @param {string | undefined} right
+   */
+  function compareText(left, right) {
+    return String(left || '').localeCompare(String(right || ''), undefined, {
+      numeric: true,
+      sensitivity: 'base'
+    });
+  }
+
+  /**
+   * @param {string | undefined} left
+   * @param {string | undefined} right
+   */
+  function compareStatus(left, right) {
+    return statusRank(left) - statusRank(right);
+  }
+
+  /**
+   * @param {string | undefined} value
+   */
+  function statusRank(value) {
+    switch (String(value || 'open')) {
+      case 'open':
+        return 0;
+      case 'in_progress':
+        return 1;
+      case 'closed':
+        return 2;
+      default:
+        return 3;
+    }
   }
 
   /**
@@ -181,11 +343,11 @@ export function createEpicsView(
           } catch {
             // ignore
           }
-          const u = await subscriptions.subscribeList(`detail:${epic_id}`, {
+          const unsub = await subscriptions.subscribeList(`detail:${epic_id}`, {
             type: 'issue-detail',
             params: { id: epic_id }
           });
-          epic_unsubs.set(epic_id, u);
+          epic_unsubs.set(epic_id, unsub);
         } catch {
           // ignore subscription failures
         }
@@ -197,9 +359,9 @@ export function createEpicsView(
       // Unsubscribe when collapsing
       if (epic_unsubs.has(epic_id)) {
         try {
-          const u = epic_unsubs.get(epic_id);
-          if (u) {
-            await u();
+          const unsub = epic_unsubs.get(epic_id);
+          if (unsub) {
+            await unsub();
           }
         } catch {
           // ignore
@@ -245,8 +407,8 @@ export function createEpicsView(
         ? Number(/** @type {any} */ (epic).closed_children) || 0
         : 0;
       if (!has_closed) {
-        for (const d of dependents) {
-          if (String(d.status || '') === 'closed') {
+        for (const dependent of dependents) {
+          if (String(dependent.status || '') === 'closed') {
             closed++;
           }
         }
@@ -267,7 +429,7 @@ export function createEpicsView(
       // Auto-expand first epic on screen
       try {
         if (groups.length > 0) {
-          const first_id = String(groups[0].epic?.id || '');
+          const first_id = String(getSortedGroups(groups)[0]?.epic?.id || '');
           if (first_id && !expanded.has(first_id)) {
             // This will render and load children lazily
             await toggle(first_id);

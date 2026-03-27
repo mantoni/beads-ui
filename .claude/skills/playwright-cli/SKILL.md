@@ -1,20 +1,29 @@
 ---
 name: playwright-cli
-description: Automates browser interactions for local app verification or external-site browsing. Use when the user needs to navigate websites, interact with web pages, fill forms, take screenshots, test the frontend, reproduce browser issues, or extract information from web pages.
+description:
+  Automates browser interactions for local app verification or external-site
+  browsing. Use when the user needs to navigate websites, interact with web
+  pages, fill forms, take screenshots, test the frontend, reproduce browser
+  issues, or extract information from web pages.
 allowed-tools: Bash(playwright-cli:*)
 ---
 
 # Browser Automation with playwright-cli
 
 Use this skill for both:
-- Local app work in this repo, especially frontend verification and upload/search flows
-- External-site browsing when browser automation is materially better than static inspection
+
+- Local app work in this repo, especially frontend verification and
+  upload/search flows
+- External-site browsing when browser automation is materially better than
+  static inspection
 
 When the task is about this repo, prefer local targets first:
+
 - Frontend: `http://localhost:5173`
 - FastAPI docs: `http://localhost:8000/docs`
 
-Before driving the local app, read `docs/runbook.md` if you need startup commands or service URLs.
+Before driving the local app, read `docs/runbook.md` if you need startup
+commands or service URLs.
 
 ## Quick start
 
@@ -166,6 +175,7 @@ playwright-cli video-stop video.webm
 ```
 
 ## Open parameters
+
 ```bash
 # Use specific browser when creating session
 playwright-cli open --browser=chrome
@@ -191,7 +201,8 @@ playwright-cli delete-data
 
 ## Snapshots
 
-After each command, playwright-cli provides a snapshot of the current browser state.
+After each command, playwright-cli provides a snapshot of the current browser
+state.
 
 ```bash
 > playwright-cli goto https://example.com
@@ -204,12 +215,15 @@ After each command, playwright-cli provides a snapshot of the current browser st
 
 You can also take a snapshot on demand using `playwright-cli snapshot` command.
 
-If `--filename` is not provided, a new snapshot file is created with a timestamp under `.playwright/snapshots/`.
-Do not write snapshot YAML artifacts to the repository root. If a named artifact is needed, pass a path under `.playwright/snapshots/`.
+If `--filename` is not provided, a new snapshot file is created with a timestamp
+under `.playwright/snapshots/`. Do not write snapshot YAML artifacts to the
+repository root. If a named artifact is needed, pass a path under
+`.playwright/snapshots/`.
 
 ## Artifact Locations
 
 Keep browser artifacts out of the repo root:
+
 - Snapshots: `.playwright/snapshots/`
 - Screenshots: `.playwright/screenshots/`
 - Traces: `.playwright/traces/`
@@ -238,7 +252,9 @@ playwright-cli kill-all
 
 ## Local installation
 
-In some cases user might want to install playwright-cli locally. If running globally available `playwright-cli` binary fails, use `npx playwright-cli` to run the commands. For example:
+In some cases user might want to install playwright-cli locally. If running
+globally available `playwright-cli` binary fails, use `npx playwright-cli` to
+run the commands. For example:
 
 ```bash
 npx playwright-cli open https://example.com
@@ -305,10 +321,16 @@ playwright-cli close
 
 ## Specific tasks
 
-* **Request mocking** [references/request-mocking.md](references/request-mocking.md)
-* **Running Playwright code** [references/running-code.md](references/running-code.md)
-* **Browser session management** [references/session-management.md](references/session-management.md)
-* **Storage state (cookies, localStorage)** [references/storage-state.md](references/storage-state.md)
-* **Test generation** [references/test-generation.md](references/test-generation.md)
-* **Tracing** [references/tracing.md](references/tracing.md)
-* **Video recording** [references/video-recording.md](references/video-recording.md)
+- **Request mocking**
+  [references/request-mocking.md](references/request-mocking.md)
+- **Running Playwright code**
+  [references/running-code.md](references/running-code.md)
+- **Browser session management**
+  [references/session-management.md](references/session-management.md)
+- **Storage state (cookies, localStorage)**
+  [references/storage-state.md](references/storage-state.md)
+- **Test generation**
+  [references/test-generation.md](references/test-generation.md)
+- **Tracing** [references/tracing.md](references/tracing.md)
+- **Video recording**
+  [references/video-recording.md](references/video-recording.md)

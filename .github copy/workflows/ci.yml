@@ -7,13 +7,13 @@ on:
       - reopened
       - synchronize
     paths:
-      - ".github/workflows/ci.yml"
-      - "app/**"
-      - "tests/**"
-      - "alembic/**"
-      - "frontend/**"
-      - "pyproject.toml"
-      - "alembic.ini"
+      - '.github/workflows/ci.yml'
+      - 'app/**'
+      - 'tests/**'
+      - 'alembic/**'
+      - 'frontend/**'
+      - 'pyproject.toml'
+      - 'alembic.ini'
 
 jobs:
   backend-fast:
@@ -27,7 +27,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: '3.13'
           cache: pip
 
       - name: Install backend dependencies
@@ -39,7 +39,9 @@ jobs:
         run: python -m compileall app tests
 
       - name: Import backend smoke check
-        run: python -c "import app.main, app.registry, app.config, app.tasks.document_tasks, app.tasks.page_tasks; print('imports ok')"
+        run:
+          python -c "import app.main, app.registry, app.config,
+          app.tasks.document_tasks, app.tasks.page_tasks; print('imports ok')"
 
       - name: Run isolated unit tests
         run: python -m pytest --confcutdir=tests/unit tests/unit
@@ -59,10 +61,8 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U app -d postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd "pg_isready -U app -d postgres" --health-interval 10s
+          --health-timeout 5s --health-retries 5
 
     steps:
       - name: Check out repository
@@ -71,7 +71,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: '3.13'
           cache: pip
 
       - name: Install backend dependencies
@@ -97,7 +97,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: '22'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 

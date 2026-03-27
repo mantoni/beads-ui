@@ -1,11 +1,15 @@
 ---
 name: designer
-description: Creating, updating, or editing UI/UX designs using the Pencil MCP. Use when the user asks to design, redesign, rework, or update screens, pages, or UI components in a .pen file.
+description:
+  Creating, updating, or editing UI/UX designs using the Pencil MCP. Use when
+  the user asks to design, redesign, rework, or update screens, pages, or UI
+  components in a .pen file.
 ---
 
 ## When This Skill Applies
 
 Trigger on prompts like:
+
 - "Design the upload page"
 - "Rework the current dashboard layout"
 - "Update the modal to match the new style"
@@ -15,26 +19,32 @@ If the target screen or file is ambiguous, ask before proceeding.
 
 ## Hard Rule
 
-If the user request is design-only, for approval, or otherwise does not explicitly authorize implementation:
+If the user request is design-only, for approval, or otherwise does not
+explicitly authorize implementation:
 
 - Use Pencil only.
 - Never fall back to editing application code, HTML, CSS, or JS.
 - If no matching `.pen` file exists, create a new one under `.pencil/`.
 - Return design artifacts and stop.
 
-Only edit code when the user explicitly starts a separate implementation task or explicitly asks to implement the approved design.
+Only edit code when the user explicitly starts a separate implementation task or
+explicitly asks to implement the approved design.
 
 ## Repo UI References
 
-When working in this repo, check the project UI references before making design decisions:
+When working in this repo, check the project UI references before making design
+decisions:
 
-1. `docs/ui-brand.md` for the written source-of-truth order, visual tokens, and reuse rules
+1. `docs/ui-brand.md` for the written source-of-truth order, visual tokens, and
+   reuse rules
 2. `.pencil/DesignSystem.pen` for shared visual language and reusable UI atoms
 3. the relevant approved screen `.pen` file, such as `.pencil/UploadPage.pen`
 
-These references are project-specific and take precedence over generic style instincts.
+These references are project-specific and take precedence over generic style
+instincts.
 
-If code and approved Pencil artifacts disagree visually, treat the approved `.pen` artifact as correct.
+If code and approved Pencil artifacts disagree visually, treat the approved
+`.pen` artifact as correct.
 
 ## Stage 1 - Understand the Editor State
 
@@ -44,14 +54,17 @@ Always start here:
 get_editor_state(include_schema=true)
 ```
 
-This tells you which `.pen` file is active, what is selected, and the current canvas state. If no document is open:
+This tells you which `.pen` file is active, what is selected, and the current
+canvas state. If no document is open:
 
 ```
 open_document(filePathOrTemplate="new")            # new blank file
 open_document(filePathOrTemplate="<path>")         # open specific .pen file
 ```
 
-All `.pen` file output goes in `.pencil/`. Never use `Read`, `Write`, `Grep`, `Glob`, or shell file reads on `.pen` files; they must be accessed through Pencil MCP tools.
+All `.pen` file output goes in `.pencil/`. Never use `Read`, `Write`, `Grep`,
+`Glob`, or shell file reads on `.pen` files; they must be accessed through
+Pencil MCP tools.
 
 ## Stage 2 - Read the Current Design
 
@@ -63,11 +76,13 @@ batch_get(filePath="<active .pen file>", nodeIds=["<id>", "..."], readDepth=2)
 batch_get(filePath="<active .pen file>", patterns=[{"reusable": true}], readDepth=2, searchDepth=3)
 ```
 
-Start with a shallow overview or the current selection. Read more only for the specific nodes you need.
+Start with a shallow overview or the current selection. Read more only for the
+specific nodes you need.
 
 Do not guess node IDs. Read them from `get_editor_state` or `batch_get` results.
 
-For this repo, if the task is not a tiny local tweak inside an already-open file:
+For this repo, if the task is not a tiny local tweak inside an already-open
+file:
 
 1. open or inspect `.pencil/DesignSystem.pen`
 2. inspect the target approved screen `.pen` file
@@ -77,13 +92,13 @@ For this repo, if the task is not a tiny local tweak inside an already-open file
 
 Fetch the relevant guideline topic for the type of work:
 
-| Work type | Topic |
-|---|---|
-| Web app / dashboard | `web-app` |
-| Mobile screen | `mobile-app` |
-| Landing page | `landing-page` |
+| Work type               | Topic           |
+| ----------------------- | --------------- |
+| Web app / dashboard     | `web-app`       |
+| Mobile screen           | `mobile-app`    |
+| Landing page            | `landing-page`  |
 | Design system component | `design-system` |
-| Data table | `table` |
+| Data table              | `table`         |
 
 ```
 get_guidelines(topic="web-app")
@@ -96,26 +111,44 @@ get_style_guide_tags()
 get_style_guide(tags=[...])
 ```
 
-Only call these once per session unless the scope changes. Skip style-guide lookup for small compositional edits inside an existing design system.
+Only call these once per session unless the scope changes. Skip style-guide
+lookup for small compositional edits inside an existing design system.
 
 ## Stage 4 - Design
 
-Apply changes using `batch_design`. Follow the format and constraints returned by `get_guidelines` exactly.
+Apply changes using `batch_design`. Follow the format and constraints returned
+by `get_guidelines` exactly.
 
 ```
 batch_design(
   filePath="<active .pen file>",
   operations="
-container=I(\"parentId\",{type:\"frame\",layout:\"vertical\",gap:24})
-title=I(container,{type:\"text\",content:\"Screen title\"})
+container=I(\"parentId\",{type:\"frame\",name:\"Settings Panel\",layout:\"vertical\",gap:24})
+title=I(container,{type:\"text\",name:\"Settings Title\",content:\"Screen title\"})
 "
 )
 ```
 
-- Scope changes to what the user asked for. Do not restyle unrelated screens or components.
+- Name every significant node you create or replace. Do not leave generic names
+  like `Frame`, `Rectangle`, `Text`, or `Group` on user-visible structure.
+- Name nodes by purpose, not by primitive type. Good examples:
+  `Header Menu`, `Primary Tabs`, `Workspace Badge`, `Epic Row / sd-040`,
+  `Progress Track / sd-040`, `New Issue Button`.
+- Use clear Title Case names for human-readable node labels.
+- For repeated business entities, include the stable identifier in the name when
+  it improves traceability.
+- Arrange sibling nodes in `.pen` structure by visual reading order:
+  top-to-bottom, then left-to-right within the same row.
+- For absolutely positioned layouts, the first sibling in the structure should
+  be the visually earliest element. Example: if one item is on the left and the
+  next item is on the right, keep the left item first in the structure.
+- Scope changes to what the user asked for. Do not restyle unrelated screens or
+  components.
 - Prefer modifying existing nodes over deleting and recreating.
-- If structural changes are large, describe the plan to the user before executing.
-- Use the exact node IDs or bindings returned by Pencil tools; do not invent paths.
+- If structural changes are large, describe the plan to the user before
+  executing.
+- Use the exact node IDs or bindings returned by Pencil tools; do not invent
+  paths.
 
 ## Stage 5 - Verify
 
@@ -128,14 +161,34 @@ batch_get(filePath="<active .pen file>", nodeIds=["<id>", "..."], readDepth=2)
 
 Show the user what changed. If it does not match intent, iterate.
 
+Also verify node naming before finishing:
+
+- Inspect the created or updated structure with `batch_get`.
+- Rename generic or ambiguous nodes before handoff.
+- Treat semantic node names as part of the design quality bar, not optional
+  metadata.
+- Check sibling ordering and reorder nodes if the `.pen` structure no longer
+  matches the visual scan order.
+
 ## Rules
 
-- **Never** read `.pen` files with `Read`, `Grep`, `Glob`, or shell file access; use Pencil MCP tools.
+- **Never** read `.pen` files with `Read`, `Grep`, `Glob`, or shell file access;
+  use Pencil MCP tools.
 - **Never** invent node IDs; always derive them from tool output.
-- Always call `get_editor_state(include_schema=true)` before Pencil reads or writes in a new conversation.
-- In this repo, consult `docs/ui-brand.md`, `.pencil/DesignSystem.pen`, and the relevant approved screen `.pen` file before broad UI changes.
-- Scope edits to what was requested. Do not expand to adjacent screens unless asked.
+- Always call `get_editor_state(include_schema=true)` before Pencil reads or
+  writes in a new conversation.
+- In this repo, consult `docs/ui-brand.md`, `.pencil/DesignSystem.pen`, and the
+  relevant approved screen `.pen` file before broad UI changes.
+- Scope edits to what was requested. Do not expand to adjacent screens unless
+  asked.
 - Store all design files under `.pencil/`.
-- If the request is ambiguous (which page? which component?), ask before touching anything.
-- If a UI request could mean either design or implementation, ask one short clarification question before proceeding.
-- When this skill matches and implementation permission is not explicit, default to a Pencil-only design task.
+- Give meaningful `name` values to inserted and updated Pencil nodes whenever
+  they represent a meaningful UI element or container.
+- Keep `.pen` node order aligned with visual reading order: top-to-bottom, then
+  left-to-right for peers on the same level.
+- If the request is ambiguous (which page? which component?), ask before
+  touching anything.
+- If a UI request could mean either design or implementation, ask one short
+  clarification question before proceeding.
+- When this skill matches and implementation permission is not explicit, default
+  to a Pencil-only design task.
