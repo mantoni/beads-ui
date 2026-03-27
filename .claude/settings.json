@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(alembic:*)",
+      "Bash(bd:*)",
+      "Bash(git:*)",
+      "Bash(rg:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(playwright-cli:*)",
+      "Skill(playwright-cli)",
+      "Bash(pytest:*)",
+      "Bash(python:*)",
+      "Bash(sqlite3:*)",
+      "Bash(uv:*)",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Read",
+      "WebFetch",
+      "Write"
+    ],
+    "ask": [
+      "Bash(git clean:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git rebase:*)",
+      "Bash(git reset:*)"
+    ]
+  }
+}

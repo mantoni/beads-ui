@@ -1,0 +1,39 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - paragraph [ref=e4]: Scanned document intake
+    - heading "Upload a scanned PDF and watch it process." [level=1] [ref=e5]
+    - paragraph [ref=e6]: The backend stores the document, starts processing, and exposes a live status endpoint. This page only handles upload and polling.
+  - region "Upload workspace" [ref=e7]:
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]:
+          - paragraph [ref=e11]: Upload
+          - heading "Submit one document" [level=2] [ref=e12]
+          - paragraph [ref=e13]: Choose a PDF to start the processing pipeline. The upload flow stays intentionally simple and the live status appears alongside it as soon as the backend accepts the job.
+        - generic [ref=e14]:
+          - generic [ref=e15]:
+            - generic [ref=e16]: Choose one PDF
+            - generic [ref=e17]:
+              - generic [ref=e18]:
+                - generic [ref=e19]: Choose file
+                - button "Choose one PDF Choose file No file selected" [ref=e20] [cursor=pointer]
+              - generic [ref=e21]: No file selected
+          - button "Upload document" [ref=e22] [cursor=pointer]
+      - generic [ref=e24]:
+        - generic [ref=e25]:
+          - paragraph [ref=e26]: Processing status
+          - heading "Current document state" [level=2] [ref=e27]
+          - paragraph [ref=e28]: Document identifiers and processing signals stay visible here after submission so progress remains easy to scan.
+        - generic [ref=e29]:
+          - article [ref=e30]:
+            - generic [ref=e31]: Document ID
+            - strong [ref=e32]: "-"
+          - article [ref=e33]:
+            - generic [ref=e34]: Status
+            - strong [ref=e35]: idle
+          - article [ref=e36]:
+            - generic [ref=e37]: Page count
+            - strong [ref=e38]: "-"
+        - generic [ref=e39]:
+          - generic [ref=e40]: Live message
+          - paragraph [ref=e41]

@@ -1,0 +1,1217 @@
+{
+  "version": "2.9",
+  "children": [
+    {
+      "type": "frame",
+      "id": "fLSye",
+      "x": 0,
+      "y": 0,
+      "name": "ScannedDoc Brand System",
+      "width": 1600,
+      "fill": [
+        {
+          "type": "gradient",
+          "gradientType": "radial",
+          "enabled": true,
+          "rotation": 0,
+          "size": {
+            "width": 0.9,
+            "height": 0.5
+          },
+          "colors": [
+            {
+              "color": "$brand-glow-strong",
+              "position": 0
+            },
+            {
+              "color": "$brand-glow-soft",
+              "position": 0.2
+            },
+            {
+              "color": "$brand-glow-clear",
+              "position": 0.48
+            }
+          ],
+          "center": {
+            "y": 0.18
+          }
+        },
+        {
+          "type": "gradient",
+          "gradientType": "linear",
+          "enabled": true,
+          "rotation": 180,
+          "size": {
+            "height": 1
+          },
+          "colors": [
+            {
+              "color": "$brand-bg-top",
+              "position": 0
+            },
+            {
+              "color": "$brand-bg-mid-a",
+              "position": 0.18
+            },
+            {
+              "color": "$brand-bg-mid-b",
+              "position": 0.42
+            },
+            {
+              "color": "$brand-bg-mid-c",
+              "position": 0.68
+            },
+            {
+              "color": "$brand-bg-bottom",
+              "position": 1
+            }
+          ]
+        }
+      ],
+      "layout": "vertical",
+      "gap": 32,
+      "padding": [
+        64,
+        64,
+        72,
+        64
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "0n8Lp",
+          "name": "Intro",
+          "width": 1360,
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "x0PX0",
+              "name": "Eyebrow",
+              "fill": "$brand-muted",
+              "content": "SCANNEDDOC UI BRAND",
+              "fontFamily": "$brand-font-mono",
+              "fontSize": 12,
+              "fontWeight": "500",
+              "letterSpacing": 1.8
+            },
+            {
+              "type": "text",
+              "id": "c4FOA",
+              "name": "Title",
+              "fill": "$brand-text",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Design source of truth for future ScannedDoc UI work.",
+              "fontFamily": "$brand-font-primary",
+              "fontSize": 44,
+              "fontWeight": "600",
+              "letterSpacing": -1.6
+            },
+            {
+              "type": "text",
+              "id": "aNvFX",
+              "name": "Subtitle",
+              "fill": "$brand-muted",
+              "textGrowth": "fixed-width",
+              "width": 1120,
+              "content": "This file captures the approved upload-page visual language as reusable tokens, components, and composition rules. Update this first, then update screen files, then implementation.",
+              "lineHeight": 1.5,
+              "fontFamily": "$brand-font-primary",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "f6vtC",
+          "name": "Foundations Row",
+          "width": 1360,
+          "gap": 24,
+          "children": [
+            {
+              "type": "frame",
+              "id": "sFpEP",
+              "name": "Foundations Card",
+              "width": "fill_container",
+              "height": 418,
+              "fill": "$brand-surface",
+              "cornerRadius": "$brand-radius-l",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$brand-border"
+              },
+              "layout": "vertical",
+              "gap": 16,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "VlXto",
+                  "name": "Foundation Stack",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 10,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "H83xt",
+                      "name": "Foundations Intro",
+                      "fill": "$brand-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Use these rules as the design baseline until the product gains more approved screens.",
+                      "lineHeight": 1.55,
+                      "fontFamily": "$brand-font-primary",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "O2L9o",
+                      "name": "Rule 1",
+                      "fill": "$brand-text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "1. Design in Pencil first. Approved .pen files outrank frontend code for visual decisions.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$brand-font-primary",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "OkhCL",
+                      "name": "Rule 2",
+                      "fill": "$brand-text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "2. Reuse the page gradient, white surfaces, mono uppercase labels, and Geist-led typography before inventing anything new.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$brand-font-primary",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "mciod",
+                      "name": "Rule 3",
+                      "fill": "$brand-text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "3. Keep one dominant action per section. Surfaces stay simple, bordered, and lightly elevated.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$brand-font-primary",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "kaib0",
+                      "name": "Rule 4",
+                      "fill": "$brand-text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "4. Future screen files should copy from the components below or start from this file, because Pencil components cannot be referenced across files.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$brand-font-primary",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "5Fc2t",
+                      "name": "Spacing Scale",
+                      "fill": "$brand-text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "5. Preferred spacing scale: 8, 12, 16, 24, 32, 40. Default card padding stays at 24 or 32.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "Geist",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "oLDBd",
+                      "name": "Radius Scale",
+                      "fill": "$brand-text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "6. Radius scale: 8 for small status/message surfaces, 10 for controls, 16 to 18 for major cards and workspace shells.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "Geist",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "dwB0S",
+                  "name": "Foundations Heading",
+                  "fill": "$brand-text",
+                  "content": "Foundations",
+                  "fontFamily": "$brand-font-primary",
+                  "fontSize": 24,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "89yK4",
+              "name": "Palette Card",
+              "width": "fill_container",
+              "fill": "$brand-surface",
+              "cornerRadius": "$brand-radius-l",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$brand-border"
+              },
+              "layout": "vertical",
+              "gap": 16,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "A9Wcx",
+                  "name": "Palette Grid",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "XFskx",
+                      "name": "Palette Row A",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "T52bG",
+                          "name": "Gradient Start",
+                          "width": "fill_container",
+                          "fill": "$brand-surface",
+                          "cornerRadius": "$brand-radius-m",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "$brand-border"
+                          },
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": [
+                                8,
+                                8,
+                                0,
+                                0
+                              ],
+                              "id": "grAdz",
+                              "name": "Color",
+                              "fill": "$brand-bg-top",
+                              "width": "fill_container",
+                              "height": 72
+                            },
+                            {
+                              "type": "text",
+                              "id": "Dx0K0",
+                              "name": "Label",
+                              "fill": "$brand-text",
+                              "content": "Background top",
+                              "fontFamily": "Geist",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "b7nK3",
+                              "name": "Value",
+                              "fill": "$brand-muted",
+                              "content": "#BBCAC3",
+                              "fontFamily": "IBM Plex Mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1.2
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "57UCF",
+                          "name": "Glow",
+                          "width": "fill_container",
+                          "fill": "$brand-surface",
+                          "cornerRadius": "$brand-radius-m",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "$brand-border"
+                          },
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": [
+                                8,
+                                8,
+                                0,
+                                0
+                              ],
+                              "id": "X5ZKH",
+                              "name": "Color",
+                              "fill": "$brand-glow-strong",
+                              "width": "fill_container",
+                              "height": 72
+                            },
+                            {
+                              "type": "text",
+                              "id": "KHnHP",
+                              "name": "Label",
+                              "fill": "$brand-text",
+                              "content": "Warm glow",
+                              "fontFamily": "Geist",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "wu1eV",
+                              "name": "Value",
+                              "fill": "$brand-muted",
+                              "content": "#F2F3EE",
+                              "fontFamily": "IBM Plex Mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1.2
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "61OYk",
+                          "name": "Accent",
+                          "width": "fill_container",
+                          "fill": "$brand-surface",
+                          "cornerRadius": "$brand-radius-m",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "$brand-border"
+                          },
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": [
+                                8,
+                                8,
+                                0,
+                                0
+                              ],
+                              "id": "LuaOB",
+                              "name": "Color",
+                              "fill": "$brand-accent",
+                              "width": "fill_container",
+                              "height": 72
+                            },
+                            {
+                              "type": "text",
+                              "id": "oLwa4",
+                              "name": "Label",
+                              "fill": "$brand-text",
+                              "content": "Primary accent",
+                              "fontFamily": "Geist",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "5BBCc",
+                              "name": "Value",
+                              "fill": "$brand-muted",
+                              "content": "#0D9488",
+                              "fontFamily": "IBM Plex Mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1.2
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "M1Dcs",
+                      "name": "Palette Row B",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Xx2AC",
+                          "name": "Surface",
+                          "width": "fill_container",
+                          "fill": "$brand-surface",
+                          "cornerRadius": "$brand-radius-m",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "$brand-border"
+                          },
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": [
+                                8,
+                                8,
+                                0,
+                                0
+                              ],
+                              "id": "EhsjE",
+                              "name": "Color",
+                              "fill": "$brand-surface-subtle",
+                              "width": "fill_container",
+                              "height": 72
+                            },
+                            {
+                              "type": "text",
+                              "id": "EFtCx",
+                              "name": "Label",
+                              "fill": "$brand-text",
+                              "content": "Surface subtle",
+                              "fontFamily": "Geist",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "1MGF0",
+                              "name": "Value",
+                              "fill": "$brand-muted",
+                              "content": "#FBFBFC",
+                              "fontFamily": "IBM Plex Mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1.2
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "ze04N",
+                          "name": "Border",
+                          "width": "fill_container",
+                          "fill": "$brand-surface",
+                          "cornerRadius": "$brand-radius-m",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "$brand-border"
+                          },
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": [
+                                8,
+                                8,
+                                0,
+                                0
+                              ],
+                              "id": "nfcNl",
+                              "name": "Color",
+                              "fill": "$brand-border",
+                              "width": "fill_container",
+                              "height": 72
+                            },
+                            {
+                              "type": "text",
+                              "id": "XDSWd",
+                              "name": "Label",
+                              "fill": "$brand-text",
+                              "content": "Border",
+                              "fontFamily": "Geist",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "Tl87f",
+                              "name": "Value",
+                              "fill": "$brand-muted",
+                              "content": "#E5E7EB",
+                              "fontFamily": "IBM Plex Mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1.2
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "iASqf",
+                          "name": "Status",
+                          "width": "fill_container",
+                          "fill": "$brand-surface",
+                          "cornerRadius": "$brand-radius-m",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "$brand-border"
+                          },
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": [
+                                8,
+                                8,
+                                0,
+                                0
+                              ],
+                              "id": "jK4zO",
+                              "name": "Color",
+                              "fill": "$brand-status",
+                              "width": "fill_container",
+                              "height": 72
+                            },
+                            {
+                              "type": "text",
+                              "id": "YMHwG",
+                              "name": "Label",
+                              "fill": "$brand-text",
+                              "content": "Status info",
+                              "fontFamily": "Geist",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "UiVS5",
+                              "name": "Value",
+                              "fill": "$brand-muted",
+                              "content": "#2563EB",
+                              "fontFamily": "IBM Plex Mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1.2
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "HyKq9",
+                  "name": "Palette Heading",
+                  "fill": "$brand-text",
+                  "content": "Palette",
+                  "fontFamily": "$brand-font-primary",
+                  "fontSize": 24,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "qN1uN",
+                  "name": "Palette Intro",
+                  "fill": "$brand-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Soft green atmospheric background, warm neutral glow, and restrained white surfaces.",
+                  "lineHeight": 1.55,
+                  "fontFamily": "$brand-font-primary",
+                  "fontSize": 15,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "WAleU",
+          "name": "Typography Row",
+          "width": 1360,
+          "gap": 24,
+          "children": [
+            {
+              "type": "frame",
+              "id": "X3k3E",
+              "name": "Typography Card",
+              "width": "fill_container",
+              "fill": "$brand-surface",
+              "cornerRadius": "$brand-radius-l",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$brand-border"
+              },
+              "layout": "vertical",
+              "gap": 16,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "B0nmf",
+                  "name": "Type Stack",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "u9wUA",
+                      "name": "Display Sample",
+                      "fill": "$brand-text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Display text uses Geist with tight tracking and calm weight.",
+                      "fontFamily": "$brand-font-primary",
+                      "fontSize": 32,
+                      "fontWeight": "600",
+                      "letterSpacing": -1
+                    },
+                    {
+                      "type": "text",
+                      "id": "f6O46",
+                      "name": "Section Sample",
+                      "fill": "$brand-text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Section headings are compact and direct.",
+                      "fontFamily": "$brand-font-primary",
+                      "fontSize": 24,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Vceg5",
+                      "name": "Body Sample",
+                      "fill": "$brand-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Body copy stays readable, neutral, and slightly airy rather than dense or sales-like.",
+                      "lineHeight": 1.55,
+                      "fontFamily": "$brand-font-primary",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "cKGSL",
+                      "name": "Mono Sample",
+                      "fill": "$brand-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "SYSTEM LABEL / IBM PLEX MONO / 12PX / UPPERCASE",
+                      "fontFamily": "$brand-font-mono",
+                      "fontSize": 12,
+                      "fontWeight": "500",
+                      "letterSpacing": 1.6
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "HevN1",
+                  "name": "Typography Heading",
+                  "fill": "$brand-text",
+                  "content": "Typography",
+                  "fontFamily": "$brand-font-primary",
+                  "fontSize": 24,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "c8Fw8",
+              "name": "Preview Card",
+              "width": "fill_container",
+              "height": 285,
+              "fill": "$brand-surface",
+              "cornerRadius": "$brand-radius-l",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$brand-border"
+              },
+              "layout": "vertical",
+              "gap": 16,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "gcOQD",
+                  "name": "Preview Stack",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Fjuxb",
+                      "name": "Preview Row",
+                      "width": "fill_container",
+                      "gap": 16,
+                      "children": [
+                        {
+                          "id": "aQ2yU",
+                          "type": "ref",
+                          "ref": "mxVmA"
+                        },
+                        {
+                          "id": "UrXCV",
+                          "type": "ref",
+                          "ref": "DJf8W"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "XF6Jc",
+                  "name": "Preview Heading",
+                  "fill": "$brand-text",
+                  "content": "Core UI Atoms",
+                  "fontFamily": "$brand-font-primary",
+                  "fontSize": 24,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "OIpHW",
+                  "name": "Preview Intro",
+                  "fill": "$brand-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "These previews show the minimal set of controls and status surfaces that define the current product look.",
+                  "lineHeight": 1.55,
+                  "fontFamily": "$brand-font-primary",
+                  "fontSize": 15,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "32deM",
+          "name": "Reusable Components",
+          "width": 1360,
+          "fill": "$brand-surface",
+          "cornerRadius": "$brand-radius-l",
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "$brand-border"
+          },
+          "layout": "vertical",
+          "gap": 20,
+          "padding": 24,
+          "children": [
+            {
+              "type": "frame",
+              "id": "kGrKk",
+              "name": "Component Shelf",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "mxVmA",
+                  "name": "Button/Primary",
+                  "reusable": true,
+                  "fill": "$brand-accent",
+                  "cornerRadius": "$brand-radius-m",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "$brand-accent-strong"
+                  },
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#0D948833",
+                    "offset": {
+                      "x": 0,
+                      "y": 8
+                    },
+                    "blur": 20
+                  },
+                  "gap": 8,
+                  "padding": [
+                    12,
+                    16
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Lk8PF",
+                      "name": "Label",
+                      "fill": "#FFFFFF",
+                      "content": "Upload document",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "DJf8W",
+                  "name": "Field/File Picker",
+                  "reusable": true,
+                  "width": 380,
+                  "fill": "$brand-surface-subtle",
+                  "cornerRadius": "$brand-radius-m",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "$brand-border"
+                  },
+                  "layout": "vertical",
+                  "gap": 18,
+                  "padding": 20,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "6qDEN",
+                      "name": "Label",
+                      "fill": "$brand-muted",
+                      "content": "Choose one PDF",
+                      "fontFamily": "IBM Plex Mono",
+                      "fontSize": 11,
+                      "fontWeight": "500",
+                      "letterSpacing": 1.6
+                    },
+                    {
+                      "type": "frame",
+                      "id": "psT7u",
+                      "name": "Row",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Wmjs5",
+                          "name": "Choose Button",
+                          "fill": "$brand-surface",
+                          "cornerRadius": "$brand-radius-m",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "$brand-border-strong"
+                          },
+                          "padding": [
+                            10,
+                            14
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "fEZB1",
+                              "name": "Button Label",
+                              "fill": "$brand-text",
+                              "content": "Choose file",
+                              "fontFamily": "Geist",
+                              "fontSize": 14,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "QSo73",
+                          "name": "Selected File",
+                          "width": "fill_container",
+                          "fill": "$brand-surface",
+                          "cornerRadius": "$brand-radius-m",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "$brand-border"
+                          },
+                          "padding": [
+                            10,
+                            12
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "uz1Ar",
+                              "name": "File Label",
+                              "fill": "$brand-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "No file selected",
+                              "fontFamily": "Geist",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "I0xNF",
+                  "name": "Status/Metric",
+                  "reusable": true,
+                  "width": 220,
+                  "fill": "$brand-surface",
+                  "cornerRadius": "$brand-radius-s",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": [
+                    10,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "MczMH",
+                      "name": "Metric Label",
+                      "fill": "$brand-muted",
+                      "content": "STATUS",
+                      "fontFamily": "IBM Plex Mono",
+                      "fontSize": 11,
+                      "fontWeight": "500",
+                      "letterSpacing": 1.6
+                    },
+                    {
+                      "type": "text",
+                      "id": "s5FCh",
+                      "name": "Metric Value",
+                      "fill": "$brand-status",
+                      "content": "idle",
+                      "fontFamily": "Geist",
+                      "fontSize": 18,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "H36Ov",
+                  "name": "Message/Live",
+                  "reusable": true,
+                  "width": 320,
+                  "fill": "$brand-surface-subtle",
+                  "cornerRadius": "$brand-radius-s",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "padding": 12,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "iPtJ3",
+                      "name": "Message Label",
+                      "fill": "$brand-muted",
+                      "content": "LIVE MESSAGE",
+                      "fontFamily": "IBM Plex Mono",
+                      "fontSize": 11,
+                      "fontWeight": "500",
+                      "letterSpacing": 1.6
+                    },
+                    {
+                      "type": "text",
+                      "id": "DyWDZ",
+                      "name": "Message Body",
+                      "fill": "$brand-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Waiting for a document upload.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "nIjWF",
+              "name": "Components Heading",
+              "fill": "$brand-text",
+              "content": "Reusable Components",
+              "fontFamily": "$brand-font-primary",
+              "fontSize": 24,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "oz5cs",
+              "name": "Components Intro",
+              "fill": "$brand-muted",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Copy these into future .pen files or duplicate this file as the starting point for new UI work.",
+              "lineHeight": 1.55,
+              "fontFamily": "$brand-font-primary",
+              "fontSize": 15,
+              "fontWeight": "normal"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "brand-accent": {
+      "type": "color",
+      "value": "#0D9488"
+    },
+    "brand-accent-strong": {
+      "type": "color",
+      "value": "#0B7A71"
+    },
+    "brand-bg-bottom": {
+      "type": "color",
+      "value": "#88AE95"
+    },
+    "brand-bg-mid-a": {
+      "type": "color",
+      "value": "#C1D2BC"
+    },
+    "brand-bg-mid-b": {
+      "type": "color",
+      "value": "#C7D9CF"
+    },
+    "brand-bg-mid-c": {
+      "type": "color",
+      "value": "#BAD0C0"
+    },
+    "brand-bg-top": {
+      "type": "color",
+      "value": "#BBCAC3"
+    },
+    "brand-border": {
+      "type": "color",
+      "value": "#E5E7EB"
+    },
+    "brand-border-strong": {
+      "type": "color",
+      "value": "#D1D5DB"
+    },
+    "brand-error": {
+      "type": "color",
+      "value": "#B42318"
+    },
+    "brand-font-mono": {
+      "type": "string",
+      "value": "IBM Plex Mono"
+    },
+    "brand-font-primary": {
+      "type": "string",
+      "value": "Geist"
+    },
+    "brand-glow-clear": {
+      "type": "color",
+      "value": "#F2F3EE00"
+    },
+    "brand-glow-soft": {
+      "type": "color",
+      "value": "#F2F3EEBD"
+    },
+    "brand-glow-strong": {
+      "type": "color",
+      "value": "#F2F3EEEB"
+    },
+    "brand-muted": {
+      "type": "color",
+      "value": "#6B7280"
+    },
+    "brand-radius-l": {
+      "type": "number",
+      "value": 16
+    },
+    "brand-radius-m": {
+      "type": "number",
+      "value": 10
+    },
+    "brand-radius-s": {
+      "type": "number",
+      "value": 8
+    },
+    "brand-radius-xl": {
+      "type": "number",
+      "value": 18
+    },
+    "brand-status": {
+      "type": "color",
+      "value": "#2563EB"
+    },
+    "brand-success": {
+      "type": "color",
+      "value": "#166534"
+    },
+    "brand-surface": {
+      "type": "color",
+      "value": "#FFFFFF"
+    },
+    "brand-surface-subtle": {
+      "type": "color",
+      "value": "#FBFBFC"
+    },
+    "brand-text": {
+      "type": "color",
+      "value": "#111827"
+    },
+    "space-10": {
+      "type": "number",
+      "value": 40
+    },
+    "space-2": {
+      "type": "number",
+      "value": 8
+    },
+    "space-3": {
+      "type": "number",
+      "value": 12
+    },
+    "space-4": {
+      "type": "number",
+      "value": 16
+    },
+    "space-6": {
+      "type": "number",
+      "value": 24
+    },
+    "space-8": {
+      "type": "number",
+      "value": 32
+    }
+  }
+}

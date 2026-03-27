@@ -1,0 +1,142 @@
+# Project-local allow-list migrated from legacy .codex/settings.json.
+# These rules let Codex skip approval prompts for exact command prefixes.
+
+prefix_rule(
+    pattern = ["./gradlew"],
+    decision="allow"
+)
+
+prefix_rule(
+    pattern = [".\\gradlew"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["Get-ChildItem"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["Get-Content"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["Resolve-Path"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["Select-String"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["Test-Path"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["cat"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["dir"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["git", "branch"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["git", "commit"],
+    decision = "prompt"
+)
+
+prefix_rule(
+    pattern = ["git", "diff"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["git", "fetch", "origin"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["git", "log"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["git", "ls-files"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["git", "merge-base"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["git", "push"],
+    decision = "prompt"
+)
+
+prefix_rule(
+    pattern = ["git", "remote"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["git", "rev-parse"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["git", "show"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["git", "status"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["gradle"],
+    decision = "allow",
+)
+
+prefix_rule(
+    pattern = ["grep"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["ls"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["pencil"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern=["playwright-cli"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["rg"],
+    decision = "allow"
+)
+
+prefix_rule(
+    pattern = ["type"],
+    decision = "allow"
+)
