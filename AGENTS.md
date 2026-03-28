@@ -124,13 +124,13 @@ clarifying question. Full rules in the `designer` skill.
 Project skills live in `.claude/skills/<name>/SKILL.md`. Each skill has a
 `description` frontmatter field that drives automatic matching — the agent
 recognizes a task, reads the skill, and follows its procedure without requiring
-explicit invocation. See Skill Compliance below.
+explicit invocation. See Skill Compliance above.
 
 | Skill                | Description (from frontmatter)                                                                                                                                                                    |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `add-provider`       | Adding any new OCR, LLM, embedding, vector store, or storage implementation _(carried from template — may not apply)_                                                                             |
 | `add-task`           | Adding or scaffolding a new Celery task in any `app/tasks/` module _(carried from template — may not apply)_                                                                                      |
-| `beads-work`         | Task and issue tracking using Beads (bd CLI). Use for substantive work tracking, status updates, session management, and work discovery. Replaces TodoWrite, TaskCreate, and markdown task lists. |
+| `beads-work`         | Task and issue tracking using Beads (bd CLI). Use when the user asks for tracking or when implementation work is substantive enough to need multi-step or cross-session coordination. Replaces TodoWrite, TaskCreate, and markdown task lists. |
 | `check-abstractions` | Before any substantial commit; also auto-runs after adding a provider, task, or pipeline module                                                                                                   |
 | `debug-page`         | Investigating a stuck, failed, or anomalous page in the OCR pipeline _(carried from template — may not apply)_                                                                                    |
 | `designer`           | Creating, updating, or editing UI/UX designs using the Pencil MCP. Use when the user asks to design, redesign, rework, or update screens, pages, or UI components in a .pen file.                 |
@@ -155,6 +155,7 @@ explicit invocation. See Skill Compliance below.
 
 ## Session End
 
-Close finished Beads issues, then push. Full procedure in the `work-with-git`
-skill (Session End) and `beads-work` skill. Work is not complete until
-`git push` succeeds.
+If the task used Beads, sync and close the relevant issues before handoff. If
+the user explicitly asked for commit/push work or approved it, follow the
+`work-with-git` Session End procedure. Do not assume every task requires Beads
+or a push.

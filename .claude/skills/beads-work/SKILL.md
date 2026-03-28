@@ -1,14 +1,33 @@
 ---
 name: beads-work
 description:
-  Task and issue tracking using Beads (bd CLI). Use for all task creation,
-  status updates, session management, and work discovery. Replaces TodoWrite,
-  TaskCreate, and markdown task lists.
+  Task and issue tracking using Beads (bd CLI). Use when the user explicitly
+  asks for tracking or when implementation work is substantive enough to need
+  multi-step or cross-session coordination. Replaces TodoWrite, TaskCreate,
+  and markdown task lists.
 ---
 
 This project uses **Beads** for issue tracking when the work is substantive
 enough to merit a tracked task. Never use TodoWrite, TaskCreate, or markdown
 files to track tasks. The `bd` CLI is the only sanctioned tool.
+
+## When This Skill Applies
+
+Use this skill when at least one of these is true:
+
+- The user explicitly asks for Beads tracking, status updates, or issue
+  management
+- The work is implementation-oriented and spans multiple steps, files, or
+  sessions
+- The work needs dependency tracking, follow-up tracking, or linkage to an
+  existing issue/epic
+
+Do **not** create or update Beads issues by default for:
+
+- Design-only Pencil work covered by the `designer` skill
+- Trivial fixes, wording changes, or narrow one-shot edits
+- Review-only, planning-only, advisory, or repo-exploration tasks
+- Git-only or administrative actions such as branch creation, sync, or push
 
 ## Session Start
 
@@ -23,11 +42,11 @@ bd list --status=in_progress  # Check what is already claimed
 
 ## Creating Issues
 
-Create an issue **before** writing code — not after — when the work is
+Create an issue **before** writing code, not after, only when the work is
 substantive and worth tracking.
 
 ```bash
-bd create --id="sd-NNN" --title="..." --type=task|bug|feature --priority=2
+bd create --id="bd-NNN" --title="..." --type=task|bug|feature --priority=2
 ```
 
 Priority scale: `0`=critical, `1`=high, `2`=medium, `3`=low, `4`=backlog. Use
@@ -36,21 +55,14 @@ integers, not words.
 For many issues at once, create them in parallel (multiple subagents or
 concurrent calls).
 
-**Substantive** means work involving code, schema, config, or docs changes. Do
-**not** create a Beads issue for trivial git-only, push-only, branch-only, or
-similar lightweight administrative tasks unless the user explicitly asked for
-Beads tracking. If it is unclear whether the task is substantive enough, ask the
-user before creating an issue.
+See **When This Skill Applies** above for criteria on when to create vs. skip.
 
 Beads ID policy:
 
-- Always create issues with an explicit numeric ID in the form `sd-NNN`.
-- Never rely on Beads auto-generated mixed alphanumeric IDs such as `sd-db8`.
-- Before `bd create`, inspect existing numeric `sd-NNN` IDs and choose the next
-  available number.
-- If the next numeric ID is ambiguous or there is collision risk, ask the user
-  before creating the issue.
-
+- Always create issues with an explicit numeric ID in the form `bd-NNN`.
+- Never rely on Beads auto-generated mixed alphanumeric IDs such as `bd-db8`.
+- Before `bd create`, inspect existing numeric `bd-NNN` IDs and choose the next available number.
+- If the next numeric ID is ambiguous or there is collision risk, ask the user before creating the issue.
 ## Working an Issue
 
 ```bash
@@ -84,10 +96,10 @@ bd blocked                        # Show all currently blocked issues
 
 ## Session End
 
-Before declaring work complete:
+If this task used Beads tracking, before declaring work complete:
 
 ```bash
-bd sync --flush-only   # Export beads state to JSONL
+bd sync   # Commit and push beads state
 ```
 
 ## Reference
@@ -101,19 +113,20 @@ bd sync --flush-only   # Export beads state to JSONL
 | `bd show <id>`                 | Issue detail + dependencies |
 | `bd stats`                     | Project health counts       |
 | `bd blocked`                   | All blocked issues          |
-| `bd sync --flush-only`         | Export to JSONL             |
+| `bd sync`                      | Commit and push beads state |
 
 ## Rules
 
 - **Never** use `bd edit` — it opens `$EDITOR` and blocks agents.
 - **Never** use TodoWrite, TaskCreate, or markdown files for task tracking.
-- Create issues before coding for substantive work, not as an afterthought.
+- Create issues before coding for substantive tracked work, not as an
+  afterthought.
+- Do not auto-create issues for design-only Pencil work, trivial edits, or
+  review-only tasks.
 - Skip issue creation for trivial administrative tasks unless the user
   explicitly requests tracking.
 - If unsure whether tracking is warranted, ask the user before creating an
   issue.
-- Use explicit numeric issue IDs in `sd-NNN` format whenever creating a new
-  Beads issue.
 - Fold Beads status updates into the main commit whenever practical.
-- Close all finished issues before ending the session.
-- Run `bd sync --flush-only` as the final step of every session.
+- Close all finished issues before ending a Beads-tracked session.
+- Run `bd sync` as the final step of a Beads-tracked session.

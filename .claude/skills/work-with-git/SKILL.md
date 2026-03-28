@@ -11,6 +11,7 @@ description:
 | ----------------- | -------------------------------------------------- |
 | `feature/<name>`  | New features                                       |
 | `fix/<name>`      | Bug fixes                                          |
+| `chore/<name>`    | Maintenance, tooling, dependencies, config         |
 | `refactor/<name>` | Internal restructuring without behavior change     |
 | `docs/<name>`     | Documentation only                                 |
 | `ai/<name>`       | AI-assisted development when no better prefix fits |
@@ -85,8 +86,7 @@ If the current branch is `main` or the remote default branch:
 
 ## Session End
 
-Before declaring work complete, run this sequence — work is not done until
-`git push` succeeds:
+If the user explicitly asked for commit/push work or approved it, run this sequence before declaring that git portion complete:
 
 ```bash
 git pull --rebase
@@ -95,7 +95,6 @@ git push
 git status  # must show "up to date with origin"
 ```
 
-- Do not stop before pushing. Never say "ready to push when you are" — push
-  yourself.
+- Do not claim the git work is complete before the approved push is done.
 - If push fails, resolve the conflict and retry until it succeeds.
 - File Beads issues for any remaining follow-up work before closing the session.
