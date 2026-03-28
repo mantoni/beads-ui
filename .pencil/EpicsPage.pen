@@ -8,7 +8,7 @@
       "y": 0,
       "name": "Epics Page Canvas",
       "width": 2048,
-      "height": 293,
+      "height": 420,
       "fill": "#0D1426",
       "layout": "none",
       "children": [
@@ -54,19 +54,32 @@
               "layout": "none"
             },
             {
-              "type": "text",
-              "id": "eEu3U",
-              "x": 360,
-              "y": 20,
-              "name": "Status / Status",
-              "fill": "#ffffff",
-              "textGrowth": "fixed-width-height",
-              "width": 34,
-              "height": "fill_container(16)",
-              "content": "Status",
-              "fontFamily": "Inter",
-              "fontSize": 11,
-              "fontWeight": "normal"
+              "type": "frame",
+              "id": "whpjs",
+              "x": 530,
+              "y": 16,
+              "name": "Status Pill / sd-028",
+              "height": 22,
+              "fill": "#51CB4E",
+              "cornerRadius": 999,
+              "padding": [
+                3,
+                8
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "6gFv3",
+                  "name": "Status Label / sd-028",
+                  "fill": "#ffffff",
+                  "content": "Open",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                }
+              ]
             },
             {
               "type": "text",
@@ -93,7 +106,20 @@
               "content": "sd-028",
               "textAlignVertical": "bottom",
               "fontFamily": "Inter",
-              "fontSize": 18
+              "fontSize": 18,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "icon_font",
+              "id": "3LmY5",
+              "x": 128,
+              "y": 20,
+              "name": "Expand Chevron / sd-028",
+              "width": 14,
+              "height": 14,
+              "iconFontName": "chevron-right",
+              "iconFontFamily": "lucide",
+              "fill": "#6B7B99"
             }
           ]
         },
@@ -139,19 +165,32 @@
               "layout": "none"
             },
             {
-              "type": "text",
-              "id": "Z4XRd",
-              "x": 350,
-              "y": 20,
-              "name": "Status / Status",
-              "fill": "#ffffff",
-              "textGrowth": "fixed-width-height",
-              "width": 34,
-              "height": "fill_container(16)",
-              "content": "Status",
-              "fontFamily": "Inter",
-              "fontSize": 11,
-              "fontWeight": "normal"
+              "type": "frame",
+              "id": "YqVt7",
+              "x": 530,
+              "y": 16,
+              "name": "Status Pill / sd-023",
+              "height": 22,
+              "fill": "#51CB4E",
+              "cornerRadius": 999,
+              "padding": [
+                3,
+                8
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "i23se",
+                  "name": "Status Label / sd-023",
+                  "fill": "#ffffff",
+                  "content": "Open",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                }
+              ]
             },
             {
               "type": "text",
@@ -178,7 +217,20 @@
               "content": "sd-023",
               "textAlignVertical": "bottom",
               "fontFamily": "Inter",
-              "fontSize": 18
+              "fontSize": 18,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "icon_font",
+              "id": "zAVHU",
+              "x": 128,
+              "y": 20,
+              "name": "Expand Chevron / sd-023",
+              "width": 14,
+              "height": 14,
+              "iconFontName": "chevron-right",
+              "iconFontFamily": "lucide",
+              "fill": "#6B7B99"
             }
           ]
         },
@@ -224,19 +276,32 @@
               "layout": "none"
             },
             {
-              "type": "text",
-              "id": "Of1Hc",
-              "x": 350,
-              "y": 22,
-              "name": "Status / Status",
-              "fill": "#ffffff",
-              "textGrowth": "fixed-width-height",
-              "width": 34,
-              "height": "fill_container(16)",
-              "content": "Status",
-              "fontFamily": "Inter",
-              "fontSize": 11,
-              "fontWeight": "normal"
+              "type": "frame",
+              "id": "PzMuV",
+              "x": 530,
+              "y": 16,
+              "name": "Status Pill / sd-040",
+              "height": 22,
+              "fill": "#51CB4E",
+              "cornerRadius": 999,
+              "padding": [
+                3,
+                8
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "aRiAr",
+                  "name": "Status Label / sd-040",
+                  "fill": "#ffffff",
+                  "content": "Open",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                }
+              ]
             },
             {
               "type": "text",
@@ -263,7 +328,20 @@
               "content": "sd-040",
               "textAlignVertical": "bottom",
               "fontFamily": "Inter",
-              "fontSize": 18
+              "fontSize": 18,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "icon_font",
+              "id": "7qZwD",
+              "x": 128,
+              "y": 20,
+              "name": "Expand Chevron / sd-040",
+              "width": 14,
+              "height": 14,
+              "iconFontName": "chevron-right",
+              "iconFontFamily": "lucide",
+              "fill": "#6B7B99"
             }
           ]
         },
@@ -440,6 +518,200 @@
               "fontFamily": "Inter",
               "fontSize": 18,
               "fontWeight": "800"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "jogO1",
+          "x": 18,
+          "y": 308,
+          "name": "Variants Section Label",
+          "fill": "#6B7B99",
+          "content": "Expand / Collapse Icon — Light & Dark Variants",
+          "fontFamily": "Inter",
+          "fontSize": 12,
+          "fontWeight": "600"
+        },
+        {
+          "type": "frame",
+          "id": "T6on2",
+          "x": 18,
+          "y": 330,
+          "name": "Dark Mode Icon Variants",
+          "height": 48,
+          "fill": "#111A2F",
+          "cornerRadius": 7,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#28334D"
+          },
+          "gap": 24,
+          "padding": [
+            0,
+            16
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "VRmwt",
+              "name": "Dark Label",
+              "fill": "#6B7B99",
+              "content": "Dark",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "NnyQi",
+              "name": "Dark Expanded State",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "KCqKJ",
+                  "name": "Chevron Down Dark",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "chevron-down",
+                  "iconFontFamily": "lucide",
+                  "fill": "#6B7B99"
+                },
+                {
+                  "type": "text",
+                  "id": "bFpcR",
+                  "name": "Expanded Label Dark",
+                  "fill": "#6B7B99",
+                  "content": "Expanded",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "eoVVa",
+              "name": "Dark Collapsed State",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "7obAY",
+                  "name": "Chevron Right Dark",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "chevron-right",
+                  "iconFontFamily": "lucide",
+                  "fill": "#6B7B99"
+                },
+                {
+                  "type": "text",
+                  "id": "q3o1I",
+                  "name": "Collapsed Label Dark",
+                  "fill": "#6B7B99",
+                  "content": "Collapsed",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Hs5OA",
+          "x": 320,
+          "y": 330,
+          "name": "Light Mode Icon Variants",
+          "height": 48,
+          "fill": "#ffffff",
+          "cornerRadius": 7,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#e5e7eb"
+          },
+          "gap": 24,
+          "padding": [
+            0,
+            16
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "64QPv",
+              "name": "Light Label",
+              "fill": "#888888",
+              "content": "Light",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "NccGO",
+              "name": "Light Expanded State",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "ZktW7",
+                  "name": "Chevron Down Light",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "chevron-down",
+                  "iconFontFamily": "lucide",
+                  "fill": "#555555"
+                },
+                {
+                  "type": "text",
+                  "id": "cu86T",
+                  "name": "Expanded Label Light",
+                  "fill": "#555555",
+                  "content": "Expanded",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "PcYrZ",
+              "name": "Light Collapsed State",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "3FMAs",
+                  "name": "Chevron Right Light",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "chevron-right",
+                  "iconFontFamily": "lucide",
+                  "fill": "#555555"
+                },
+                {
+                  "type": "text",
+                  "id": "UD6XI",
+                  "name": "Collapsed Label Light",
+                  "fill": "#555555",
+                  "content": "Collapsed",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
             }
           ]
         }
