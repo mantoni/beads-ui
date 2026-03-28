@@ -68,6 +68,14 @@ If one of those is unchanged, say so explicitly.
 - Dark theme should use layered navy/slate surfaces rather than pure black.
 - Preserve separation between page background, panel background, and controls in
   both themes.
+- Dark theme surfaces use four levels: `--bg` (canvas), `--panel-bg` (panels
+  and header strips), `--surface-raised` (elevated/active), `--control-bg`
+  (inputs and toggles). Do not introduce new surface levels without removing one.
+- Text uses four levels: `--fg-strong` (brand, active), `--fg` (primary
+  content), `--fg-mid` (secondary labels), `--muted` (icons, deemphasized). Use
+  `--fg-dim` for tertiary-only contexts. Do not introduce new text shades.
+- Buttons and controls share `--button-bg` and `--button-border`. Do not add
+  separate knob or control-specific colors without explicit justification.
 
 ## Semantic Color Rules
 

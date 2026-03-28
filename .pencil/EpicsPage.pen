@@ -8,7 +8,7 @@
       "y": 0,
       "name": "Epics Page Canvas",
       "width": 2048,
-      "height": 420,
+      "height": 450,
       "fill": "#0D1426",
       "layout": "none",
       "children": [
@@ -16,7 +16,7 @@
           "type": "frame",
           "id": "row_3",
           "x": 5,
-          "y": 190,
+          "y": 198,
           "name": "Epic Row / sd-028",
           "width": 2031,
           "height": 54,
@@ -90,7 +90,7 @@
           "type": "frame",
           "id": "row_2",
           "x": 5,
-          "y": 126,
+          "y": 144,
           "name": "Epic Row / sd-023",
           "width": 2031,
           "height": 54,
@@ -164,7 +164,7 @@
           "type": "frame",
           "id": "row_1",
           "x": 5,
-          "y": 62,
+          "y": 90,
           "name": "Epic Row / sd-040",
           "width": 2031,
           "height": 54,
@@ -287,6 +287,322 @@
               "iconFontName": "chevron-right",
               "iconFontFamily": "lucide",
               "fill": "#6B7B99"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "jogO1",
+          "x": 18,
+          "y": 336,
+          "name": "Variants Section Label",
+          "fill": "#6B7B99",
+          "content": "Expand / Collapse Icon — Light & Dark Variants",
+          "fontFamily": "Inter",
+          "fontSize": 12,
+          "fontWeight": "600"
+        },
+        {
+          "type": "frame",
+          "id": "T6on2",
+          "x": 18,
+          "y": 358,
+          "name": "Dark Mode Icon Variants",
+          "height": 48,
+          "fill": "#111A2F",
+          "cornerRadius": 7,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#28334D"
+          },
+          "gap": 24,
+          "padding": [
+            0,
+            16
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "VRmwt",
+              "name": "Dark Label",
+              "fill": "#6B7B99",
+              "content": "Dark",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "NnyQi",
+              "name": "Dark Expanded State",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "KCqKJ",
+                  "name": "Chevron Down Dark",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "chevron-down",
+                  "iconFontFamily": "lucide",
+                  "fill": "#6B7B99"
+                },
+                {
+                  "type": "text",
+                  "id": "bFpcR",
+                  "name": "Expanded Label Dark",
+                  "fill": "#6B7B99",
+                  "content": "Expanded",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "eoVVa",
+              "name": "Dark Collapsed State",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "7obAY",
+                  "name": "Chevron Right Dark",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "chevron-right",
+                  "iconFontFamily": "lucide",
+                  "fill": "#6B7B99"
+                },
+                {
+                  "type": "text",
+                  "id": "q3o1I",
+                  "name": "Collapsed Label Dark",
+                  "fill": "#6B7B99",
+                  "content": "Collapsed",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Hs5OA",
+          "x": 320,
+          "y": 358,
+          "name": "Light Mode Icon Variants",
+          "height": 48,
+          "fill": "#ffffff",
+          "cornerRadius": 7,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#e5e7eb"
+          },
+          "gap": 24,
+          "padding": [
+            0,
+            16
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "64QPv",
+              "name": "Light Label",
+              "fill": "#888888",
+              "content": "Light",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "NccGO",
+              "name": "Light Expanded State",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "ZktW7",
+                  "name": "Chevron Down Light",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "chevron-down",
+                  "iconFontFamily": "lucide",
+                  "fill": "#555555"
+                },
+                {
+                  "type": "text",
+                  "id": "cu86T",
+                  "name": "Expanded Label Light",
+                  "fill": "#555555",
+                  "content": "Expanded",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "PcYrZ",
+              "name": "Light Collapsed State",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "3FMAs",
+                  "name": "Chevron Right Light",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "chevron-right",
+                  "iconFontFamily": "lucide",
+                  "fill": "#555555"
+                },
+                {
+                  "type": "text",
+                  "id": "UD6XI",
+                  "name": "Collapsed Label Light",
+                  "fill": "#555555",
+                  "content": "Collapsed",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "AmR8Y",
+          "x": 0,
+          "y": 52,
+          "name": "Epics List Header",
+          "width": 2048,
+          "height": 38,
+          "fill": "#0D1426",
+          "stroke": {
+            "align": "inside",
+            "thickness": {
+              "bottom": 1
+            },
+            "fill": "#25304A"
+          },
+          "layout": "none",
+          "children": [
+            {
+              "type": "frame",
+              "id": "O0ZkN",
+              "x": 530,
+              "y": 12,
+              "name": "Status Column Header",
+              "width": 70,
+              "height": 15,
+              "gap": 5,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ANb4Y",
+                  "fill": "#A8B0C0",
+                  "textGrowth": "fixed-width-height",
+                  "width": 55,
+                  "height": 15,
+                  "content": "STATUS",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "whcrt",
+                  "width": 11,
+                  "height": 11,
+                  "iconFontName": "arrow-up-down",
+                  "iconFontFamily": "lucide",
+                  "fill": "#a8b0c0"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "syvv2",
+              "x": 148,
+              "y": 12,
+              "name": "Name Column Header",
+              "width": 60,
+              "height": 15,
+              "gap": 5,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "zlqUU",
+                  "fill": "#a8b0c0",
+                  "textGrowth": "fixed-width-height",
+                  "width": 45,
+                  "height": "fill_container",
+                  "content": "NAME",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "H8B5i",
+                  "width": 11,
+                  "height": 11,
+                  "iconFontName": "arrow-up-down",
+                  "iconFontFamily": "lucide",
+                  "fill": "#a8b0c0"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "a0RTC",
+              "x": 18,
+              "y": 12,
+              "name": "ID Column Header",
+              "width": 30,
+              "height": 15,
+              "gap": 5,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Celhj",
+                  "fill": "#a8b0c0",
+                  "textGrowth": "fixed-width-height",
+                  "width": 15,
+                  "height": "fill_container",
+                  "content": "ID",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "oDp38",
+                  "width": 11,
+                  "height": 11,
+                  "iconFontName": "arrow-up-down",
+                  "iconFontFamily": "lucide",
+                  "fill": "#a8b0c0"
+                }
+              ]
             }
           ]
         },
@@ -463,200 +779,6 @@
               "fontFamily": "Inter",
               "fontSize": 18,
               "fontWeight": "800"
-            }
-          ]
-        },
-        {
-          "type": "text",
-          "id": "jogO1",
-          "x": 18,
-          "y": 308,
-          "name": "Variants Section Label",
-          "fill": "#6B7B99",
-          "content": "Expand / Collapse Icon — Light & Dark Variants",
-          "fontFamily": "Inter",
-          "fontSize": 12,
-          "fontWeight": "600"
-        },
-        {
-          "type": "frame",
-          "id": "T6on2",
-          "x": 18,
-          "y": 330,
-          "name": "Dark Mode Icon Variants",
-          "height": 48,
-          "fill": "#111A2F",
-          "cornerRadius": 7,
-          "stroke": {
-            "align": "inside",
-            "thickness": 1,
-            "fill": "#28334D"
-          },
-          "gap": 24,
-          "padding": [
-            0,
-            16
-          ],
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "text",
-              "id": "VRmwt",
-              "name": "Dark Label",
-              "fill": "#6B7B99",
-              "content": "Dark",
-              "fontFamily": "Inter",
-              "fontSize": 11,
-              "fontWeight": "500"
-            },
-            {
-              "type": "frame",
-              "id": "NnyQi",
-              "name": "Dark Expanded State",
-              "gap": 6,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "icon_font",
-                  "id": "KCqKJ",
-                  "name": "Chevron Down Dark",
-                  "width": 14,
-                  "height": 14,
-                  "iconFontName": "chevron-down",
-                  "iconFontFamily": "lucide",
-                  "fill": "#6B7B99"
-                },
-                {
-                  "type": "text",
-                  "id": "bFpcR",
-                  "name": "Expanded Label Dark",
-                  "fill": "#6B7B99",
-                  "content": "Expanded",
-                  "fontFamily": "Inter",
-                  "fontSize": 11,
-                  "fontWeight": "normal"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "eoVVa",
-              "name": "Dark Collapsed State",
-              "gap": 6,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "icon_font",
-                  "id": "7obAY",
-                  "name": "Chevron Right Dark",
-                  "width": 14,
-                  "height": 14,
-                  "iconFontName": "chevron-right",
-                  "iconFontFamily": "lucide",
-                  "fill": "#6B7B99"
-                },
-                {
-                  "type": "text",
-                  "id": "q3o1I",
-                  "name": "Collapsed Label Dark",
-                  "fill": "#6B7B99",
-                  "content": "Collapsed",
-                  "fontFamily": "Inter",
-                  "fontSize": 11,
-                  "fontWeight": "normal"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "Hs5OA",
-          "x": 320,
-          "y": 330,
-          "name": "Light Mode Icon Variants",
-          "height": 48,
-          "fill": "#ffffff",
-          "cornerRadius": 7,
-          "stroke": {
-            "align": "inside",
-            "thickness": 1,
-            "fill": "#e5e7eb"
-          },
-          "gap": 24,
-          "padding": [
-            0,
-            16
-          ],
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "text",
-              "id": "64QPv",
-              "name": "Light Label",
-              "fill": "#888888",
-              "content": "Light",
-              "fontFamily": "Inter",
-              "fontSize": 11,
-              "fontWeight": "500"
-            },
-            {
-              "type": "frame",
-              "id": "NccGO",
-              "name": "Light Expanded State",
-              "gap": 6,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "icon_font",
-                  "id": "ZktW7",
-                  "name": "Chevron Down Light",
-                  "width": 14,
-                  "height": 14,
-                  "iconFontName": "chevron-down",
-                  "iconFontFamily": "lucide",
-                  "fill": "#555555"
-                },
-                {
-                  "type": "text",
-                  "id": "cu86T",
-                  "name": "Expanded Label Light",
-                  "fill": "#555555",
-                  "content": "Expanded",
-                  "fontFamily": "Inter",
-                  "fontSize": 11,
-                  "fontWeight": "normal"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "PcYrZ",
-              "name": "Light Collapsed State",
-              "gap": 6,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "icon_font",
-                  "id": "3FMAs",
-                  "name": "Chevron Right Light",
-                  "width": 14,
-                  "height": 14,
-                  "iconFontName": "chevron-right",
-                  "iconFontFamily": "lucide",
-                  "fill": "#555555"
-                },
-                {
-                  "type": "text",
-                  "id": "UD6XI",
-                  "name": "Collapsed Label Light",
-                  "fill": "#555555",
-                  "content": "Collapsed",
-                  "fontFamily": "Inter",
-                  "fontSize": 11,
-                  "fontWeight": "normal"
-                }
-              ]
             }
           ]
         }
