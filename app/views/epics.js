@@ -41,15 +41,13 @@ export function createEpicsView(
   const loading = new Set();
   /** @type {Map<string, () => Promise<void>>} */
   const epic_unsubs = new Map();
-  // Centralized selection helpers
   const selectors = issue_stores ? createListSelectors(issue_stores) : null;
-  // Live re-render on pushes: recompute groups when stores change
+
   if (selectors) {
     selectors.subscribe(() => {
       const had_none = groups.length === 0;
       groups = buildGroupsFromSnapshot();
       doRender();
-      // Auto-expand first epic when transitioning from empty to non-empty
       if (had_none && groups.length > 0) {
         const first_id = String(getSortedGroups(groups)[0]?.epic?.id || '');
         if (first_id && !expanded.has(first_id)) {
@@ -59,7 +57,6 @@ export function createEpicsView(
     });
   }
 
-  // Shared row renderer used for children rows
   const render_row = createIssueRowRenderer({
     navigate: (id) => goto_issue(id),
     onUpdate: updateInline,
@@ -78,12 +75,25 @@ export function createEpicsView(
     }
     const sorted_groups = getSortedGroups(groups);
     return html`
-      <div class="epics-list-header" role="toolbar" aria-label="Sort epics">
-        ${sortHeaderTemplate('id', 'Id')} ${sortHeaderTemplate('name', 'Name')}
-        ${sortHeaderTemplate('status', 'Status')}
-        <div class="epics-list-header__meta" aria-hidden="true"></div>
+      <div class="epics-table-wrap">
+        <table class="epics-table">
+          <colgroup>
+            <col class="epics-table__col epics-table__col--id" />
+            <col class="epics-table__col epics-table__col--name" />
+            <col class="epics-table__col epics-table__col--status" />
+            <col class="epics-table__col epics-table__col--meta" />
+          </colgroup>
+          <thead class="epics-list-header">
+            <tr>
+              <th scope="col">${sortHeaderTemplate('id', 'Id')}</th>
+              <th scope="col">${sortHeaderTemplate('name', 'Name')}</th>
+              <th scope="col">${sortHeaderTemplate('status', 'Status')}</th>
+              <th scope="col" class="epics-list-header__meta">Progress</th>
+            </tr>
+          </thead>
+          ${sorted_groups.map((group) => groupTemplate(group))}
+        </table>
       </div>
-      ${sorted_groups.map((group) => groupTemplate(group))}
     `;
   }
 
@@ -127,8 +137,11 @@ export function createEpicsView(
     const list = selectors ? selectors.selectEpicChildren(id) : [];
     const is_loading = loading.has(id);
     return html`
-      <div class="epic-group" data-epic-id=${id}>
-        <div
+      <tbody
+        class="epic-group ${is_open ? 'is-open' : ''}"
+        data-epic-id=${id}
+      >
+        <tr
           class="epic-header"
           @click=${() => toggle(id)}
           @keydown=${
@@ -138,19 +151,19 @@ export function createEpicsView(
           tabindex="0"
           aria-expanded=${is_open}
         >
-          <div class="epic-header__cell epic-header__cell--id">
+          <td class="epic-header__cell epic-header__cell--id">
             ${createIssueIdRenderer(id, { class_name: 'mono' })}
-          </div>
-          <div class="epic-header__cell epic-header__cell--name">
+          </td>
+          <td class="epic-header__cell epic-header__cell--name">
             ${is_open
               ? html`<svg class="epic-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>`
               : html`<svg class="epic-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>`}
             <span class="text-truncate">${epic.title || '(no title)'}</span>
-          </div>
-          <div class="epic-header__cell epic-header__cell--status">
+          </td>
+          <td class="epic-header__cell epic-header__cell--status">
             <span class="status-badge is-${status}">${status_text}</span>
-          </div>
-          <div class="epic-header__meta">
+          </td>
+          <td class="epic-header__meta">
             <span class="epic-progress">
               <progress
                 value=${Number(group.closed_children || 0)}
@@ -160,40 +173,42 @@ export function createEpicsView(
                 >${group.closed_children}/${group.total_children}</span
               >
             </span>
-          </div>
-        </div>
+          </td>
+        </tr>
         ${is_open
-          ? html`<div class="epic-children">
-              ${is_loading
-                ? html`<div class="muted">Loading…</div>`
-                : list.length === 0
-                  ? html`<div class="muted">No issues found</div>`
-                  : html`<table class="table">
-                      <colgroup>
-                        <col style="width: 100px" />
-                        <col style="width: 120px" />
-                        <col />
-                        <col style="width: 120px" />
-                        <col style="width: 160px" />
-                        <col style="width: 130px" />
-                      </colgroup>
-                      <thead>
-                        <tr>
-                          <th>ID</th>
-                          <th>Type</th>
-                          <th>Title</th>
-                          <th>Status</th>
-                          <th>Assignee</th>
-                          <th>Priority</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        ${list.map((item) => render_row(item))}
-                      </tbody>
-                    </table>`}
-            </div>`
+          ? html`<tr class="epic-children-row">
+              <td class="epic-children" colspan="4">
+                ${is_loading
+                  ? html`<div class="muted">Loading…</div>`
+                  : list.length === 0
+                    ? html`<div class="muted">No issues found</div>`
+                    : html`<table class="table">
+                        <colgroup>
+                          <col style="width: 100px" />
+                          <col style="width: 120px" />
+                          <col />
+                          <col style="width: 120px" />
+                          <col style="width: 160px" />
+                          <col style="width: 130px" />
+                        </colgroup>
+                        <thead>
+                          <tr>
+                            <th>ID</th>
+                            <th>Type</th>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Assignee</th>
+                            <th>Priority</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          ${list.map((item) => render_row(item))}
+                        </tbody>
+                      </table>`}
+              </td>
+            </tr>`
           : null}
-      </div>
+      </tbody>
     `;
   }
 
@@ -292,7 +307,6 @@ export function createEpicsView(
   async function updateInline(id, patch) {
     try {
       await data.updateIssue({ id, ...patch });
-      // Re-render; view will update on subsequent push
       doRender();
     } catch {
       // swallow; UI remains
@@ -307,10 +321,8 @@ export function createEpicsView(
       expanded.add(epic_id);
       loading.add(epic_id);
       doRender();
-      // Subscribe to epic detail; children are rendered from `dependents`
       if (subscriptions && typeof subscriptions.subscribeList === 'function') {
         try {
-          // Register store first to avoid dropping the initial snapshot
           try {
             if (issue_stores && /** @type {any} */ (issue_stores).register) {
               /** @type {any} */ (issue_stores).register(`detail:${epic_id}`, {
@@ -330,11 +342,9 @@ export function createEpicsView(
           // ignore subscription failures
         }
       }
-      // Mark as not loading after subscribe attempt; membership will stream in
       loading.delete(epic_id);
     } else {
       expanded.delete(epic_id);
-      // Unsubscribe when collapsing
       if (epic_unsubs.has(epic_id)) {
         try {
           const unsub = epic_unsubs.get(epic_id);
@@ -357,7 +367,6 @@ export function createEpicsView(
     doRender();
   }
 
-  /** Build groups from the current `tab:epics` snapshot. */
   function buildGroupsFromSnapshot() {
     /** @type {IssueLite[]} */
     const epic_entities =
@@ -371,7 +380,6 @@ export function createEpicsView(
       const dependents = Array.isArray(/** @type {any} */ (epic).dependents)
         ? /** @type {any[]} */ (/** @type {any} */ (epic).dependents)
         : [];
-      // Prefer explicit counters when provided by server; otherwise derive
       const has_total = Number.isFinite(
         /** @type {any} */ (epic).total_children
       );
@@ -404,12 +412,10 @@ export function createEpicsView(
     async load() {
       groups = buildGroupsFromSnapshot();
       doRender();
-      // Auto-expand first epic on screen
       try {
         if (groups.length > 0) {
           const first_id = String(getSortedGroups(groups)[0]?.epic?.id || '');
           if (first_id && !expanded.has(first_id)) {
-            // This will render and load children lazily
             await toggle(first_id);
           }
         }

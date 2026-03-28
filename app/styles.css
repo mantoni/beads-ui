@@ -1150,18 +1150,37 @@ input.inline-edit:focus {
 }
 
 /* Epics view styles */
-.epics-list-header {
-  display: grid;
-  grid-template-columns: 120px minmax(0, 1.5fr) 150px auto;
-  align-items: center;
-  gap: var(--space-4);
-  padding: 0 var(--space-8);
-  height: 38px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
+.epics-table-wrap {
+  padding: 0 12px 12px;
+  overflow-x: auto;
+}
+.epics-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: separate;
+  border-spacing: 0 10px;
+  table-layout: fixed;
+}
+.epics-table__col--id {
+  width: 120px;
+}
+.epics-table__col--status {
+  width: 150px;
+}
+.epics-table__col--meta {
+  width: 190px;
+}
+.epics-list-header th {
+  padding: 0 var(--space-6) 2px;
+  text-align: left;
+  vertical-align: bottom;
 }
 .epics-list-header__meta {
-  min-width: 0;
+  color: var(--fg-mid);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 .epics-sort-button {
   display: inline-flex;
@@ -1191,12 +1210,6 @@ input.inline-edit:focus {
 .epics-sort-button.is-active svg {
   opacity: 1;
 }
-.epic-group {
-  border: 1px solid var(--border-row);
-  border-radius: 6px;
-  margin: 10px 12px;
-  overflow: hidden;
-}
 
 /* UI-83: Issues table container aligns with epics/cards */
 .issues-block {
@@ -1207,59 +1220,68 @@ input.inline-edit:focus {
   background: var(--bg);
 }
 .epic-header {
-  display: grid;
-  grid-template-columns: 120px minmax(0, 1.5fr) 150px auto;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-5) var(--space-6);
   cursor: pointer;
+}
+.epic-header td {
+  padding: var(--space-5) var(--space-6);
+  vertical-align: middle;
   background: var(--panel-bg);
+  border-top: 1px solid var(--border-row);
   border-bottom: 1px solid var(--border-row);
-
-  &:hover {
-    background: color-mix(in srgb, var(--panel-bg) 90%, var(--fg));
-  }
-
-  /* Compact native progress for epic status */
-  progress {
-    width: 140px;
-    height: 8px;
-    accent-color: var(--status-closed-base);
-  }
+}
+.epic-header td:first-child {
+  border-left: 1px solid var(--border-row);
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
+}
+.epic-header td:last-child {
+  border-right: 1px solid var(--border-row);
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+.epic-group.is-open .epic-header td:first-child {
+  border-bottom-left-radius: 0;
+}
+.epic-group.is-open .epic-header td:last-child {
+  border-bottom-right-radius: 0;
+}
+.epic-header:hover td,
+.epic-header:focus-visible td {
+  background: color-mix(in srgb, var(--panel-bg) 90%, var(--fg));
+}
+.epic-header progress {
+  width: 140px;
+  height: 8px;
+  accent-color: var(--status-closed-base);
 }
 .epic-header__cell {
   min-width: 0;
 }
 .epic-header__cell--name {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: var(--space-3);
   min-width: 0;
 }
 .epic-header__cell--status {
-  justify-self: start;
-}
-.epic-inline-status-label {
-  font-size: 12px;
-  font-weight: 600;
+  white-space: nowrap;
 }
 .epic-header__meta {
-  display: inline-flex;
-  align-items: center;
-  justify-self: end;
-  gap: var(--space-5);
+  min-width: 0;
 }
 .epic-chevron {
   flex-shrink: 0;
   color: var(--muted);
 }
 .epic-progress {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: var(--space-3);
 }
 .epic-progress span {
   color: var(--fg-mid);
+  white-space: nowrap;
 }
 .epic-progress progress {
   color-scheme: light dark;
@@ -1278,25 +1300,21 @@ input.inline-edit:focus {
 }
 .epic-children {
   padding: 8px 12px 12px;
+  background: var(--bg);
+  border-right: 1px solid var(--border-row);
+  border-bottom: 1px solid var(--border-row);
+  border-left: 1px solid var(--border-row);
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+.epic-children .muted {
+  display: block;
+  padding: var(--space-6);
 }
 
 @media (max-width: 900px) {
-  .epics-list-header {
-    display: none;
-  }
-
-  .epic-header {
-    grid-template-columns: minmax(0, 1fr);
-    align-items: start;
-  }
-
-  .epic-header__cell--status {
-    display: none;
-  }
-
-  .epic-header__meta {
-    justify-self: stretch;
-    justify-content: space-between;
+  .epics-table {
+    min-width: 640px;
   }
 }
 

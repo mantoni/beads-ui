@@ -528,7 +528,7 @@ describe('views/epics', () => {
     expect(input).not.toBeNull();
   });
 
-  test('renders status beside epic name and toggles expand-collapse label', async () => {
+  test('renders epic headers in aligned columns with status separate from the name cell', async () => {
     document.body.innerHTML = '<div id="m"></div>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
     const data = {
@@ -591,26 +591,28 @@ describe('views/epics', () => {
     );
     await view.load();
 
-    const inline_label = mount.querySelector('.epic-inline-status-label');
-    expect(inline_label?.textContent?.trim()).toBe('Status');
+    const sort_headers = Array.from(
+      mount.querySelectorAll('.epics-list-header th')
+    ).map((cell) => cell.textContent?.replace(/\s+/g, ' ').trim());
+    expect(sort_headers).toEqual(['Id', 'Name', 'Status', 'Progress']);
 
-    const name_badge = /** @type {HTMLElement|null} */ (
-      mount.querySelector('.epic-header__cell--name .status-badge')
+    const header_cells = mount.querySelectorAll('.epic-header > *');
+    expect(header_cells).toHaveLength(4);
+
+    const name_badge = mount.querySelector(
+      '.epic-header__cell--name .status-badge'
     );
-    expect(name_badge?.textContent?.trim()).toBe('In progress');
+    expect(name_badge).toBeNull();
 
-    const toggle_button = /** @type {HTMLButtonElement|null} */ (
-      mount.querySelector('.epic-toggle-button')
+    const status_cell = /** @type {HTMLElement|null} */ (
+      mount.querySelector('.epic-header__cell--status .status-badge')
     );
-    expect(toggle_button?.textContent?.trim()).toBe('Collapse');
+    expect(status_cell?.textContent?.trim()).toBe('In progress');
 
-    toggle_button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    const updated_toggle_button = /** @type {HTMLButtonElement|null} */ (
-      mount.querySelector('.epic-toggle-button')
+    const progress_text = /** @type {HTMLElement|null} */ (
+      mount.querySelector('.epic-header__meta .mono')
     );
-    expect(updated_toggle_button?.textContent?.trim()).toBe('Expand');
+    expect(progress_text?.textContent?.trim()).toBe('0/1');
   });
 
   test('sorts epics by id, name, and status in both directions', async () => {

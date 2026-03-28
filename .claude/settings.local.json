@@ -3,7 +3,8 @@
     "allow": [
       "Bash(bd create:*)",
       "Bash(sqlite3:*)",
-      "Bash(find d:codingbeads-enhanced-ui -maxdepth 2 -type f \\\\\\(-name *.md -o -name *.txt -o -name *.json \\\\\\) ! -path */node_modules/*)"
+      "Bash(find d:codingbeads-enhanced-ui -maxdepth 2 -type f \\\\\\(-name *.md -o -name *.txt -o -name *.json \\\\\\) ! -path */node_modules/*)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''scripts'''', {}\\), indent=2\\)\\)\")"
     ]
   }
 }
