@@ -1162,7 +1162,7 @@ input.inline-edit:focus {
   table-layout: fixed;
 }
 .epics-table__col--id {
-  width: 120px;
+  width: 80px;
 }
 .epics-table__col--status {
   width: 150px;
@@ -1223,7 +1223,9 @@ input.inline-edit:focus {
   cursor: pointer;
 }
 .epic-header td {
-  padding: var(--space-5) var(--space-6);
+  box-sizing: border-box;
+  height: 42px;
+  padding: 0 var(--space-6);
   vertical-align: middle;
   background: var(--panel-bg);
   border-top: 1px solid var(--border-row);
@@ -1277,13 +1279,18 @@ input.inline-edit:focus {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-3);
+  gap: 8px;
 }
 .epic-progress span {
   color: var(--fg-mid);
   white-space: nowrap;
+  text-align: right;
+  width: 45px;
+  flex: 0 0 45px;
 }
 .epic-progress progress {
+  width: 120px;
+  flex: 0 0 120px;
   color-scheme: light dark;
 }
 .epic-progress progress::-webkit-progress-bar {
