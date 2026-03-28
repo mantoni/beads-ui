@@ -55,8 +55,23 @@
             },
             {
               "type": "text",
+              "id": "eEu3U",
+              "x": 360,
+              "y": 20,
+              "name": "Status / Status",
+              "fill": "#ffffff",
+              "textGrowth": "fixed-width-height",
+              "width": 34,
+              "height": "fill_container(16)",
+              "content": "Status",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
               "id": "row_3_title",
-              "x": 99,
+              "x": 148,
               "y": 17,
               "name": "Epic Row Title / sd-028",
               "fill": "#D9E0EA",
@@ -72,10 +87,13 @@
               "y": 18,
               "name": "Epic Row ID / sd-028",
               "fill": "#DDE4EF",
+              "textGrowth": "fixed-width-height",
+              "width": "fill_container(120)",
+              "height": "fill_container(22)",
               "content": "sd-028",
+              "textAlignVertical": "bottom",
               "fontFamily": "Inter",
-              "fontSize": 15,
-              "fontWeight": "700"
+              "fontSize": 18
             }
           ]
         },
@@ -122,8 +140,23 @@
             },
             {
               "type": "text",
+              "id": "Z4XRd",
+              "x": 350,
+              "y": 20,
+              "name": "Status / Status",
+              "fill": "#ffffff",
+              "textGrowth": "fixed-width-height",
+              "width": 34,
+              "height": "fill_container(16)",
+              "content": "Status",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
               "id": "row_2_title",
-              "x": 99,
+              "x": 148,
               "y": 17,
               "name": "Epic Row Title / sd-023",
               "fill": "#D9E0EA",
@@ -139,10 +172,13 @@
               "y": 18,
               "name": "Epic Row ID / sd-023",
               "fill": "#DDE4EF",
+              "textGrowth": "fixed-width-height",
+              "width": "fill_container(120)",
+              "height": "fill_container(22)",
               "content": "sd-023",
+              "textAlignVertical": "bottom",
               "fontFamily": "Inter",
-              "fontSize": 15,
-              "fontWeight": "700"
+              "fontSize": 18
             }
           ]
         },
@@ -189,8 +225,23 @@
             },
             {
               "type": "text",
+              "id": "Of1Hc",
+              "x": 350,
+              "y": 22,
+              "name": "Status / Status",
+              "fill": "#ffffff",
+              "textGrowth": "fixed-width-height",
+              "width": 34,
+              "height": "fill_container(16)",
+              "content": "Status",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
               "id": "row_1_title",
-              "x": 99,
+              "x": 148,
               "y": 17,
               "name": "Epic Row Title / sd-040",
               "fill": "#D9E0EA",
@@ -206,10 +257,13 @@
               "y": 18,
               "name": "Epic Row ID / sd-040",
               "fill": "#DDE4EF",
+              "textGrowth": "fixed-width-height",
+              "width": "fill_container(120)",
+              "height": "fill_container(22)",
               "content": "sd-040",
+              "textAlignVertical": "bottom",
               "fontFamily": "Inter",
-              "fontSize": 15,
-              "fontWeight": "700"
+              "fontSize": 18
             }
           ]
         },
