@@ -30,28 +30,11 @@
           "layout": "none",
           "children": [
             {
-              "type": "text",
-              "id": "row_3_count",
-              "x": 1990,
-              "y": 14,
-              "name": "Progress Count / sd-028",
-              "fill": "#A8B0C0",
-              "content": "0/4",
-              "fontFamily": "Inter",
-              "fontSize": 17,
-              "fontWeight": "700"
-            },
-            {
-              "type": "frame",
-              "id": "row_3_track",
-              "x": 1807,
-              "y": 24,
-              "name": "Progress Track / sd-028",
-              "width": 171,
-              "height": 5,
-              "fill": "#F4F4F1",
-              "cornerRadius": 999,
-              "layout": "none"
+              "id": "25lx5",
+              "type": "ref",
+              "ref": "z7Izs",
+              "x": 1750,
+              "y": 1
             },
             {
               "type": "frame",
@@ -141,28 +124,11 @@
           "layout": "none",
           "children": [
             {
-              "type": "text",
-              "id": "row_2_count",
-              "x": 1990,
-              "y": 14,
-              "name": "Progress Count / sd-023",
-              "fill": "#A8B0C0",
-              "content": "0/9",
-              "fontFamily": "Inter",
-              "fontSize": 17,
-              "fontWeight": "700"
-            },
-            {
-              "type": "frame",
-              "id": "row_2_track",
-              "x": 1807,
-              "y": 24,
-              "name": "Progress Track / sd-023",
-              "width": 171,
-              "height": 5,
-              "fill": "#F4F4F1",
-              "cornerRadius": 999,
-              "layout": "none"
+              "id": "UR8Dl",
+              "type": "ref",
+              "ref": "z7Izs",
+              "x": 1750,
+              "y": 1
             },
             {
               "type": "frame",
@@ -252,28 +218,46 @@
           "layout": "none",
           "children": [
             {
-              "type": "text",
-              "id": "row_1_count",
-              "x": 1979,
-              "y": 14,
-              "name": "Progress Count / sd-040",
-              "fill": "#A8B0C0",
-              "content": "0/13",
-              "fontFamily": "Inter",
-              "fontSize": 17,
-              "fontWeight": "700"
-            },
-            {
               "type": "frame",
-              "id": "row_1_track",
-              "x": 1796,
-              "y": 24,
-              "name": "Progress Track / sd-040",
-              "width": 171,
-              "height": 5,
-              "fill": "#F4F4F1",
-              "cornerRadius": 999,
-              "layout": "none"
+              "id": "z7Izs",
+              "x": 1750,
+              "y": 1,
+              "name": "Progress Tracker",
+              "reusable": true,
+              "width": 270,
+              "height": 52,
+              "fill": "#d9d9d900",
+              "stroke": {
+                "align": "center",
+                "thickness": 1
+              },
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "row_1_count",
+                  "x": 190,
+                  "y": 14,
+                  "name": "Progress Count / sd-040",
+                  "fill": "#A8B0C0",
+                  "content": "999/999",
+                  "fontFamily": "Inter",
+                  "fontSize": 17,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "row_1_track",
+                  "x": 0,
+                  "y": 24,
+                  "name": "Progress Bar / sd-040",
+                  "width": 171,
+                  "height": 5,
+                  "fill": "#F4F4F1",
+                  "cornerRadius": 999,
+                  "layout": "none"
+                }
+              ]
             },
             {
               "type": "frame",

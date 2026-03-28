@@ -1227,9 +1227,9 @@ input.inline-edit:focus {
   justify-self: end;
   gap: var(--space-5);
 }
-.epic-toggle-button {
-  min-width: 76px;
-  text-align: center;
+.epic-chevron {
+  flex-shrink: 0;
+  color: var(--muted);
 }
 .epic-progress {
   display: inline-flex;

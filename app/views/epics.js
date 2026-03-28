@@ -126,7 +126,6 @@ export function createEpicsView(
     const is_open = expanded.has(id);
     const status = String(epic.status || 'open');
     const status_text = statusLabel(status);
-    const toggle_label = is_open ? 'Collapse' : 'Expand';
     const list = selectors ? selectors.selectEpicChildren(id) : [];
     const is_loading = loading.has(id);
     return html`
@@ -145,24 +144,13 @@ export function createEpicsView(
             ${createIssueIdRenderer(id, { class_name: 'mono' })}
           </div>
           <div class="epic-header__cell epic-header__cell--name">
+            ${is_open
+              ? html`<svg class="epic-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>`
+              : html`<svg class="epic-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>`}
             <span class="text-truncate">${epic.title || '(no title)'}</span>
-            <span class="epic-inline-status-label muted">Status</span>
-            <span class="status-badge is-${status}">${status_text}</span>
-          </div>
-          <div class="epic-header__cell epic-header__cell--status">
             <span class="status-badge is-${status}">${status_text}</span>
           </div>
           <div class="epic-header__meta">
-            <button
-              type="button"
-              class="epic-toggle-button"
-              @click=${
-                /** @param {MouseEvent} ev */ (ev) =>
-                  onToggleButtonClick(ev, id)
-              }
-            >
-              ${toggle_label}
-            </button>
             <span class="epic-progress">
               <progress
                 value=${Number(group.closed_children || 0)}
@@ -218,16 +206,6 @@ export function createEpicsView(
       ev.preventDefault();
       void toggle(epic_id);
     }
-  }
-
-  /**
-   * @param {MouseEvent} ev
-   * @param {string} epic_id
-   */
-  function onToggleButtonClick(ev, epic_id) {
-    ev.preventDefault();
-    ev.stopPropagation();
-    void toggle(epic_id);
   }
 
   /**

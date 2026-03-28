@@ -101,7 +101,9 @@ state shape change.
 
 UI tasks are either design-only (Pencil, no code) or implementation (code only
 after explicit approval). Never mix them silently. If ambiguous, ask one
-clarifying question. Full rules live in the `designer` skill.
+clarifying question. When designing in Pencil, prefer reusable components
+(`reusable: true` + `ref`) over duplicated structure for any group that repeats
+across rows or cards. Full rules live in the `designer` skill.
 
 ## Skill Compliance
 
