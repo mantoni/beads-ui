@@ -95,11 +95,11 @@ export function createEpicsView(
     const is_active = sort_column === column;
     const next_direction =
       is_active && sort_direction === 'asc' ? 'desc' : 'asc';
-    const direction_label = is_active
+    const sort_icon = is_active
       ? sort_direction === 'asc'
-        ? 'ASC'
-        : 'DESC'
-      : 'SORT';
+        ? html`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>`
+        : html`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg>`
+      : html`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg>`;
     return html`
       <button
         type="button"
@@ -110,9 +110,7 @@ export function createEpicsView(
         @click=${() => toggleSort(column)}
       >
         <span>${label}</span>
-        <span class="epics-sort-button__direction" aria-hidden="true"
-          >${direction_label}</span
-        >
+        ${sort_icon}
       </button>
     `;
   }
