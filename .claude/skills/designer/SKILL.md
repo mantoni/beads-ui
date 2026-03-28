@@ -137,11 +137,15 @@ title=I(container,{type:\"text\",name:\"Settings Title\",content:\"Screen title\
 - Use clear Title Case names for human-readable node labels.
 - For repeated business entities, include the stable identifier in the name when
   it improves traceability.
-- Arrange sibling nodes in `.pen` structure by visual reading order:
-  top-to-bottom, then left-to-right within the same row.
-- For absolutely positioned layouts, the first sibling in the structure should
-  be the visually earliest element. Example: if one item is on the left and the
-  next item is on the right, keep the left item first in the structure.
+- Pencil's Layers tab appears to render sibling order in reverse for these
+  documents. To make the Layers tab read correctly, write sibling nodes in
+  reverse visual order in the `.pen` file.
+- In practice, that means `.pen` siblings should usually be ordered
+  bottom-to-top, and right-to-left within the same row, so Pencil's Layers tab
+  displays them top-to-bottom and left-to-right.
+- For absolutely positioned layouts, if one item is visually on the right and
+  another is on the left, place the right item earlier in the `.pen` array when
+  you want the Layers tab to show the left item first.
 - Scope changes to what the user asked for. Do not restyle unrelated screens or
   components.
 - Prefer modifying existing nodes over deleting and recreating.
@@ -167,8 +171,8 @@ Also verify node naming before finishing:
 - Rename generic or ambiguous nodes before handoff.
 - Treat semantic node names as part of the design quality bar, not optional
   metadata.
-- Check sibling ordering and reorder nodes if the `.pen` structure no longer
-  matches the visual scan order.
+- Check sibling ordering and reorder nodes if the Pencil Layers tab would not
+  display the intended visual reading order.
 
 ## Rules
 
@@ -184,8 +188,11 @@ Also verify node naming before finishing:
 - Store all design files under `.pencil/`.
 - Give meaningful `name` values to inserted and updated Pencil nodes whenever
   they represent a meaningful UI element or container.
-- Keep `.pen` node order aligned with visual reading order: top-to-bottom, then
-  left-to-right for peers on the same level.
+- Account for Pencil's reversed Layers-tab behavior by storing siblings in
+  reverse visual order in the `.pen` file when needed.
+- For these Pencil workflows, default sibling order is bottom-to-top, then
+  right-to-left for peers on the same level, unless direct inspection shows a
+  different UI behavior.
 - If the request is ambiguous (which page? which component?), ask before
   touching anything.
 - If a UI request could mean either design or implementation, ask one short
