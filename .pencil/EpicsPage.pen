@@ -4,353 +4,388 @@
     {
       "type": "frame",
       "id": "epics_page",
-      "name": "Epics Page Canvas",
       "x": 0,
       "y": 0,
+      "name": "Epics Page Canvas",
       "width": 2048,
       "height": 293,
-      "layout": "none",
       "fill": "#0D1426",
+      "layout": "none",
       "children": [
         {
           "type": "frame",
-          "id": "topbar",
-          "name": "Header Bar",
-          "x": 0,
-          "y": 0,
-          "width": 2048,
-          "height": 52,
-          "layout": "none",
-          "fill": "#121A2F",
-          "stroke": {
-            "align": "inside",
-            "thickness": { "bottom": 1 },
-            "fill": "#25304A"
-          },
-          "children": [
-            {
-              "type": "text",
-              "id": "brand",
-              "name": "Brand Label",
-              "x": 13,
-              "y": 15,
-              "content": "Beads",
-              "fontSize": 18,
-              "fontWeight": "800",
-              "fill": "#F3F6FB"
-            },
-            {
-              "type": "text",
-              "id": "workspace",
-              "name": "Workspace Path Label",
-              "x": 98,
-              "y": 15,
-              "content": "D:\\coding\\llm_rag",
-              "fontSize": 14,
-              "fontWeight": "600",
-              "fill": "#8794AD"
-            },
-            {
-              "type": "text",
-              "id": "tab_issues",
-              "name": "Issues Tab Label",
-              "x": 267,
-              "y": 15,
-              "content": "Issues",
-              "fontSize": 16,
-              "fontWeight": "700",
-              "fill": "#A7B1C3"
-            },
-            {
-              "type": "frame",
-              "id": "tab_epics",
-              "name": "Active Epics Tab",
-              "x": 345,
-              "y": 6,
-              "width": 77,
-              "height": 45,
-              "layout": "none",
-              "cornerRadius": [8, 8, 0, 0],
-              "fill": "#141F38",
-              "stroke": {
-                "align": "inside",
-                "thickness": 1,
-                "fill": "#2F3A55"
-              },
-              "children": [
-                {
-                  "type": "text",
-                  "id": "tab_epics_label",
-                  "name": "Active Epics Tab Label",
-                  "x": 15,
-                  "y": 9,
-                  "content": "Epics",
-                  "fontSize": 16,
-                  "fontWeight": "800",
-                  "fill": "#F4F7FC"
-                }
-              ]
-            },
-            {
-              "type": "text",
-              "id": "tab_board",
-              "name": "Board Tab Label",
-              "x": 442,
-              "y": 15,
-              "content": "Board",
-              "fontSize": 16,
-              "fontWeight": "700",
-              "fill": "#A7B1C3"
-            },
-            {
-              "type": "text",
-              "id": "dark_label",
-              "name": "Theme Label",
-              "x": 1819,
-              "y": 15,
-              "content": "Dark",
-              "fontSize": 14,
-              "fontWeight": "600",
-              "fill": "#B9C1CF"
-            },
-            {
-              "type": "frame",
-              "id": "toggle",
-              "name": "Theme Toggle",
-              "x": 1861,
-              "y": 8,
-              "width": 56,
-              "height": 27,
-              "layout": "none",
-              "cornerRadius": 999,
-              "fill": "#151F35",
-              "stroke": {
-                "align": "inside",
-                "thickness": 1,
-                "fill": "#43506E"
-              },
-              "children": [
-                {
-                  "type": "ellipse",
-                  "id": "toggle_knob",
-                  "name": "Theme Toggle Knob",
-                  "x": 28,
-                  "y": 2,
-                  "width": 23,
-                  "height": 23,
-                  "fill": "#2A3247"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "new_issue",
-              "name": "New Issue Button",
-              "x": 1931,
-              "y": 6,
-              "width": 99,
-              "height": 31,
-              "layout": "none",
-              "cornerRadius": 6,
-              "fill": "#2B364A",
-              "stroke": {
-                "align": "inside",
-                "thickness": 1,
-                "fill": "#3B4860"
-              },
-              "children": [
-                {
-                  "type": "text",
-                  "id": "new_issue_label",
-                  "name": "New Issue Button Label",
-                  "x": 11,
-                  "y": 7,
-                  "content": "New issue",
-                  "fontSize": 13,
-                  "fontWeight": "800",
-                  "fill": "#F4F7FC"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
           "id": "row_1",
-          "name": "Epic Row / sd-040",
           "x": 5,
           "y": 62,
+          "name": "Epic Row / sd-040",
           "width": 2031,
           "height": 54,
-          "layout": "none",
-          "cornerRadius": 7,
           "fill": "#111A2F",
-          "stroke": { "align": "inside", "thickness": 1, "fill": "#28334D" },
+          "cornerRadius": 7,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#28334D"
+          },
+          "layout": "none",
           "children": [
             {
               "type": "text",
               "id": "row_1_id",
-              "name": "Epic Row ID / sd-040",
               "x": 18,
               "y": 18,
+              "name": "Epic Row ID / sd-040",
+              "fill": "#DDE4EF",
               "content": "sd-040",
+              "fontFamily": "Inter",
               "fontSize": 15,
-              "fontWeight": "700",
-              "fill": "#DDE4EF"
+              "fontWeight": "700"
             },
             {
               "type": "text",
               "id": "row_1_title",
-              "name": "Epic Row Title / sd-040",
               "x": 99,
               "y": 17,
+              "name": "Epic Row Title / sd-040",
+              "fill": "#D9E0EA",
               "content": "Phase 4: RAG Pipeline",
+              "fontFamily": "Inter",
               "fontSize": 18,
-              "fontWeight": "500",
-              "fill": "#D9E0EA"
+              "fontWeight": "500"
             },
             {
               "type": "frame",
               "id": "row_1_track",
-              "name": "Progress Track / sd-040",
               "x": 1796,
               "y": 24,
+              "name": "Progress Track / sd-040",
               "width": 171,
               "height": 5,
-              "layout": "none",
+              "fill": "#F4F4F1",
               "cornerRadius": 999,
-              "fill": "#F4F4F1"
+              "layout": "none"
             },
             {
               "type": "text",
               "id": "row_1_count",
-              "name": "Progress Count / sd-040",
               "x": 1979,
               "y": 14,
+              "name": "Progress Count / sd-040",
+              "fill": "#A8B0C0",
               "content": "0/13",
+              "fontFamily": "Inter",
               "fontSize": 17,
-              "fontWeight": "700",
-              "fill": "#A8B0C0"
+              "fontWeight": "700"
             }
           ]
         },
         {
           "type": "frame",
           "id": "row_2",
-          "name": "Epic Row / sd-023",
           "x": 5,
           "y": 126,
+          "name": "Epic Row / sd-023",
           "width": 2031,
           "height": 54,
-          "layout": "none",
-          "cornerRadius": 7,
           "fill": "#111A2F",
-          "stroke": { "align": "inside", "thickness": 1, "fill": "#28334D" },
+          "cornerRadius": 7,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#28334D"
+          },
+          "layout": "none",
           "children": [
             {
               "type": "text",
               "id": "row_2_id",
-              "name": "Epic Row ID / sd-023",
               "x": 18,
               "y": 18,
+              "name": "Epic Row ID / sd-023",
+              "fill": "#DDE4EF",
               "content": "sd-023",
+              "fontFamily": "Inter",
               "fontSize": 15,
-              "fontWeight": "700",
-              "fill": "#DDE4EF"
+              "fontWeight": "700"
             },
             {
               "type": "text",
               "id": "row_2_title",
-              "name": "Epic Row Title / sd-023",
               "x": 99,
               "y": 17,
+              "name": "Epic Row Title / sd-023",
+              "fill": "#D9E0EA",
               "content": "Phase 2: OCR Pipeline",
+              "fontFamily": "Inter",
               "fontSize": 18,
-              "fontWeight": "500",
-              "fill": "#D9E0EA"
+              "fontWeight": "500"
             },
             {
               "type": "frame",
               "id": "row_2_track",
-              "name": "Progress Track / sd-023",
               "x": 1807,
               "y": 24,
+              "name": "Progress Track / sd-023",
               "width": 171,
               "height": 5,
-              "layout": "none",
+              "fill": "#F4F4F1",
               "cornerRadius": 999,
-              "fill": "#F4F4F1"
+              "layout": "none"
             },
             {
               "type": "text",
               "id": "row_2_count",
-              "name": "Progress Count / sd-023",
               "x": 1990,
               "y": 14,
+              "name": "Progress Count / sd-023",
+              "fill": "#A8B0C0",
               "content": "0/9",
+              "fontFamily": "Inter",
               "fontSize": 17,
-              "fontWeight": "700",
-              "fill": "#A8B0C0"
+              "fontWeight": "700"
             }
           ]
         },
         {
           "type": "frame",
           "id": "row_3",
-          "name": "Epic Row / sd-028",
           "x": 5,
           "y": 190,
+          "name": "Epic Row / sd-028",
           "width": 2031,
           "height": 54,
-          "layout": "none",
-          "cornerRadius": 7,
           "fill": "#111A2F",
-          "stroke": { "align": "inside", "thickness": 1, "fill": "#28334D" },
+          "cornerRadius": 7,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#28334D"
+          },
+          "layout": "none",
           "children": [
             {
               "type": "text",
               "id": "row_3_id",
-              "name": "Epic Row ID / sd-028",
               "x": 18,
               "y": 18,
+              "name": "Epic Row ID / sd-028",
+              "fill": "#DDE4EF",
               "content": "sd-028",
+              "fontFamily": "Inter",
               "fontSize": 15,
-              "fontWeight": "700",
-              "fill": "#DDE4EF"
+              "fontWeight": "700"
             },
             {
               "type": "text",
               "id": "row_3_title",
-              "name": "Epic Row Title / sd-028",
               "x": 99,
               "y": 17,
+              "name": "Epic Row Title / sd-028",
+              "fill": "#D9E0EA",
               "content": "Phase 3: LLM Arbitrator",
+              "fontFamily": "Inter",
               "fontSize": 18,
-              "fontWeight": "500",
-              "fill": "#D9E0EA"
+              "fontWeight": "500"
             },
             {
               "type": "frame",
               "id": "row_3_track",
-              "name": "Progress Track / sd-028",
               "x": 1807,
               "y": 24,
+              "name": "Progress Track / sd-028",
               "width": 171,
               "height": 5,
-              "layout": "none",
+              "fill": "#F4F4F1",
               "cornerRadius": 999,
-              "fill": "#F4F4F1"
+              "layout": "none"
             },
             {
               "type": "text",
               "id": "row_3_count",
-              "name": "Progress Count / sd-028",
               "x": 1990,
               "y": 14,
+              "name": "Progress Count / sd-028",
+              "fill": "#A8B0C0",
               "content": "0/4",
+              "fontFamily": "Inter",
               "fontSize": 17,
-              "fontWeight": "700",
-              "fill": "#A8B0C0"
+              "fontWeight": "700"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "topbar",
+          "x": 0,
+          "y": 0,
+          "name": "Header Bar",
+          "width": 2048,
+          "height": 52,
+          "fill": "#121A2F",
+          "stroke": {
+            "align": "inside",
+            "thickness": {
+              "bottom": 1
+            },
+            "fill": "#25304A"
+          },
+          "layout": "none",
+          "children": [
+            {
+              "type": "frame",
+              "id": "new_issue",
+              "x": 1931,
+              "y": 6,
+              "name": "New Issue Button",
+              "width": 99,
+              "height": 31,
+              "fill": "#2B364A",
+              "cornerRadius": 6,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#3B4860"
+              },
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "new_issue_label",
+                  "x": 11,
+                  "y": 7,
+                  "name": "New Issue Button Label",
+                  "fill": "#F4F7FC",
+                  "content": "New issue",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "toggle",
+              "x": 1861,
+              "y": 8,
+              "name": "Theme Toggle",
+              "width": 56,
+              "height": 27,
+              "fill": "#151F35",
+              "cornerRadius": 999,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#43506E"
+              },
+              "layout": "none",
+              "children": [
+                {
+                  "type": "ellipse",
+                  "id": "toggle_knob",
+                  "x": 28,
+                  "y": 2,
+                  "name": "Theme Toggle Knob",
+                  "fill": "#2A3247",
+                  "width": 23,
+                  "height": 23
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "dark_label",
+              "x": 1819,
+              "y": 15,
+              "name": "Theme Label",
+              "fill": "#B9C1CF",
+              "content": "Dark",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "tab_board",
+              "x": 442,
+              "y": 15,
+              "name": "Board Tab Label",
+              "fill": "#A7B1C3",
+              "content": "Board",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "tab_epics",
+              "x": 345,
+              "y": 6,
+              "name": "Active Epics Tab",
+              "width": 77,
+              "height": 45,
+              "fill": "#141F38",
+              "cornerRadius": [
+                8,
+                8,
+                0,
+                0
+              ],
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#2F3A55"
+              },
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "tab_epics_label",
+                  "x": 15,
+                  "y": 9,
+                  "name": "Active Epics Tab Label",
+                  "fill": "#F4F7FC",
+                  "content": "Epics",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "tab_issues",
+              "x": 267,
+              "y": 15,
+              "name": "Issues Tab Label",
+              "fill": "#A7B1C3",
+              "content": "Issues",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "workspace",
+              "x": 98,
+              "y": 15,
+              "name": "Workspace Path Label",
+              "fill": "#8794AD",
+              "content": "D:\\coding\\llm_rag",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "brand",
+              "x": 13,
+              "y": 15,
+              "name": "Brand Label",
+              "fill": "#F3F6FB",
+              "content": "Beads",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "800"
             }
           ]
         }
