@@ -35,10 +35,12 @@ explicitly asks to implement the approved design.
 When working in this repo, check the project UI references before making design
 decisions:
 
-1. `docs/architecture.md` for product structure and screen responsibilities
-2. existing `.pencil/*.pen` files, such as `.pencil/EpicsPage.pen`, for
-   approved screen artifacts that already exist
-3. the specific target `.pen` file for the requested screen, if one already
+1. `docs/brand-book.md` for brand position, theme tokens, and semantic color use
+2. `docs/ui-design.md` for agent-facing design constraints and output rules
+3. `docs/architecture.md` for product structure and screen responsibilities
+4. existing `.pencil/*.pen` files, such as `.pencil/EpicsPage.pen`, for approved
+   screen artifacts that already exist
+5. the specific target `.pen` file for the requested screen, if one already
    exists
 
 These references are project-specific and take precedence over generic style
@@ -85,9 +87,11 @@ Do not guess node IDs. Read them from `get_editor_state` or `batch_get` results.
 For this repo, if the task is not a tiny local tweak inside an already-open
 file:
 
-1. inspect `docs/architecture.md`
-2. inspect the relevant existing `.pencil/*.pen` artifact, if one exists
-3. create a new `.pen` file under `.pencil/` when the requested screen has no
+1. inspect `docs/brand-book.md`
+2. inspect `docs/ui-design.md`
+3. inspect `docs/architecture.md`
+4. inspect the relevant existing `.pencil/*.pen` artifact, if one exists
+5. create a new `.pen` file under `.pencil/` when the requested screen has no
    existing design artifact
 
 ## Stage 3 - Get Design Guidelines
@@ -133,8 +137,8 @@ title=I(container,{type:\"text\",name:\"Settings Title\",content:\"Screen title\
 
 - Name every significant node you create or replace. Do not leave generic names
   like `Frame`, `Rectangle`, `Text`, or `Group` on user-visible structure.
-- Name nodes by purpose, not by primitive type. Good examples:
-  `Header Menu`, `Primary Tabs`, `Workspace Badge`, `Epic Row / sd-040`,
+- Name nodes by purpose, not by primitive type. Good examples: `Header Menu`,
+  `Primary Tabs`, `Workspace Badge`, `Epic Row / sd-040`,
   `Progress Track / sd-040`, `New Issue Button`.
 - Use clear Title Case names for human-readable node labels.
 - For repeated business entities, include the stable identifier in the name when
@@ -183,8 +187,9 @@ Also verify node naming before finishing:
 - **Never** invent node IDs; always derive them from tool output.
 - Always call `get_editor_state(include_schema=true)` before Pencil reads or
   writes in a new conversation.
-- In this repo, consult `docs/architecture.md` and the relevant existing
-  `.pencil/*.pen` file before broad UI changes.
+- In this repo, consult `docs/brand-book.md`, `docs/ui-design.md`,
+  `docs/architecture.md`, and the relevant existing `.pencil/*.pen` file before
+  broad UI changes.
 - Scope edits to what was requested. Do not expand to adjacent screens unless
   asked.
 - Store all design files under `.pencil/`.
