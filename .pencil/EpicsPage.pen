@@ -37,34 +37,6 @@
               "y": 1
             },
             {
-              "type": "frame",
-              "id": "whpjs",
-              "x": 530,
-              "y": 16,
-              "name": "Status Pill / sd-028",
-              "height": 22,
-              "fill": "#51CB4E",
-              "cornerRadius": 999,
-              "padding": [
-                3,
-                8
-              ],
-              "justifyContent": "center",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "6gFv3",
-                  "name": "Status Label / sd-028",
-                  "fill": "#ffffff",
-                  "content": "Open",
-                  "fontFamily": "Inter",
-                  "fontSize": 11,
-                  "fontWeight": "600"
-                }
-              ]
-            },
-            {
               "type": "text",
               "id": "row_3_title",
               "x": 148,
@@ -103,6 +75,14 @@
               "iconFontName": "chevron-right",
               "iconFontFamily": "lucide",
               "fill": "#6B7B99"
+            },
+            {
+              "id": "dRUpM",
+              "type": "ref",
+              "ref": "PzMuV",
+              "x": 530,
+              "y": 16,
+              "name": "Status Pill / sd-028"
             }
           ]
         },
@@ -129,34 +109,6 @@
               "ref": "z7Izs",
               "x": 1750,
               "y": 1
-            },
-            {
-              "type": "frame",
-              "id": "YqVt7",
-              "x": 530,
-              "y": 16,
-              "name": "Status Pill / sd-023",
-              "height": 22,
-              "fill": "#51CB4E",
-              "cornerRadius": 999,
-              "padding": [
-                3,
-                8
-              ],
-              "justifyContent": "center",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "i23se",
-                  "name": "Status Label / sd-023",
-                  "fill": "#ffffff",
-                  "content": "Open",
-                  "fontFamily": "Inter",
-                  "fontSize": 11,
-                  "fontWeight": "600"
-                }
-              ]
             },
             {
               "type": "text",
@@ -197,6 +149,14 @@
               "iconFontName": "chevron-right",
               "iconFontFamily": "lucide",
               "fill": "#6B7B99"
+            },
+            {
+              "id": "GMTyC",
+              "type": "ref",
+              "ref": "PzMuV",
+              "x": 530,
+              "y": 16,
+              "name": "Status Pill / sd-023"
             }
           ]
         },
@@ -264,7 +224,8 @@
               "id": "PzMuV",
               "x": 530,
               "y": 16,
-              "name": "Status Pill / sd-040",
+              "name": "Status Pill",
+              "reusable": true,
               "height": 22,
               "fill": "#51CB4E",
               "cornerRadius": 999,
@@ -278,7 +239,7 @@
                 {
                   "type": "text",
                   "id": "aRiAr",
-                  "name": "Status Label / sd-040",
+                  "name": "Status Label",
                   "fill": "#ffffff",
                   "content": "Open",
                   "fontFamily": "Inter",
