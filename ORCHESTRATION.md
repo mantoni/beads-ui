@@ -30,7 +30,7 @@ least one is true:
 | Role            | When to use                                                                                                          |
 | --------------- | -------------------------------------------------------------------------------------------------------------------- |
 | `architect`     | Non-trivial tasks needing a concrete plan, affected-file analysis, risk mapping, or validation strategy before edits |
-| `engineer`      | Code changes in `app/`, `tests/`, `alembic/`, config, or tightly coupled workflow files such as `.env.example`       |
+| `engineer`      | Code changes in `app/`, `server/`, `types/`, `bin/`, `scripts/`, config, or tightly coupled workflow files           |
 | `code-reviewer` | Read-only review after non-trivial implementation using the actual changed-file list and diff                        |
 | `writer`        | Material updates to `docs/`, `AGENTS.md`, or other user-facing workflow docs                      |
 

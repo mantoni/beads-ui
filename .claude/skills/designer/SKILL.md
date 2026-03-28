@@ -35,10 +35,11 @@ explicitly asks to implement the approved design.
 When working in this repo, check the project UI references before making design
 decisions:
 
-1. `docs/ui-brand.md` for the written source-of-truth order, visual tokens, and
-   reuse rules
-2. `.pencil/DesignSystem.pen` for shared visual language and reusable UI atoms
-3. the relevant approved screen `.pen` file, such as `.pencil/UploadPage.pen`
+1. `docs/architecture.md` for product structure and screen responsibilities
+2. existing `.pencil/*.pen` files, such as `.pencil/EpicsPage.pen`, for
+   approved screen artifacts that already exist
+3. the specific target `.pen` file for the requested screen, if one already
+   exists
 
 These references are project-specific and take precedence over generic style
 instincts.
@@ -84,9 +85,10 @@ Do not guess node IDs. Read them from `get_editor_state` or `batch_get` results.
 For this repo, if the task is not a tiny local tweak inside an already-open
 file:
 
-1. open or inspect `.pencil/DesignSystem.pen`
-2. inspect the target approved screen `.pen` file
-3. keep the work aligned with `docs/ui-brand.md`
+1. inspect `docs/architecture.md`
+2. inspect the relevant existing `.pencil/*.pen` artifact, if one exists
+3. create a new `.pen` file under `.pencil/` when the requested screen has no
+   existing design artifact
 
 ## Stage 3 - Get Design Guidelines
 
@@ -181,8 +183,8 @@ Also verify node naming before finishing:
 - **Never** invent node IDs; always derive them from tool output.
 - Always call `get_editor_state(include_schema=true)` before Pencil reads or
   writes in a new conversation.
-- In this repo, consult `docs/ui-brand.md`, `.pencil/DesignSystem.pen`, and the
-  relevant approved screen `.pen` file before broad UI changes.
+- In this repo, consult `docs/architecture.md` and the relevant existing
+  `.pencil/*.pen` file before broad UI changes.
 - Scope edits to what was requested. Do not expand to adjacent screens unless
   asked.
 - Store all design files under `.pencil/`.

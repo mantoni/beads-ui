@@ -2,8 +2,8 @@
 name: explain-code
 description:
   Explains how code and design flow work in this repository. Use when teaching
-  the codebase, tracing FastAPI or Celery execution, explaining pipeline or
-  provider interactions, or answering "how does this work?" about implemented
+  the codebase, tracing server/client execution, explaining WebSocket protocol
+  or subscription flows, or answering "how does this work?" about implemented
   code or the design docs.
 ---
 
@@ -21,12 +21,13 @@ When explaining code:
 
 ## Default Structure
 
-1. **What it is** - one or two sentences describing the module, task, route,
-   pipeline stage, or subsystem role.
-2. **Entry points** - which route, task, CLI, or function starts the behavior.
+1. **What it is** - one or two sentences describing the module, view, route,
+   CLI path, or subsystem role.
+2. **Entry points** - which route, WebSocket message, CLI command, or function
+   starts the behavior.
 3. **How it flows** - step-by-step execution path with file references.
-4. **Key collaborators** - which modules, schemas, providers, queues, or models
-   it depends on.
+4. **Key collaborators** - which modules, protocol definitions, stores, and
+   server/client boundaries it depends on.
 5. **Gotchas** - common misunderstandings, hidden state, lifecycle rules, async
    boundaries, or failure modes.
 

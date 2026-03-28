@@ -12,18 +12,18 @@ allowed-tools: Bash(playwright-cli:*)
 
 Use this skill for both:
 
-- Local app work in this repo, especially frontend verification and
-  upload/search flows
+- Local app work in this repo, especially frontend verification of the issues,
+  epics, board, detail, and workspace-switching flows
 - External-site browsing when browser automation is materially better than
   static inspection
 
 When the task is about this repo, prefer local targets first:
 
-- Frontend: `http://localhost:5173`
-- FastAPI docs: `http://localhost:8000/docs`
+- App: `http://127.0.0.1:3000`
+- WebSocket endpoint: `ws://127.0.0.1:3000/ws`
 
-Before driving the local app, read `docs/runbook.md` if you need startup
-commands or service URLs.
+Before driving the local app, read `README.md` and `docs/architecture.md` if
+you need startup commands, bind address defaults, or protocol context.
 
 ## Quick start
 
@@ -277,14 +277,11 @@ playwright-cli close
 ## Example: Local app smoke flow
 
 ```bash
-playwright-cli open http://localhost:5173
+playwright-cli open http://127.0.0.1:3000
 playwright-cli snapshot
 
-# upload a local fixture if the app is running
-playwright-cli upload .playwright/fixtures/sample.pdf
-
-# inspect processing state or search UI after interaction
-playwright-cli snapshot --filename=.playwright/snapshots/local-app-after-upload.yaml
+# inspect the issues view, switch views, or open issue detail
+playwright-cli snapshot --filename=.playwright/snapshots/local-app-home.yaml
 playwright-cli close
 ```
 

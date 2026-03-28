@@ -2,8 +2,7 @@
 name: work-with-docs
 description:
   Rules for creating and maintaining project documentation. Use when writing or
-  editing plans, reviews, runbooks, schema docs, design docs, or workflow
-  instructions.
+  editing plans, reviews, architecture docs, ADRs, or protocol docs.
 ---
 
 ## Folder Conventions
@@ -12,10 +11,10 @@ description:
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `docs/plans/`         | Implementation plans and scoped design plans                                                                                                                                                    |
 | `docs/reviews/`       | Code review reports with findings and recommended actions                                                                                                                                       |
-| `docs/runbook.md`     | Local setup and operational workflow                                                                                                                                                            |
-| `docs/schema.md`      | Database schema and index expectations                                                                                                                                                          |
-| `docs/tasks/tasks.md` | Celery task graph, queues, triggers, retries                                                                                                                                                    |
-| `docs/tech_diz.md`    | High-level design and architecture intent                                                                                                                                                       |
+| `docs/architecture.md` | High-level design and architecture intent                                                                                                                                                      |
+| `docs/adr/`           | Architectural Decision Records (ADRs) for significant decisions                                                                                                                                 |
+| `docs/protocol/`      | WebSocket message protocol specs and subscription model docs                                                                                                                                    |
+| `app/protocol.md`     | Human-readable protocol reference alongside the JS definition                                                                                                                                   |
 | `AGENTS.md`           | Project-wide policy only: architecture invariants, trivial/non-trivial rules, skill compliance. Procedure for a specific task type belongs in the matching skill, not here. Target: ≤150 lines. |
 | `ORCHESTRATION.md`    | Main-agent delegation policy                                                                                                                                                                    |
 
@@ -29,14 +28,20 @@ Use:
 
 Examples:
 
-- `docs/plans/2026-03-26-codex-provider-swap.md`
-- `docs/plans/2026-03-26-architect-page-pipeline-refactor.md`
+- `docs/plans/2026-03-28-codex-ws-protocol-refactor.md`
+- `docs/plans/2026-03-28-architect-subscription-store.md`
 
 ## Review Naming
 
 Use:
 
 `docs/reviews/yyyy-MM-dd-review-<topic>.md`
+
+## ADR Naming
+
+Use sequential numbering:
+
+`docs/adr/NNN-<short-title>.md`
 
 ## Plan Template
 
@@ -56,7 +61,7 @@ Use:
 
 ### Step N - <Title> (Risk: Low/Medium/High)
 
-**Files:** `path/to/file.py` **Problem:** <what is wrong> **Change:**
+**Files:** `path/to/file.js` **Problem:** <what is wrong> **Change:**
 <what to do> **Validation:** `<command>`
 ```
 
@@ -66,10 +71,10 @@ Use:
 - Prefer bullets, tables, and compact examples over long prose.
 - Use absolute dates, never relative dates.
 - Do not duplicate content already documented elsewhere; link to it instead.
-- Verify every path, env var, command, task name, and status value against the
-  current repo before writing.
-- If the repo is still design-heavy and code paths are not implemented yet,
-  label design intent clearly instead of implying the behavior already exists.
+- Verify every path, command, and behavior against the current repo before
+  writing.
+- If behavior is not yet implemented, label design intent clearly instead of
+  implying it exists.
 
 ## What Not To Put In Docs
 

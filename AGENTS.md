@@ -4,10 +4,9 @@
 
 **Scope of this file:** project-wide policy only — what the project is,
 architecture invariants, trivial/non-trivial classification, validation rules,
-skill compliance. Procedure for a specific task type (how to add a provider, how
-to run git, how to track issues) belongs in the matching skill, not here. If you
-are about to add more than two bullets on a topic that has a matching skill, put
-it in that skill instead. Target: ≤150 lines.
+and skill compliance. Procedure for a specific task type belongs in the matching
+skill, not here. If a topic already has a skill, keep the details there.
+Target: ≤150 lines.
 
 ---
 
@@ -27,17 +26,15 @@ live updates, Vitest for tests.
 
 ## Where things live
 
-- `server/` — Express HTTP + WebSocket server, Beads CLI bridge (`bd.js`),
-  DB watcher, workspace registry
-- `app/` — Browser-side entry (`main.js`), state (`state.js`), router
-  (`router.js`), WebSocket client (`ws.js`), styles (`styles.css`)
+- `server/` — Express HTTP + WebSocket server, Beads CLI bridge (`bd.js`), DB watcher, workspace registry
+- `app/` — Browser-side entry (`main.js`), state (`state.js`), router (`router.js`), WebSocket client (`ws.js`), styles (`styles.css`)
 - `app/views/` — View modules: `list.js`, `epics.js`, `board.js`, `detail.js`,
   `nav.js`, dialogs
 - `app/data/` — Data utilities
 - `app/utils/` — Shared utilities
 - `types/` — TypeScript interface/type definitions (no runtime code)
 - `test/` — Test infrastructure and helpers
-- `docs/` — Project documentation and UI brand guide
+- `docs/` — Project documentation
 - `bin/` — CLI entry points (`bdui`)
 - `scripts/` — Build and tooling scripts
 - `.pencil/` — Pencil design files (`.pen`); access via Pencil MCP only
@@ -63,7 +60,7 @@ Usually trivial if most are true:
 - One file or a very small related set
 - Docs/comments/naming/formatting only
 - Narrow low-risk bug fix
-- No API, config, pipeline, provider, or task change
+- No protocol, routing, subscription, or shared state change
 - No migration path or cross-module coordination needed
 
 Examples: typo fix, broken doc link, local rename, log wording cleanup.
@@ -73,8 +70,8 @@ Examples: typo fix, broken doc link, local rename, log wording cleanup.
 Treat as non-trivial if any are true:
 
 - Adds a feature, abstraction, or extension point
-- Changes shared pipeline behavior or defaults
-- Changes public methods, config keys, schema, or task signatures
+- Changes shared server/client behavior or defaults
+- Changes public methods, config keys, protocol schema, or CLI signatures
 - Touches multiple packages or both code and docs/tests
 - Needs new tests, design tradeoffs, or migration guidance
 - May affect the server/client protocol, WebSocket message schema, or
@@ -89,8 +86,8 @@ state shape change.
 - Run the smallest meaningful verification first.
 - For non-trivial work, run relevant checks before claiming completion.
 - If you cannot run full validation, say what was skipped.
-- For refactoring, do not treat the work as complete unless the new or updated
-  protecting test is part of the validation story.
+- For refactoring, do not treat the work as complete unless the protecting test
+  is part of the validation story.
 
 ## Scope and Communication
 
@@ -104,7 +101,7 @@ state shape change.
 
 UI tasks are either design-only (Pencil, no code) or implementation (code only
 after explicit approval). Never mix them silently. If ambiguous, ask one
-clarifying question. Full rules in the `designer` skill.
+clarifying question. Full rules live in the `designer` skill.
 
 ## Skill Compliance
 
@@ -122,26 +119,20 @@ clarifying question. Full rules in the `designer` skill.
 ## Skills
 
 Project skills live in `.claude/skills/<name>/SKILL.md`. Each skill has a
-`description` frontmatter field that drives automatic matching — the agent
-recognizes a task, reads the skill, and follows its procedure without requiring
-explicit invocation. See Skill Compliance above.
+`description` frontmatter field that drives automatic matching. See Skill
+Compliance above.
 
-| Skill                | Description (from frontmatter)                                                                                                                                                                    |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `add-provider`       | Adding any new OCR, LLM, embedding, vector store, or storage implementation _(carried from template — may not apply)_                                                                             |
-| `add-task`           | Adding or scaffolding a new Celery task in any `app/tasks/` module _(carried from template — may not apply)_                                                                                      |
-| `beads-work`         | Task and issue tracking using Beads (bd CLI). Use when the user asks for tracking or when implementation work is substantive enough to need multi-step or cross-session coordination. Replaces TodoWrite, TaskCreate, and markdown task lists. |
-| `check-abstractions` | Before any substantial commit; also auto-runs after adding a provider, task, or pipeline module                                                                                                   |
-| `debug-page`         | Investigating a stuck, failed, or anomalous page in the OCR pipeline _(carried from template — may not apply)_                                                                                    |
-| `designer`           | Creating, updating, or editing UI/UX designs using the Pencil MCP. Use when the user asks to design, redesign, rework, or update screens, pages, or UI components in a .pen file.                 |
-| `explain-code`       | Explaining implemented code or design flow across server, client, WebSocket, and view boundaries                                                                                                  |
-| `new-migration`      | Creating any Alembic migration _(carried from template — may not apply)_                                                                                                                          |
-| `playwright-cli`     | Browser automation for local frontend verification or external-site browsing                                                                                                                      |
-| `refactor-code`      | Non-trivial refactors that affect shared behavior, interfaces, or cross-module structure                                                                                                          |
-| `validate`           | Select and run the right verification steps based on what changed. Use after making code, docs, config, or skill changes to confirm the result is coherent.                                       |
-| `work-with-docs`     | Creating and maintaining plans, reviews, runbooks, schema docs, design docs, or workflow instructions                                                                                             |
-| `work-with-git`      | Branch strategy and git safety rules — creating branches, preparing commits, structuring git work                                                                                                 |
-| `write-test`         | Writing and placing unit or integration tests for the server, client, view, or protocol layers                                                                                                    |
+| Skill            | Description (from frontmatter)                                                                                                                                                                    |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `beads-work`     | Task and issue tracking using Beads (bd CLI). Use when the user asks for tracking or when implementation work is substantive enough to need multi-step or cross-session coordination. Replaces TodoWrite, TaskCreate, and markdown task lists. |
+| `designer`       | Creating, updating, or editing UI/UX designs using the Pencil MCP. Use when the user asks to design, redesign, rework, or update screens, pages, or UI components in a .pen file.                 |
+| `explain-code`   | Explaining implemented code or design flow across server, client, WebSocket, and view boundaries                                                                                                  |
+| `playwright-cli` | Browser automation for local frontend verification or external-site browsing                                                                                                                      |
+| `refactor-code`  | Non-trivial refactors affecting shared server, client, WebSocket, view, or protocol behavior                                                                                                      |
+| `validate`       | Select and run the right verification steps based on what changed. Use after making code, docs, config, or skill changes to confirm the result is coherent.                                       |
+| `work-with-docs` | Creating and maintaining plans, reviews, architecture docs, ADRs, and protocol docs                                                                                                               |
+| `work-with-git`  | Branch strategy and git safety rules — creating branches, preparing commits, structuring git work                                                                                                 |
+| `write-test`     | Writing and placing unit or integration tests for the server, client, view, or protocol layers                                                                                                    |
 
 ## What NOT to do
 
@@ -155,7 +146,4 @@ explicit invocation. See Skill Compliance above.
 
 ## Session End
 
-If the task used Beads, sync and close the relevant issues before handoff. If
-the user explicitly asked for commit/push work or approved it, follow the
-`work-with-git` Session End procedure. Do not assume every task requires Beads
-or a push.
+If the task used Beads, sync and close the relevant issues before handoff. If the user explicitly asked for commit/push work or approved it, follow the `work-with-git` Session End procedure. Do not assume every task requires Beads.
