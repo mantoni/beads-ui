@@ -146,6 +146,8 @@ export function createEpicsView(
               ? html`<svg class="epic-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>`
               : html`<svg class="epic-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>`}
             <span class="text-truncate">${epic.title || '(no title)'}</span>
+          </div>
+          <div class="epic-header__cell epic-header__cell--status">
             <span class="status-badge is-${status}">${status_text}</span>
           </div>
           <div class="epic-header__meta">
