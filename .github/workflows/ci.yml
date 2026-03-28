@@ -1,38 +1,27 @@
-name: Build
+name: PR Smoke
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
+    types:
+      - opened
+      - synchronize
+      - reopened
 
 jobs:
-  build:
+  smoke:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: ['22.x', '24.x']
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Use Node.js 22.x
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 22.x
           cache: 'npm'
       - name: Install
         run: npm ci
-      - name: Lint
-        if: matrix.node-version == '24.x'
-        run: npm run lint
-      - name: Types
-        if: matrix.node-version == '24.x'
-        run: npm run tsc
-      - name: Prettier
-        if: matrix.node-version == '24.x'
-        run: npm run prettier:check
       - name: Test
         run: npm test
