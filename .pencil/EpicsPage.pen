@@ -4,7 +4,7 @@
     {
       "type": "frame",
       "id": "epics_page",
-      "name": "Epics Implemented View",
+      "name": "Epics Page Canvas",
       "x": 0,
       "y": 0,
       "width": 2048,
@@ -15,6 +15,7 @@
         {
           "type": "frame",
           "id": "topbar",
+          "name": "Header Bar",
           "x": 0,
           "y": 0,
           "width": 2048,
@@ -30,6 +31,7 @@
             {
               "type": "text",
               "id": "brand",
+              "name": "Brand Label",
               "x": 13,
               "y": 15,
               "content": "Beads",
@@ -40,6 +42,7 @@
             {
               "type": "text",
               "id": "workspace",
+              "name": "Workspace Path Label",
               "x": 98,
               "y": 15,
               "content": "D:\\coding\\llm_rag",
@@ -50,6 +53,7 @@
             {
               "type": "text",
               "id": "tab_issues",
+              "name": "Issues Tab Label",
               "x": 267,
               "y": 15,
               "content": "Issues",
@@ -60,6 +64,7 @@
             {
               "type": "frame",
               "id": "tab_epics",
+              "name": "Active Epics Tab",
               "x": 345,
               "y": 6,
               "width": 77,
@@ -76,6 +81,7 @@
                 {
                   "type": "text",
                   "id": "tab_epics_label",
+                  "name": "Active Epics Tab Label",
                   "x": 15,
                   "y": 9,
                   "content": "Epics",
@@ -88,6 +94,7 @@
             {
               "type": "text",
               "id": "tab_board",
+              "name": "Board Tab Label",
               "x": 442,
               "y": 15,
               "content": "Board",
@@ -98,6 +105,7 @@
             {
               "type": "text",
               "id": "dark_label",
+              "name": "Theme Label",
               "x": 1819,
               "y": 15,
               "content": "Dark",
@@ -108,6 +116,7 @@
             {
               "type": "frame",
               "id": "toggle",
+              "name": "Theme Toggle",
               "x": 1861,
               "y": 8,
               "width": 56,
@@ -124,6 +133,7 @@
                 {
                   "type": "ellipse",
                   "id": "toggle_knob",
+                  "name": "Theme Toggle Knob",
                   "x": 28,
                   "y": 2,
                   "width": 23,
@@ -135,6 +145,7 @@
             {
               "type": "frame",
               "id": "new_issue",
+              "name": "New Issue Button",
               "x": 1931,
               "y": 6,
               "width": 99,
@@ -151,6 +162,7 @@
                 {
                   "type": "text",
                   "id": "new_issue_label",
+                  "name": "New Issue Button Label",
                   "x": 11,
                   "y": 7,
                   "content": "New issue",
@@ -165,6 +177,7 @@
         {
           "type": "frame",
           "id": "row_1",
+          "name": "Epic Row / sd-040",
           "x": 5,
           "y": 62,
           "width": 2031,
@@ -177,6 +190,7 @@
             {
               "type": "text",
               "id": "row_1_id",
+              "name": "Epic Row ID / sd-040",
               "x": 18,
               "y": 18,
               "content": "sd-040",
@@ -187,6 +201,7 @@
             {
               "type": "text",
               "id": "row_1_title",
+              "name": "Epic Row Title / sd-040",
               "x": 99,
               "y": 17,
               "content": "Phase 4: RAG Pipeline",
@@ -197,6 +212,7 @@
             {
               "type": "frame",
               "id": "row_1_track",
+              "name": "Progress Track / sd-040",
               "x": 1796,
               "y": 24,
               "width": 171,
@@ -208,6 +224,7 @@
             {
               "type": "text",
               "id": "row_1_count",
+              "name": "Progress Count / sd-040",
               "x": 1979,
               "y": 14,
               "content": "0/13",
@@ -220,6 +237,7 @@
         {
           "type": "frame",
           "id": "row_2",
+          "name": "Epic Row / sd-023",
           "x": 5,
           "y": 126,
           "width": 2031,
@@ -232,6 +250,7 @@
             {
               "type": "text",
               "id": "row_2_id",
+              "name": "Epic Row ID / sd-023",
               "x": 18,
               "y": 18,
               "content": "sd-023",
@@ -242,6 +261,7 @@
             {
               "type": "text",
               "id": "row_2_title",
+              "name": "Epic Row Title / sd-023",
               "x": 99,
               "y": 17,
               "content": "Phase 2: OCR Pipeline",
@@ -252,6 +272,7 @@
             {
               "type": "frame",
               "id": "row_2_track",
+              "name": "Progress Track / sd-023",
               "x": 1807,
               "y": 24,
               "width": 171,
@@ -263,6 +284,7 @@
             {
               "type": "text",
               "id": "row_2_count",
+              "name": "Progress Count / sd-023",
               "x": 1990,
               "y": 14,
               "content": "0/9",
@@ -275,6 +297,7 @@
         {
           "type": "frame",
           "id": "row_3",
+          "name": "Epic Row / sd-028",
           "x": 5,
           "y": 190,
           "width": 2031,
@@ -287,6 +310,7 @@
             {
               "type": "text",
               "id": "row_3_id",
+              "name": "Epic Row ID / sd-028",
               "x": 18,
               "y": 18,
               "content": "sd-028",
@@ -297,6 +321,7 @@
             {
               "type": "text",
               "id": "row_3_title",
+              "name": "Epic Row Title / sd-028",
               "x": 99,
               "y": 17,
               "content": "Phase 3: LLM Arbitrator",
@@ -307,6 +332,7 @@
             {
               "type": "frame",
               "id": "row_3_track",
+              "name": "Progress Track / sd-028",
               "x": 1807,
               "y": 24,
               "width": 171,
@@ -318,6 +344,7 @@
             {
               "type": "text",
               "id": "row_3_count",
+              "name": "Progress Count / sd-028",
               "x": 1990,
               "y": 14,
               "content": "0/4",
