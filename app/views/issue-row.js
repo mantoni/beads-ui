@@ -47,6 +47,7 @@ export function createIssueRowRenderer(options) {
           type="text"
           .value=${value}
           class="inline-edit"
+          data-testid=${`issue-row-${id}-${key}-input`}
           @keydown=${
             /** @param {KeyboardEvent} e */ async (e) => {
               if (e.key === 'Escape') {
@@ -82,6 +83,7 @@ export function createIssueRowRenderer(options) {
       class="editable text-truncate ${value ? '' : 'muted'}"
       tabindex="0"
       role="button"
+      data-testid=${`issue-row-${id}-${key}-display`}
       @click=${
         /** @param {MouseEvent} e */ (e) => {
           e.stopPropagation();
@@ -145,15 +147,27 @@ export function createIssueRowRenderer(options) {
       role="row"
       class="${row_class} ${is_selected ? 'selected' : ''}"
       data-issue-id=${it.id}
+      data-testid=${`issue-row-${it.id}`}
       @click=${makeRowClick(it.id)}
     >
-      <td role="gridcell" class="mono">${createIssueIdRenderer(it.id)}</td>
-      <td role="gridcell">${createTypeBadge(it.issue_type)}</td>
-      <td role="gridcell">${editableText(it.id, 'title', it.title || '')}</td>
-      <td role="gridcell">
+      <td
+        role="gridcell"
+        class="mono"
+        data-testid=${`issue-row-${it.id}-id`}
+      >
+        ${createIssueIdRenderer(it.id)}
+      </td>
+      <td role="gridcell" data-testid=${`issue-row-${it.id}-type`}>
+        ${createTypeBadge(it.issue_type)}
+      </td>
+      <td role="gridcell" data-testid=${`issue-row-${it.id}-title`}>
+        ${editableText(it.id, 'title', it.title || '')}
+      </td>
+      <td role="gridcell" data-testid=${`issue-row-${it.id}-status`}>
         <select
           class="badge-select badge--status is-${cur_status}"
           .value=${cur_status}
+          data-testid=${`issue-row-${it.id}-status-select`}
           @change=${makeSelectChange(it.id, 'status')}
         >
           ${['open', 'in_progress', 'closed'].map(
@@ -164,13 +178,14 @@ export function createIssueRowRenderer(options) {
           )}
         </select>
       </td>
-      <td role="gridcell">
+      <td role="gridcell" data-testid=${`issue-row-${it.id}-assignee`}>
         ${editableText(it.id, 'assignee', it.assignee || '', 'Unassigned')}
       </td>
-      <td role="gridcell">
+      <td role="gridcell" data-testid=${`issue-row-${it.id}-priority`}>
         <select
           class="badge-select badge--priority ${'is-p' + cur_prio}"
           .value=${cur_prio}
+          data-testid=${`issue-row-${it.id}-priority-select`}
           @change=${makeSelectChange(it.id, 'priority')}
         >
           ${priority_levels.map(
@@ -184,7 +199,11 @@ export function createIssueRowRenderer(options) {
           )}
         </select>
       </td>
-      <td role="gridcell" class="deps-col">
+      <td
+        role="gridcell"
+        class="deps-col"
+        data-testid=${`issue-row-${it.id}-deps`}
+      >
         ${(it.dependency_count || 0) > 0 || (it.dependent_count || 0) > 0
           ? html`<span class="deps-indicator"
               >${(it.dependency_count || 0) > 0

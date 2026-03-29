@@ -868,18 +868,28 @@ export function createDetailView(
   function depsSection(title, items) {
     const test_id =
       title === 'Dependencies' ? 'add-dependency' : 'add-dependent';
+    const section_test_id =
+      title === 'Dependencies'
+        ? 'detail-dependencies-section'
+        : 'detail-dependents-section';
     return html`
-      <div class="props-card">
+      <div class="props-card" data-testid=${section_test_id}>
         <div>
-          <div class="props-card__title">${title}</div>
+          <div
+            class="props-card__title"
+            data-testid=${`${section_test_id}-title`}
+          >
+            ${title}
+          </div>
         </div>
-        <ul>
+        <ul data-testid=${`${section_test_id}-list`}>
           ${!items || items.length === 0
             ? null
             : items.map((dep) => {
                 const did = dep.id;
                 const href = issueHref(did);
                 return html`<li
+                  data-testid=${`${section_test_id}-item-${did}`}
                   data-href=${href}
                   @click=${() => navigateFn(href)}
                 >
@@ -887,6 +897,7 @@ export function createDetailView(
                   <span class="text-truncate">${dep.title || ''}</span>
                   <button
                     aria-label=${`Remove dependency ${did}`}
+                    data-testid=${`${section_test_id}-remove-${did}`}
                     @click=${makeDepRemoveClick(did, title)}
                   >
                     ×
@@ -894,9 +905,17 @@ export function createDetailView(
                 </li>`;
               })}
         </ul>
-        <div class="props-card__footer">
+        <div
+          class="props-card__footer"
+          data-testid=${`${section_test_id}-footer`}
+        >
           <input type="text" placeholder="Issue ID" data-testid=${test_id} />
-          <button @click=${makeDepAddClick(items, title)}>Add</button>
+          <button
+            @click=${makeDepAddClick(items, title)}
+            data-testid=${`${section_test_id}-add-button`}
+          >
+            Add
+          </button>
         </div>
       </div>
     `;
@@ -907,25 +926,31 @@ export function createDetailView(
    */
   function detailTemplate(issue) {
     const title_zone = edit_title
-      ? html`<div class="detail-title">
+      ? html`<div class="detail-title" data-testid="detail-title">
           <h2>
             <input
               type="text"
               aria-label="Edit title"
+              data-testid="detail-title-input"
               .value=${issue.title || ''}
               @keydown=${onTitleInputKeydown}
             />
-            <button @click=${onTitleSave}>Save</button>
-            <button @click=${onTitleCancel}>Cancel</button>
+            <button @click=${onTitleSave} data-testid="detail-title-save">
+              Save
+            </button>
+            <button @click=${onTitleCancel} data-testid="detail-title-cancel">
+              Cancel
+            </button>
           </h2>
         </div>`
-      : html`<div class="detail-title">
+      : html`<div class="detail-title" data-testid="detail-title">
           <h2>
             <span
               class="editable"
               tabindex="0"
               role="button"
               aria-label="Edit title"
+              data-testid="detail-title-display"
               @click=${onTitleSpanClick}
               @keydown=${onTitleKeydown}
               >${issue.title || ''}</span
@@ -935,6 +960,7 @@ export function createDetailView(
 
     const status_select = html`<select
       class=${`badge-select badge--status is-${issue.status || 'open'}`}
+      data-testid="detail-status-select"
       @change=${onStatusChange}
       .value=${issue.status || 'open'}
       ?disabled=${pending}
@@ -954,6 +980,7 @@ export function createDetailView(
       class=${`badge-select badge--priority is-p${String(
         typeof issue.priority === 'number' ? issue.priority : 2
       )}`}
+      data-testid="detail-priority-select"
       @change=${onPriorityChange}
       .value=${String(typeof issue.priority === 'number' ? issue.priority : 2)}
       ?disabled=${pending}
@@ -1091,7 +1118,10 @@ export function createDetailView(
 
     // Labels section
     const labels = Array.isArray(issue.labels) ? issue.labels : [];
-    const labels_block = html`<div class="props-card labels">
+    const labels_block = html`<div
+      class="props-card labels"
+      data-testid="detail-labels-section"
+    >
       <div>
         <div class="props-card__title">Labels</div>
       </div>
@@ -1171,7 +1201,10 @@ export function createDetailView(
     const comments = Array.isArray(/** @type {any} */ (issue).comments)
       ? /** @type {Comment[]} */ (/** @type {any} */ (issue).comments)
       : [];
-    const comments_block = html`<div class="comments">
+    const comments_block = html`<div
+      class="comments"
+      data-testid="detail-comments-section"
+    >
       <div class="props-card__title">Comments</div>
       ${comments.length === 0
         ? html`<div class="muted">No comments yet</div>`
@@ -1188,7 +1221,7 @@ export function createDetailView(
               </div>
             `
           )}
-      <div class="comment-input">
+      <div class="comment-input" data-testid="detail-comment-form">
         <textarea
           placeholder="Add a comment... (Ctrl+Enter to submit)"
           rows="3"
@@ -1196,10 +1229,12 @@ export function createDetailView(
           @input=${onCommentInput}
           @keydown=${onCommentKeydown}
           ?disabled=${comment_pending}
+          data-testid="detail-comment-input"
         ></textarea>
         <button
           @click=${onCommentSubmit}
           ?disabled=${comment_pending || !comment_text.trim()}
+          data-testid="detail-comment-submit"
         >
           ${comment_pending ? 'Adding...' : 'Add Comment'}
         </button>
@@ -1207,17 +1242,23 @@ export function createDetailView(
     </div>`;
 
     return html`
-      <div class="panel__body" id="detail-root">
-        <div class="detail-layout">
-          <div class="detail-main">
+      <div class="panel__body" id="detail-root" data-testid="detail-view">
+        <div class="detail-layout" data-testid="detail-layout">
+          <div class="detail-main" data-testid="detail-main">
             ${title_zone} ${desc_block} ${design_block} ${notes_block}
             ${accept_block} ${comments_block}
           </div>
-          <div class="detail-side">
-            <div class="props-card">
+          <div class="detail-side" data-testid="detail-sidebar">
+            <div class="props-card" data-testid="detail-properties">
               <div class="props-card__header">
                 <div class="props-card__title">Properties</div>
-                <button class="delete-issue-btn" title="Delete issue" aria-label="Delete issue" @click=${onDeleteClick}>
+                <button
+                  class="delete-issue-btn"
+                  title="Delete issue"
+                  aria-label="Delete issue"
+                  data-testid="detail-delete-button"
+                  @click=${onDeleteClick}
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="3 6 5 6 21 6"></polyline>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>

@@ -21,17 +21,18 @@ export function createIssueDialog(mount_element, store, onClose) {
   dialog.id = 'issue-dialog';
   dialog.setAttribute('role', 'dialog');
   dialog.setAttribute('aria-modal', 'true');
+  dialog.setAttribute('data-testid', 'issue-dialog');
 
   // Shell: header (id + close) + body mount
   dialog.innerHTML = `
-    <div class="issue-dialog__container" part="container">
-      <header class="issue-dialog__header">
-        <div class="issue-dialog__title">
+    <div class="issue-dialog__container" part="container" data-testid="issue-dialog-container">
+      <header class="issue-dialog__header" data-testid="issue-dialog-header">
+        <div class="issue-dialog__title" data-testid="issue-dialog-title-wrap">
           <span class="mono" id="issue-dialog-title"></span>
         </div>
         <button type="button" class="issue-dialog__close" aria-label="Close">×</button>
       </header>
-      <div class="issue-dialog__body" id="issue-dialog-body"></div>
+      <div class="issue-dialog__body" id="issue-dialog-body" data-testid="issue-dialog-body"></div>
     </div>
   `;
 
@@ -46,6 +47,8 @@ export function createIssueDialog(mount_element, store, onClose) {
   const btn_close = /** @type {HTMLButtonElement} */ (
     dialog.querySelector('.issue-dialog__close')
   );
+  btn_close?.setAttribute('data-testid', 'issue-dialog-close');
+  title_el?.setAttribute('data-testid', 'issue-dialog-title');
 
   /**
    * @param {string} id

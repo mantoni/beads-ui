@@ -17,35 +17,36 @@ export function createNewIssueDialog(mount_element, sendFn, router, store) {
   dialog.id = 'new-issue-dialog';
   dialog.setAttribute('role', 'dialog');
   dialog.setAttribute('aria-modal', 'true');
+  dialog.setAttribute('data-testid', 'new-issue-dialog');
 
   dialog.innerHTML = `
-    <div class="new-issue__container" part="container">
-      <header class="new-issue__header">
-        <div class="new-issue__title">New Issue</div>
+    <div class="new-issue__container" part="container" data-testid="new-issue-container">
+      <header class="new-issue__header" data-testid="new-issue-header">
+        <div class="new-issue__title" data-testid="new-issue-title">New Issue</div>
         <button type="button" class="new-issue__close" aria-label="Close">×</button>
       </header>
-      <div class="new-issue__body">
-        <form id="new-issue-form" class="new-issue__form">
+      <div class="new-issue__body" data-testid="new-issue-body">
+        <form id="new-issue-form" class="new-issue__form" data-testid="new-issue-form">
           <label for="new-title">Title</label>
-          <input id="new-title" name="title" type="text" required placeholder="Short summary" />
+          <input id="new-title" name="title" type="text" required placeholder="Short summary" data-testid="new-issue-title-input" />
 
           <label for="new-type">Type</label>
-          <select id="new-type" name="type" aria-label="Issue type"></select>
+          <select id="new-type" name="type" aria-label="Issue type" data-testid="new-issue-type-select"></select>
 
           <label for="new-priority">Priority</label>
-          <select id="new-priority" name="priority" aria-label="Priority"></select>
+          <select id="new-priority" name="priority" aria-label="Priority" data-testid="new-issue-priority-select"></select>
 
           <label for="new-labels">Labels</label>
-          <input id="new-labels" name="labels" type="text" placeholder="comma,separated" />
+          <input id="new-labels" name="labels" type="text" placeholder="comma,separated" data-testid="new-issue-labels-input" />
 
           <label for="new-description">Description</label>
-          <textarea id="new-description" name="description" rows="6" placeholder="Optional markdown description"></textarea>
+          <textarea id="new-description" name="description" rows="6" placeholder="Optional markdown description" data-testid="new-issue-description-input"></textarea>
 
-          <div aria-live="polite" role="status" class="new-issue__error" id="new-issue-error"></div>
+          <div aria-live="polite" role="status" class="new-issue__error" id="new-issue-error" data-testid="new-issue-error"></div>
 
-          <div class="new-issue__actions" style="grid-column: 1 / -1">
-            <button type="button" id="btn-cancel">Cancel (Esc)</button>
-            <button type="submit" id="btn-create">Create</button>
+          <div class="new-issue__actions" style="grid-column: 1 / -1" data-testid="new-issue-actions">
+            <button type="button" id="btn-cancel" data-testid="new-issue-cancel">Cancel (Esc)</button>
+            <button type="submit" id="btn-create" data-testid="new-issue-create">Create</button>
           </div>
         </form>
       </div>
@@ -84,6 +85,7 @@ export function createNewIssueDialog(mount_element, sendFn, router, store) {
   const btn_close = /** @type {HTMLButtonElement} */ (
     dialog.querySelector('.new-issue__close')
   );
+  btn_close?.setAttribute('data-testid', 'new-issue-close');
 
   // Populate selects
   function populateSelects() {

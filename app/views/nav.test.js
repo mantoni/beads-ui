@@ -40,4 +40,18 @@ describe('views/nav', () => {
     links[2].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(router.gotoView).toHaveBeenCalledWith('board');
   });
+
+  test('renders stable data test ids for nav shell and tabs', () => {
+    const { mount, store, router } = setup();
+    createTopNav(
+      mount,
+      /** @type {any} */ (store),
+      /** @type {any} */ (router)
+    );
+
+    expect(mount.querySelector('[data-testid="top-nav"]')).toBeTruthy();
+    expect(mount.querySelector('[data-testid="nav-tab-issues"]')).toBeTruthy();
+    expect(mount.querySelector('[data-testid="nav-tab-epics"]')).toBeTruthy();
+    expect(mount.querySelector('[data-testid="nav-tab-board"]')).toBeTruthy();
+  });
 });

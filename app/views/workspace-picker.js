@@ -72,10 +72,15 @@ export function createWorkspacePicker(mount_element, store, onWorkspaceChange) {
     if (available.length === 1) {
       const name = getProjectName(available[0].path);
       return html`
-        <div class="workspace-picker workspace-picker--single">
-          <span class="workspace-picker__label" title="${available[0].path}"
-            >${name}</span
-          >
+        <div
+          class="workspace-picker workspace-picker--single"
+          data-testid="workspace-picker"
+        >
+          <span
+            class="workspace-picker__label"
+            title="${available[0].path}"
+            data-testid="workspace-picker-label"
+          >${name}</span>
         </div>
       `;
     }
@@ -83,12 +88,13 @@ export function createWorkspacePicker(mount_element, store, onWorkspaceChange) {
     // Multiple workspaces: show dropdown
     const current_path = current?.path || '';
     return html`
-      <div class="workspace-picker">
+      <div class="workspace-picker" data-testid="workspace-picker">
         <select
           class="workspace-picker__select"
           @change=${onChange}
           ?disabled=${is_switching}
           aria-label="Select project workspace"
+          data-testid="workspace-picker-select"
         >
           ${available.map(
             (/** @type {WorkspaceInfo} */ ws) => html`
@@ -96,6 +102,7 @@ export function createWorkspacePicker(mount_element, store, onWorkspaceChange) {
                 value="${ws.path}"
                 ?selected=${ws.path === current_path}
                 title="${ws.path}"
+                data-testid=${`workspace-picker-option-${getProjectName(ws.path)}`}
               >
                 ${getProjectName(ws.path)}
               </option>
@@ -106,6 +113,7 @@ export function createWorkspacePicker(mount_element, store, onWorkspaceChange) {
           ? html`<span
               class="workspace-picker__loading"
               aria-hidden="true"
+              data-testid="workspace-picker-loading"
             ></span>`
           : ''}
       </div>

@@ -95,7 +95,7 @@ export function createBoardView(
 
   function template() {
     return html`
-      <div class="panel__body board-root">
+      <div class="panel__body board-root" data-testid="board-view">
         ${columnTemplate('Blocked', 'blocked-col', list_blocked)}
         ${columnTemplate('Ready', 'ready-col', list_ready)}
         ${columnTemplate('In Progress', 'in-progress-col', list_in_progress)}
@@ -112,17 +112,32 @@ export function createBoardView(
   function columnTemplate(title, id, items) {
     const item_count = Array.isArray(items) ? items.length : 0;
     const count_label = item_count === 1 ? '1 issue' : `${item_count} issues`;
+    const test_id_suffix = id.replace('-col', '');
     return html`
-      <section class="board-column" id=${id}>
+      <section
+        class="board-column"
+        id=${id}
+        data-testid=${`board-column-${test_id_suffix}`}
+      >
         <header
           class="board-column__header"
           id=${id + '-header'}
           role="heading"
           aria-level="2"
+          data-testid=${`board-column-header-${test_id_suffix}`}
         >
           <div class="board-column__title">
-            <span class="board-column__title-text">${title}</span>
-            <span class="badge board-column__count" aria-label=${count_label}>
+            <span
+              class="board-column__title-text"
+              data-testid=${`board-column-title-${test_id_suffix}`}
+            >
+              ${title}
+            </span>
+            <span
+              class="badge board-column__count"
+              aria-label=${count_label}
+              data-testid=${`board-column-count-${test_id_suffix}`}
+            >
               ${item_count}
             </span>
           </div>
@@ -133,6 +148,7 @@ export function createBoardView(
                   id="closed-filter"
                   aria-label="Filter closed issues"
                   @change=${onClosedFilterChange}
+                  data-testid="board-closed-filter"
                 >
                   <option
                     value="today"
@@ -154,6 +170,7 @@ export function createBoardView(
           class="board-column__body"
           role="list"
           aria-labelledby=${id + '-header'}
+          data-testid=${`board-column-body-${test_id_suffix}`}
         >
           ${items.map((it) => cardTemplate(it))}
         </div>
@@ -169,6 +186,7 @@ export function createBoardView(
       <article
         class="board-card"
         data-issue-id=${it.id}
+        data-testid=${`board-card-${it.id}`}
         role="listitem"
         tabindex="-1"
         draggable="true"
@@ -176,10 +194,13 @@ export function createBoardView(
         @dragstart=${(/** @type {DragEvent} */ ev) => onDragStart(ev, it.id)}
         @dragend=${onDragEnd}
       >
-        <div class="board-card__title text-truncate">
+        <div
+          class="board-card__title text-truncate"
+          data-testid=${`board-card-title-${it.id}`}
+        >
           ${it.title || '(no title)'}
         </div>
-        <div class="board-card__meta">
+        <div class="board-card__meta" data-testid=${`board-card-meta-${it.id}`}>
           ${createTypeBadge(it.issue_type)} ${createPriorityBadge(it.priority)}
           ${createIssueIdRenderer(it.id, { class_name: 'mono' })}
         </div>

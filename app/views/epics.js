@@ -1,4 +1,4 @@
-import { html, render } from 'lit-html';
+import { html, nothing, render } from 'lit-html';
 import { createListSelectors } from '../data/list-selectors.js';
 import { createIssueIdRenderer } from '../utils/issue-id-renderer.js';
 import { statusLabel } from '../utils/status.js';
@@ -35,6 +35,10 @@ export function createEpicsView(
   let sort_column = 'id';
   /** @type {'asc'|'desc'} */
   let sort_direction = 'asc';
+  /** @type {'id'|'type'|'title'|'status'|'assignee'|'priority'} */
+  let child_sort_column = 'priority';
+  /** @type {'asc'|'desc'} */
+  let child_sort_direction = 'asc';
   /** @type {Set<string>} */
   const expanded = new Set();
   /** @type {Set<string>} */
@@ -71,24 +75,29 @@ export function createEpicsView(
 
   function template() {
     if (!groups.length) {
-      return html`<div class="panel__header muted">No epics found.</div>`;
+      return html`<div
+        class="panel__header muted"
+        data-testid="epics-empty"
+      >
+        No epics found.
+      </div>`;
     }
     const sorted_groups = getSortedGroups(groups);
     return html`
-      <div class="epics-table-wrap">
-        <table class="epics-table">
+      <div class="epics-table-wrap" data-testid="epics-view">
+        <table class="epics-table" data-testid="epics-table">
           <colgroup>
             <col class="epics-table__col epics-table__col--id" />
             <col class="epics-table__col epics-table__col--name" />
             <col class="epics-table__col epics-table__col--status" />
             <col class="epics-table__col epics-table__col--meta" />
           </colgroup>
-          <thead class="epics-list-header">
+          <thead class="epics-list-header" data-testid="epics-header">
             <tr>
-              <th scope="col">${sortHeaderTemplate('id', 'Id')}</th>
-              <th scope="col">${sortHeaderTemplate('name', 'Name')}</th>
-              <th scope="col">${sortHeaderTemplate('status', 'Status')}</th>
-              <th scope="col" class="epics-list-header__meta">Progress</th>
+              <th scope="col" data-testid="epics-header-id">${sortHeaderTemplate('id', 'Id')}</th>
+              <th scope="col" data-testid="epics-header-name">${sortHeaderTemplate('name', 'Name')}</th>
+              <th scope="col" data-testid="epics-header-status">${sortHeaderTemplate('status', 'Status')}</th>
+              <th scope="col" class="epics-list-header__meta" data-testid="epics-header-progress">Progress</th>
             </tr>
           </thead>
           ${sorted_groups.map((group) => groupTemplate(group))}
@@ -102,11 +111,55 @@ export function createEpicsView(
    * @param {string} label
    */
   function sortHeaderTemplate(column, label) {
-    const is_active = sort_column === column;
+    return sortButtonTemplate({
+      column,
+      label,
+      active_column: sort_column,
+      active_direction: sort_direction,
+      data_attribute_name: 'data-sort-column',
+      onToggle: () => toggleSort(column)
+    });
+  }
+
+  /**
+   * @param {'id'|'type'|'title'|'status'|'assignee'|'priority'} column
+   * @param {string} label
+   */
+  function childSortHeaderTemplate(column, label) {
+    return sortButtonTemplate({
+      column,
+      label,
+      active_column: child_sort_column,
+      active_direction: child_sort_direction,
+      data_attribute_name: 'data-child-sort-column',
+      onToggle: () => toggleChildSort(column)
+    });
+  }
+
+  /**
+   * @param {{
+   *   column: string,
+   *   label: string,
+   *   active_column: string,
+   *   active_direction: 'asc'|'desc',
+   *   data_attribute_name: string,
+   *   onToggle: () => void
+   * }} input
+   */
+  function sortButtonTemplate(input) {
+    const {
+      column,
+      label,
+      active_column,
+      active_direction,
+      data_attribute_name,
+      onToggle
+    } = input;
+    const is_active = active_column === column;
     const next_direction =
-      is_active && sort_direction === 'asc' ? 'desc' : 'asc';
+      is_active && active_direction === 'asc' ? 'desc' : 'asc';
     const sort_icon = is_active
-      ? sort_direction === 'asc'
+      ? active_direction === 'asc'
         ? html`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>`
         : html`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg>`
       : html`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg>`;
@@ -114,10 +167,18 @@ export function createEpicsView(
       <button
         type="button"
         class="epics-sort-button ${is_active ? 'is-active' : ''}"
-        data-sort-column=${column}
+        data-sort-column=${data_attribute_name === 'data-sort-column'
+          ? column
+          : nothing}
+        data-child-sort-column=${data_attribute_name === 'data-child-sort-column'
+          ? column
+          : nothing}
+        data-testid=${data_attribute_name === 'data-sort-column'
+          ? `epics-sort-${column}`
+          : `epic-child-sort-${column}`}
         aria-label=${`Sort by ${label} ${next_direction}`}
         aria-pressed=${is_active}
-        @click=${() => toggleSort(column)}
+        @click=${onToggle}
       >
         <span>${label}</span>
         ${sort_icon}
@@ -135,14 +196,17 @@ export function createEpicsView(
     const status = String(epic.status || 'open');
     const status_text = statusLabel(status);
     const list = selectors ? selectors.selectEpicChildren(id) : [];
+    const sorted_list = getSortedChildren(list);
     const is_loading = loading.has(id);
     return html`
       <tbody
         class="epic-group ${is_open ? 'is-open' : ''}"
         data-epic-id=${id}
+        data-testid=${`epic-group-${id}`}
       >
         <tr
           class="epic-header"
+          data-testid=${`epic-header-${id}`}
           @click=${() => toggle(id)}
           @keydown=${
             /** @param {KeyboardEvent} ev */ (ev) => onHeaderKeydown(ev, id)
@@ -151,19 +215,31 @@ export function createEpicsView(
           tabindex="0"
           aria-expanded=${is_open}
         >
-          <td class="epic-header__cell epic-header__cell--id">
+          <td
+            class="epic-header__cell epic-header__cell--id"
+            data-testid=${`epic-header-id-${id}`}
+          >
             ${createIssueIdRenderer(id, { class_name: 'mono' })}
           </td>
-          <td class="epic-header__cell epic-header__cell--name">
+          <td
+            class="epic-header__cell epic-header__cell--name"
+            data-testid=${`epic-header-name-${id}`}
+          >
             ${is_open
               ? html`<svg class="epic-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>`
               : html`<svg class="epic-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>`}
             <span class="text-truncate">${epic.title || '(no title)'}</span>
           </td>
-          <td class="epic-header__cell epic-header__cell--status">
+          <td
+            class="epic-header__cell epic-header__cell--status"
+            data-testid=${`epic-header-status-${id}`}
+          >
             <span class="status-badge is-${status}">${status_text}</span>
           </td>
-          <td class="epic-header__meta">
+          <td
+            class="epic-header__meta"
+            data-testid=${`epic-header-progress-${id}`}
+          >
             <span class="epic-progress">
               <progress
                 value=${Number(group.closed_children || 0)}
@@ -176,13 +252,23 @@ export function createEpicsView(
           </td>
         </tr>
         ${is_open
-          ? html`<tr class="epic-children-row">
-              <td class="epic-children" colspan="4">
+          ? html`<tr
+              class="epic-children-row"
+              data-testid=${`epic-children-row-${id}`}
+            >
+              <td
+                class="epic-children"
+                colspan="4"
+                data-testid=${`epic-children-${id}`}
+              >
                 ${is_loading
                   ? html`<div class="muted">Loading…</div>`
                   : list.length === 0
                     ? html`<div class="muted">No issues found</div>`
-                    : html`<table class="table">
+                    : html`<table
+                        class="table"
+                        data-testid=${`epic-children-table-${id}`}
+                      >
                         <colgroup>
                           <col style="width: 100px" />
                           <col style="width: 120px" />
@@ -191,18 +277,21 @@ export function createEpicsView(
                           <col style="width: 160px" />
                           <col style="width: 130px" />
                         </colgroup>
-                        <thead>
+                        <thead
+                          testid="epic-children-header"
+                          data-testid=${`epic-children-header-${id}`}
+                        >
                           <tr>
-                            <th>ID</th>
-                            <th>Type</th>
-                            <th>Title</th>
-                            <th>Status</th>
-                            <th>Assignee</th>
-                            <th>Priority</th>
+                            <th data-testid="epic-children-header-id">${childSortHeaderTemplate('id', 'ID')}</th>
+                            <th data-testid="epic-children-header-type">${childSortHeaderTemplate('type', 'Type')}</th>
+                            <th data-testid="epic-children-header-title">${childSortHeaderTemplate('title', 'Title')}</th>
+                            <th data-testid="epic-children-header-status">${childSortHeaderTemplate('status', 'Status')}</th>
+                            <th data-testid="epic-children-header-assignee">${childSortHeaderTemplate('assignee', 'Assignee')}</th>
+                            <th data-testid="epic-children-header-priority">${childSortHeaderTemplate('priority', 'Priority')}</th>
                           </tr>
                         </thead>
                         <tbody>
-                          ${list.map((item) => render_row(item))}
+                          ${sorted_list.map((item) => render_row(item))}
                         </tbody>
                       </table>`}
               </td>
@@ -237,10 +326,30 @@ export function createEpicsView(
   }
 
   /**
+   * @param {'id'|'type'|'title'|'status'|'assignee'|'priority'} column
+   */
+  function toggleChildSort(column) {
+    if (child_sort_column === column) {
+      child_sort_direction = child_sort_direction === 'asc' ? 'desc' : 'asc';
+    } else {
+      child_sort_column = column;
+      child_sort_direction = 'asc';
+    }
+    doRender();
+  }
+
+  /**
    * @param {any[]} next_groups
    */
   function getSortedGroups(next_groups) {
     return next_groups.slice().sort(compareGroups);
+  }
+
+  /**
+   * @param {IssueLite[]} next_items
+   */
+  function getSortedChildren(next_items) {
+    return next_items.slice().sort(compareChildren);
   }
 
   /**
@@ -266,6 +375,45 @@ export function createEpicsView(
   }
 
   /**
+   * @param {IssueLite} left_item
+   * @param {IssueLite} right_item
+   */
+  function compareChildren(left_item, right_item) {
+    let result = 0;
+    switch (child_sort_column) {
+      case 'id':
+        result = compareText(left_item?.id, right_item?.id);
+        break;
+      case 'type':
+        result = compareText(left_item?.issue_type, right_item?.issue_type);
+        break;
+      case 'title':
+        result = compareText(left_item?.title, right_item?.title);
+        break;
+      case 'status':
+        result = compareStatus(left_item?.status, right_item?.status);
+        break;
+      case 'assignee':
+        result = compareText(left_item?.assignee, right_item?.assignee);
+        break;
+      case 'priority':
+      default:
+        result = comparePriority(left_item?.priority, right_item?.priority);
+        break;
+    }
+    if (result === 0 && child_sort_column !== 'priority') {
+      result = comparePriority(left_item?.priority, right_item?.priority);
+    }
+    if (result === 0) {
+      result = compareCreated(left_item?.created_at, right_item?.created_at);
+    }
+    if (result === 0) {
+      result = compareText(left_item?.id, right_item?.id);
+    }
+    return child_sort_direction === 'asc' ? result : result * -1;
+  }
+
+  /**
    * @param {string | undefined} left
    * @param {string | undefined} right
    */
@@ -285,6 +433,22 @@ export function createEpicsView(
   }
 
   /**
+   * @param {number | undefined} left
+   * @param {number | undefined} right
+   */
+  function comparePriority(left, right) {
+    return normalizePriority(left) - normalizePriority(right);
+  }
+
+  /**
+   * @param {string | number | undefined} left
+   * @param {string | number | undefined} right
+   */
+  function compareCreated(left, right) {
+    return normalizeTimestamp(left) - normalizeTimestamp(right);
+  }
+
+  /**
    * @param {string | undefined} value
    */
   function statusRank(value) {
@@ -298,6 +462,22 @@ export function createEpicsView(
       default:
         return 3;
     }
+  }
+
+  /**
+   * @param {number | undefined} value
+   */
+  function normalizePriority(value) {
+    return Number.isFinite(value) ? Number(value) : Number.MAX_SAFE_INTEGER;
+  }
+
+  /**
+   * @param {string | number | undefined} value
+   */
+  function normalizeTimestamp(value) {
+    const parsed =
+      typeof value === 'number' ? value : Date.parse(String(value || ''));
+    return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER;
   }
 
   /**

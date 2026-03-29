@@ -224,6 +224,144 @@ describe('views/epics', () => {
     expect(ids).toEqual(['UI-12', 'UI-11', 'UI-13']);
   });
 
+  test('renders sortable child headers and sorts child rows in both directions', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+    const data = {
+      updateIssue: vi.fn(),
+      getIssue: vi.fn(async (id) => ({ id }))
+    };
+    const stores = new Map();
+    const listeners = new Set();
+    /** @param {string} id */
+    const getStore = (id) => {
+      let s = stores.get(id);
+      if (!s) {
+        s = createSubscriptionIssueStore(id);
+        stores.set(id, s);
+        s.subscribe(() => {
+          for (const fn of Array.from(listeners)) {
+            try {
+              fn();
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      }
+      return s;
+    };
+    const issueStores = {
+      getStore,
+      /** @param {string} id */
+      snapshotFor(id) {
+        return getStore(id).snapshot().slice();
+      },
+      /** @param {() => void} fn */
+      subscribe(fn) {
+        listeners.add(fn);
+        return () => listeners.delete(fn);
+      }
+    };
+    const subscriptions = createSubscriptionStore(async () => {});
+    issueStores.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-60',
+          title: 'Epic Child Sort',
+          issue_type: 'epic',
+          dependents: [{ id: 'UI-62' }, { id: 'UI-61' }, { id: 'UI-63' }]
+        }
+      ]
+    });
+    const view = createEpicsView(
+      mount,
+      /** @type {any} */ (data),
+      () => {},
+      subscriptions,
+      /** @type {any} */ (issueStores)
+    );
+    await view.load();
+    issueStores.getStore('detail:UI-60');
+    issueStores.getStore('detail:UI-60').applyPush({
+      type: 'snapshot',
+      id: 'detail:UI-60',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-60',
+          title: 'Epic Child Sort',
+          issue_type: 'epic',
+          dependents: [
+            {
+              id: 'UI-62',
+              title: 'Zulu',
+              status: 'closed',
+              priority: 3,
+              assignee: 'Zoe',
+              issue_type: 'task',
+              created_at: '2025-10-21T10:00:00.000Z'
+            },
+            {
+              id: 'UI-61',
+              title: 'Alpha',
+              status: 'open',
+              priority: 1,
+              assignee: 'Ann',
+              issue_type: 'bug',
+              created_at: '2025-10-20T10:00:00.000Z'
+            },
+            {
+              id: 'UI-63',
+              title: 'Beta',
+              status: 'in_progress',
+              priority: 2,
+              assignee: 'Max',
+              issue_type: 'feature',
+              created_at: '2025-10-22T10:00:00.000Z'
+            }
+          ]
+        }
+      ]
+    });
+    await view.load();
+
+    const child_header_labels = Array.from(
+      mount.querySelectorAll('[testid="epic-children-header"] th')
+    ).map((cell) => cell.textContent?.replace(/\s+/g, ' ').trim());
+    expect(child_header_labels).toEqual([
+      'ID',
+      'Type',
+      'Title',
+      'Status',
+      'Assignee',
+      'Priority'
+    ]);
+
+    const child_ids = () =>
+      Array.from(mount.querySelectorAll('tr.epic-row')).map((row) =>
+        /** @type {HTMLElement|null} */ (
+          row.querySelector('td.mono')
+        )?.textContent?.trim()
+      );
+
+    expect(child_ids()).toEqual(['UI-61', 'UI-63', 'UI-62']);
+
+    const title_sort = /** @type {HTMLButtonElement|null} */ (
+      mount.querySelector('[data-child-sort-column="title"]')
+    );
+    expect(title_sort).not.toBeNull();
+
+    title_sort?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(child_ids()).toEqual(['UI-61', 'UI-63', 'UI-62']);
+
+    title_sort?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(child_ids()).toEqual(['UI-62', 'UI-63', 'UI-61']);
+  });
+
   test('clicking inputs/selects inside a row does not navigate', async () => {
     document.body.innerHTML = '<div id="m"></div>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
@@ -725,5 +863,108 @@ describe('views/epics', () => {
 
     id_sort?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(group_ids()).toEqual(['UI-30', 'UI-20', 'UI-10']);
+  });
+
+  test('renders stable data test ids for epics shell groups and sort controls', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+    const data = {
+      updateIssue: vi.fn(),
+      getIssue: vi.fn(async (id) => ({ id }))
+    };
+    const stores = new Map();
+    const listeners = new Set();
+    /** @param {string} id */
+    const getStore = (id) => {
+      let s = stores.get(id);
+      if (!s) {
+        s = createSubscriptionIssueStore(id);
+        stores.set(id, s);
+        s.subscribe(() => {
+          for (const fn of Array.from(listeners)) {
+            try {
+              fn();
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      }
+      return s;
+    };
+    const issueStores = {
+      getStore,
+      snapshotFor(id) {
+        return getStore(id).snapshot().slice();
+      },
+      subscribe(fn) {
+        listeners.add(fn);
+        return () => listeners.delete(fn);
+      }
+    };
+    const subscriptions = createSubscriptionStore(async () => {});
+    issueStores.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-70',
+          title: 'Epic Ids',
+          status: 'open',
+          issue_type: 'epic',
+          dependents: [{ id: 'UI-71' }]
+        }
+      ]
+    });
+    const view = createEpicsView(
+      mount,
+      /** @type {any} */ (data),
+      () => {},
+      subscriptions,
+      /** @type {any} */ (issueStores)
+    );
+    await view.load();
+    issueStores.getStore('detail:UI-70');
+    issueStores.getStore('detail:UI-70').applyPush({
+      type: 'snapshot',
+      id: 'detail:UI-70',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-70',
+          title: 'Epic Ids',
+          issue_type: 'epic',
+          dependents: [
+            {
+              id: 'UI-71',
+              title: 'Child',
+              status: 'open',
+              priority: 2,
+              issue_type: 'task'
+            }
+          ]
+        }
+      ]
+    });
+    await view.load();
+
+    expect(mount.querySelector('[data-testid="epics-view"]')).toBeTruthy();
+    expect(mount.querySelector('[data-testid="epics-table"]')).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="epics-sort-id"]')
+    ).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="epic-group-UI-70"]')
+    ).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="epic-header-UI-70"]')
+    ).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="epic-children-table-UI-70"]')
+    ).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="epic-child-sort-title"]')
+    ).toBeTruthy();
   });
 });

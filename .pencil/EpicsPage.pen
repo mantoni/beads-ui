@@ -82,7 +82,14 @@
               "ref": "PzMuV",
               "x": 530,
               "y": 16,
-              "name": "Status Pill / sd-028"
+              "name": "Status Pill / sd-028",
+              "width": "fit_content",
+              "descendants": {
+                "aRiAr": {
+                  "x": 8,
+                  "y": 4.5
+                }
+              }
             }
           ]
         },
@@ -156,7 +163,14 @@
               "ref": "PzMuV",
               "x": 530,
               "y": 16,
-              "name": "Status Pill / sd-023"
+              "name": "Status Pill / sd-023",
+              "width": "fit_content",
+              "descendants": {
+                "aRiAr": {
+                  "x": 8,
+                  "y": 4.5
+                }
+              }
             }
           ]
         },

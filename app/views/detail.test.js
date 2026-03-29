@@ -77,6 +77,70 @@ describe('views/detail', () => {
     expect(navigations[navigations.length - 1]).toBe('#/issues?issue=UI-25');
   });
 
+  test('renders stable data test ids for detail sections and actions', async () => {
+    document.body.innerHTML =
+      '<section class="panel"><div id="mount"></div></section>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+
+    const issue = {
+      id: 'UI-29',
+      title: 'Issue detail view',
+      description: 'Description',
+      status: 'open',
+      priority: 2,
+      labels: ['ux'],
+      dependencies: [{ id: 'UI-25' }],
+      dependents: [{ id: 'UI-34' }],
+      comments: []
+    };
+
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-29' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const view = createDetailView(mount, async () => ({}), undefined, stores);
+    await view.load('UI-29');
+
+    expect(mount.querySelector('[data-testid="detail-view"]')).toBeTruthy();
+    expect(mount.querySelector('[data-testid="detail-main"]')).toBeTruthy();
+    expect(mount.querySelector('[data-testid="detail-sidebar"]')).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="detail-title-display"]')
+    ).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="detail-status-select"]')
+    ).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="detail-priority-select"]')
+    ).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="detail-labels-section"]')
+    ).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="detail-dependencies-section"]')
+    ).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="detail-dependents-section"]')
+    ).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="detail-comments-section"]')
+    ).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="detail-comment-input"]')
+    ).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="detail-comment-submit"]')
+    ).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="detail-delete-button"]')
+    ).toBeTruthy();
+  });
+
   test('renders type in Properties sidebar', async () => {
     document.body.innerHTML =
       '<section class="panel"><div id="mount"></div></section>';

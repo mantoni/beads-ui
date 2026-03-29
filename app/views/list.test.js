@@ -140,6 +140,49 @@ describe('views/list', () => {
     expect(window.location.hash).toBe('#/issues?issue=UI-1');
   });
 
+  test('renders stable data test ids for list shell filters and rows', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-1',
+          title: 'One',
+          status: 'open',
+          priority: 1,
+          issue_type: 'task'
+        }
+      ]
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+
+    expect(mount.querySelector('[data-testid="list-view"]')).toBeTruthy();
+    expect(mount.querySelector('[data-testid="list-filters"]')).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="list-filter-status-trigger"]')
+    ).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="list-filter-type-trigger"]')
+    ).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="list-search-input"]')
+    ).toBeTruthy();
+    expect(mount.querySelector('[data-testid="list-table"]')).toBeTruthy();
+    expect(mount.querySelector('[data-testid="issue-row-UI-1"]')).toBeTruthy();
+  });
+
   test('filters by status and search', async () => {
     document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));

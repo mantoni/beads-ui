@@ -314,6 +314,71 @@ describe('views/board', () => {
     expect(closed_label).toBe('1 issue');
   });
 
+  test('renders stable data test ids for board shell columns and cards', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+    const now = Date.now();
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:board:blocked').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:blocked',
+      revision: 1,
+      issues: [
+        {
+          id: 'B-1',
+          title: 'blocked 1',
+          created_at: now - 1,
+          updated_at: now - 1,
+          issue_type: 'task'
+        }
+      ]
+    });
+    issueStores.getStore('tab:board:ready').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:ready',
+      revision: 1,
+      issues: []
+    });
+    issueStores.getStore('tab:board:in-progress').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:in-progress',
+      revision: 1,
+      issues: []
+    });
+    issueStores.getStore('tab:board:closed').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:closed',
+      revision: 1,
+      issues: []
+    });
+
+    const view = createBoardView(
+      mount,
+      null,
+      () => {},
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+
+    expect(mount.querySelector('[data-testid="board-view"]')).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="board-column-blocked"]')
+    ).toBeTruthy();
+    expect(mount.querySelector('[data-testid="board-column-ready"]')).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="board-column-in-progress"]')
+    ).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="board-column-closed"]')
+    ).toBeTruthy();
+    expect(mount.querySelector('[data-testid="board-card-B-1"]')).toBeTruthy();
+    expect(
+      mount.querySelector('[data-testid="board-closed-filter"]')
+    ).toBeTruthy();
+  });
+
   test('filters Ready to exclude items that are In Progress', async () => {
     document.body.innerHTML = '<div id="m"></div>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));

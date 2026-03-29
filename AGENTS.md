@@ -103,7 +103,10 @@ UI tasks are either design-only (Pencil, no code) or implementation (code only
 after explicit approval). Never mix them silently. If ambiguous, ask one
 clarifying question. When designing in Pencil, prefer reusable components
 (`reusable: true` + `ref`) over duplicated structure for any group that repeats
-across rows or cards. Full rules live in the `designer` skill.
+across rows or cards. For frontend implementation, add stable `data-testid`
+attributes to significant rendered elements and primary controls; prefer
+view-scoped kebab-case names and do not introduce new `testid` or `test-id`
+attributes in code. Full rules live in the `designer` skill.
 
 ## Skill Compliance
 
