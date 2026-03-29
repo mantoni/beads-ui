@@ -52,8 +52,7 @@ bd create --id="bd-NNN" --title="..." --type=task|bug|feature --priority=2
 Priority scale: `0`=critical, `1`=high, `2`=medium, `3`=low, `4`=backlog. Use
 integers, not words.
 
-For many issues at once, create them in parallel (multiple subagents or
-concurrent calls).
+For many issues at once, create them in parallel with concurrent calls.
 
 See **When This Skill Applies** above for criteria on when to create vs. skip.
 

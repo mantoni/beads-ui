@@ -16,7 +16,7 @@ broaden only when the change surface requires it.
 | Logic in `app/` or `server/` only                | Narrowest matching test file, then `npm test` if shared behavior       |
 | Server/client protocol or WebSocket schema        | `npm test` (full suite — protocol changes ripple across both sides)    |
 | Types in `types/`                                 | `npm run tsc`                                                          |
-| `.claude/**` or `ORCHESTRATION.md` only           | No app test run; verify referenced paths, commands, and conventions    |
+| `.claude/**` only                                 | No app test run; verify referenced paths, commands, and conventions    |
 | Docs only (`docs/**`, `AGENTS.md`, `CHANGES.md`)  | Review for accuracy and path/command consistency                       |
 | Mixed code + tests                                | Protecting test first, then narrowest `npm test` target, then full suite if shared behavior changed |
 
@@ -37,9 +37,8 @@ npm run prettier:write    # format
   broad.
 - If server/client protocol, WebSocket message schema, or view state shape
   changed, run the full suite — these changes ripple across boundaries.
-- For `.claude/**` and `ORCHESTRATION.md` changes, verify that referenced paths,
-  commands, and role boundaries exist in the repo before calling the work
-  complete.
+- For `.claude/**` changes, verify that referenced paths, commands, and
+  conventions exist in the repo before calling the work complete.
 - If the target code does not exist yet and the change is documentation or
   orchestration only, do not invent runtime validation; state that the
   verification was a consistency review.

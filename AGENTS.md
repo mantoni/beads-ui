@@ -103,10 +103,9 @@ UI tasks are either design-only (Pencil, no code) or implementation (code only
 after explicit approval). Never mix them silently. If ambiguous, ask one
 clarifying question. When designing in Pencil, prefer reusable components
 (`reusable: true` + `ref`) over duplicated structure for any group that repeats
-across rows or cards. For frontend implementation, add stable `data-testid`
-attributes to significant rendered elements and primary controls; prefer
-view-scoped kebab-case names and do not introduce new `testid` or `test-id`
-attributes in code. Full rules live in the `designer` skill.
+across rows or cards. For frontend code changes, use the
+`frontend-implementation` skill. Full rules for design work live in the
+`designer` skill.
 
 ## Skill Compliance
 
@@ -132,6 +131,7 @@ Compliance above.
 | `beads-work`     | Task and issue tracking using Beads (bd CLI). Use when the user asks for tracking or when implementation work is substantive enough to need multi-step or cross-session coordination. Replaces TodoWrite, TaskCreate, and markdown task lists. |
 | `designer`       | Creating, updating, or editing UI/UX designs using the Pencil MCP. Use when the user asks to design, redesign, rework, or update screens, pages, or UI components in a .pen file.                 |
 | `explain-code`   | Explaining implemented code or design flow across server, client, WebSocket, and view boundaries                                                                                                  |
+| `frontend-implementation` | Implementing or updating browser UI code under app/ and app/views/ for this project. Use when changing rendered markup, interactive controls, dialogs, view composition, or frontend-facing behavior in the Beads UI. Do not use for Pencil design-only work. |
 | `playwright-cli` | Browser automation for local frontend verification or external-site browsing                                                                                                                      |
 | `refactor-code`  | Non-trivial refactors affecting shared server, client, WebSocket, view, or protocol behavior                                                                                                      |
 | `validate`       | Select and run the right verification steps based on what changed. Use after making code, docs, config, or skill changes to confirm the result is coherent.                                       |

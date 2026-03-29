@@ -16,7 +16,6 @@ description:
 | `docs/protocol/`      | WebSocket message protocol specs and subscription model docs                                                                                                                                    |
 | `app/protocol.md`     | Human-readable protocol reference alongside the JS definition                                                                                                                                   |
 | `AGENTS.md`           | Project-wide policy only: architecture invariants, trivial/non-trivial rules, skill compliance. Procedure for a specific task type belongs in the matching skill, not here. Target: ≤150 lines. |
-| `ORCHESTRATION.md`    | Main-agent delegation policy                                                                                                                                                                    |
 
 Never create plan or review files at the `docs/` root.
 
@@ -29,7 +28,7 @@ Use:
 Examples:
 
 - `docs/plans/2026-03-28-codex-ws-protocol-refactor.md`
-- `docs/plans/2026-03-28-architect-subscription-store.md`
+- `docs/plans/2026-03-28-codex-subscription-store.md`
 
 ## Review Naming
 

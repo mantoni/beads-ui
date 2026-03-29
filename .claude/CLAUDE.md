@@ -1,2 +1,1 @@
-Use `@AGENTS.md` as the base ruleset and `@ORCHESTRATION.md` for delegation
-policy.
+Use `@AGENTS.md` as the base ruleset.

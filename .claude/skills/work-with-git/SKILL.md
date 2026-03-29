@@ -65,8 +65,8 @@ If the current branch is `main` or the remote default branch:
 
 ## Git Safety Rules
 
-- `AGENTS.md`, `ORCHESTRATION.md`, and this skill may describe git workflow, but
-  the stricter rule always wins.
+- `AGENTS.md` and this skill may describe git workflow, but the stricter rule
+  always wins.
 - Never commit without explicit user permission.
 - Never push without explicit user permission.
 - Never create or switch branches without user approval.
