@@ -203,9 +203,9 @@ describe('handleRestart (unit)', () => {
     // Second call: handleStop reads PID (to terminate)
     // Third call: handleStart reads PID (no existing daemon after stop)
     vi.spyOn(daemon, 'readPidFile')
-      .mockReturnValueOnce(3333)   // restart: detect port
-      .mockReturnValueOnce(3333)   // handleStop: find process
-      .mockReturnValueOnce(null);  // handleStart: no existing
+      .mockReturnValueOnce(3333) // restart: detect port
+      .mockReturnValueOnce(3333) // handleStop: find process
+      .mockReturnValueOnce(null); // handleStart: no existing
     vi.spyOn(daemon, 'detectListeningPort').mockReturnValue(4000);
     vi.spyOn(daemon, 'isProcessRunning').mockImplementation(
       (pid) => pid === 3333 || pid === 5555

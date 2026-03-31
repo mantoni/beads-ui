@@ -265,15 +265,11 @@ function sleep(ms) {
  */
 export function detectListeningPort(pid) {
   try {
-    const output = execFileSync('lsof', [
-      '-iTCP',
-      '-sTCP:LISTEN',
-      '-a',
-      '-p',
-      String(pid),
-      '-Fn',
-      '-P'
-    ], { encoding: 'utf8', timeout: 3000 });
+    const output = execFileSync(
+      'lsof',
+      ['-iTCP', '-sTCP:LISTEN', '-a', '-p', String(pid), '-Fn', '-P'],
+      { encoding: 'utf8', timeout: 3000 }
+    );
 
     // lsof -Fn outputs lines like "n*:3000" or "n127.0.0.1:4000"
     for (const line of output.split('\n')) {
