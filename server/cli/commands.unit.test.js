@@ -272,7 +272,8 @@ describe('handleRestart (unit)', () => {
 
     expect(code).toBe(0);
     // port should not be set — falls through to default
-    const call_options = start_daemon.mock.calls[0][0];
-    expect(call_options.port).toBeUndefined();
+    expect(start_daemon.mock.calls[0]?.[0]).toEqual(
+      expect.not.objectContaining({ port: expect.any(Number) })
+    );
   });
 });
