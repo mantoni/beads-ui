@@ -1,7 +1,7 @@
 /**
  * @import { SpawnOptions } from 'node:child_process'
  */
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -254,6 +254,43 @@ function sleep(ms) {
       resolve();
     }, ms);
   });
+}
+
+/**
+ * Detect the TCP port a process is listening on by inspecting OS state.
+ * Returns the first LISTEN port found for the given PID, or null.
+ *
+ * @param {number} pid
+ * @returns {number | null}
+ */
+export function detectListeningPort(pid) {
+  try {
+    const output = execFileSync('lsof', [
+      '-iTCP',
+      '-sTCP:LISTEN',
+      '-a',
+      '-p',
+      String(pid),
+      '-Fn',
+      '-P'
+    ], { encoding: 'utf8', timeout: 3000 });
+
+    // lsof -Fn outputs lines like "n*:3000" or "n127.0.0.1:4000"
+    for (const line of output.split('\n')) {
+      if (line.startsWith('n')) {
+        const colon_index = line.lastIndexOf(':');
+        if (colon_index >= 0) {
+          const port_value = Number.parseInt(line.slice(colon_index + 1), 10);
+          if (Number.isFinite(port_value) && port_value > 0) {
+            return port_value;
+          }
+        }
+      }
+    }
+  } catch {
+    // lsof not available or process gone — fall through
+  }
+  return null;
 }
 
 /**

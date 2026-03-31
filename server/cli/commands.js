@@ -1,6 +1,7 @@
 import { getConfig } from '../config.js';
 import { resolveWorkspaceDatabase } from '../db.js';
 import {
+  detectListeningPort,
   isProcessRunning,
   printServerUrl,
   readPidFile,
@@ -181,23 +182,35 @@ export async function handleStop() {
 
 /**
  * Handle `restart` command: stop (ignore not-running) then start.
- *
- * @returns {Promise<number>} Exit code (0 on success)
- */
-/**
- * Handle `restart` command: stop (ignore not-running) then start.
  * Accepts the same options as `handleStart` and passes them through,
  * so restart only opens a browser when `open` is explicitly true.
  *
- * @param {{ open?: boolean }} [options]
+ * When the user does not pass explicit `--port`, the restart detects the
+ * port the running daemon is listening on and reuses it.
+ *
+ * @param {{ open?: boolean, host?: string, port?: number }} [options]
  * @returns {Promise<number>}
  */
 export async function handleRestart(options) {
+  // Detect the running daemon's port before stopping it.
+  let detected_port = null;
+  const existing_pid = readPidFile();
+  if (existing_pid && isProcessRunning(existing_pid)) {
+    detected_port = detectListeningPort(existing_pid);
+  }
+
   const stop_code = await handleStop();
   // 0 = stopped, 2 = not running; both are acceptable to proceed
   if (stop_code !== 0 && stop_code !== 2) {
     return 1;
   }
-  const start_code = await handleStart(options);
+
+  // Reuse detected port unless the user explicitly passed one.
+  const merged_options = { ...options };
+  if (!merged_options.port && detected_port) {
+    merged_options.port = detected_port;
+  }
+
+  const start_code = await handleStart(merged_options);
   return start_code === 0 ? 0 : 1;
 }
