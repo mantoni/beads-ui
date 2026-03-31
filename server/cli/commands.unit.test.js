@@ -8,6 +8,7 @@ import * as open from './open.js';
 vi.mock('./open.js', () => ({
   openUrl: async () => true,
   waitForServer: async () => {},
+  fetchWorkspacesFromServer: vi.fn(async () => []),
   registerWorkspaceWithServer: vi.fn(async () => true)
 }));
 
@@ -275,5 +276,46 @@ describe('handleRestart (unit)', () => {
     expect(start_daemon.mock.calls[0]?.[0]).toEqual(
       expect.not.objectContaining({ port: expect.any(Number) })
     );
+  });
+
+  test('re-registers workspaces from previous server after restart', async () => {
+    const fetch_workspaces = /** @type {import('vitest').Mock} */ (
+      open.fetchWorkspacesFromServer
+    );
+    fetch_workspaces.mockResolvedValueOnce([
+      { path: '/project/a', database: '/project/a/.beads' },
+      { path: '/project/b', database: '/project/b/.beads' }
+    ]);
+
+    const register_workspace = /** @type {import('vitest').Mock} */ (
+      open.registerWorkspaceWithServer
+    );
+    register_workspace.mockReset();
+
+    vi.spyOn(daemon, 'readPidFile')
+      .mockReturnValueOnce(3333) // restart: detect port
+      .mockReturnValueOnce(3333) // handleStop: find process
+      .mockReturnValueOnce(null); // handleStart: no existing
+    vi.spyOn(daemon, 'detectListeningPort').mockReturnValue(null);
+    vi.spyOn(daemon, 'isProcessRunning').mockImplementation(
+      (pid) => pid === 3333 || pid === 9999
+    );
+    vi.spyOn(daemon, 'terminateProcess').mockResolvedValue(true);
+    vi.spyOn(daemon, 'removePidFile').mockImplementation(() => {});
+    vi.spyOn(daemon, 'printServerUrl').mockImplementation(() => {});
+    vi.spyOn(daemon, 'startDaemon').mockReturnValue({ pid: 9999 });
+
+    const code = await handleRestart();
+
+    expect(code).toBe(0);
+    // The cwd workspace is registered by handleStart, plus the two saved ones
+    expect(register_workspace).toHaveBeenCalledWith('http://127.0.0.1:3000', {
+      path: '/project/a',
+      database: '/project/a/.beads'
+    });
+    expect(register_workspace).toHaveBeenCalledWith('http://127.0.0.1:3000', {
+      path: '/project/b',
+      database: '/project/b/.beads'
+    });
   });
 });

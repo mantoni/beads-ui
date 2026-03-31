@@ -9,7 +9,14 @@ import {
   startDaemon,
   terminateProcess
 } from './daemon.js';
-import { openUrl, registerWorkspaceWithServer, waitForServer } from './open.js';
+import {
+  fetchWorkspacesFromServer,
+  openUrl,
+  registerWorkspaceWithServer,
+  waitForServer
+} from './open.js';
+
+const RESTART_SERVER_READY_MS = 400;
 
 const STARTUP_SETTLE_MS = 200;
 const REGISTER_RETRY_ATTEMPTS = 5;
@@ -192,11 +199,16 @@ export async function handleStop() {
  * @returns {Promise<number>}
  */
 export async function handleRestart(options) {
-  // Detect the running daemon's port before stopping it.
+  // Capture state from the running server before stopping it.
   let detected_port = null;
+  /** @type {Array<{ path: string, database: string }>} */
+  let saved_workspaces = [];
   const existing_pid = readPidFile();
   if (existing_pid && isProcessRunning(existing_pid)) {
     detected_port = detectListeningPort(existing_pid);
+
+    const { url } = getConfig();
+    saved_workspaces = await fetchWorkspacesFromServer(url);
   }
 
   const stop_code = await handleStop();
@@ -212,5 +224,23 @@ export async function handleRestart(options) {
   }
 
   const start_code = await handleStart(merged_options);
-  return start_code === 0 ? 0 : 1;
+  if (start_code !== 0) {
+    return 1;
+  }
+
+  // Re-register workspaces from the previous server.
+  if (saved_workspaces.length > 0) {
+    const { url } = getConfig();
+    await waitForServer(url, RESTART_SERVER_READY_MS);
+    for (const ws of saved_workspaces) {
+      if (ws.path && ws.database) {
+        await registerWorkspaceWithServer(url, {
+          path: ws.path,
+          database: ws.database
+        });
+      }
+    }
+  }
+
+  return 0;
 }

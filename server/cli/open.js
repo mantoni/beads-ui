@@ -99,6 +99,45 @@ function sleep(ms) {
 }
 
 /**
+ * Fetch the list of workspaces from the running server.
+ *
+ * @param {string} base_url - Server base URL (e.g., "http://127.0.0.1:3000")
+ * @returns {Promise<Array<{ path: string, database: string }>>}
+ */
+export async function fetchWorkspacesFromServer(base_url) {
+  return new Promise((resolve) => {
+    const url = new URL('/api/workspaces', base_url);
+    const req = http.get(url, (res) => {
+      let data = '';
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.ok && Array.isArray(parsed.workspaces)) {
+            resolve(parsed.workspaces);
+          } else {
+            resolve([]);
+          }
+        } catch {
+          resolve([]);
+        }
+      });
+    });
+    req.on('error', () => resolve([]));
+    req.setTimeout(2000, () => {
+      try {
+        req.destroy();
+      } catch {
+        void 0;
+      }
+      resolve([]);
+    });
+  });
+}
+
+/**
  * Register a workspace with the running server.
  * Makes a POST request to /api/register-workspace.
  *
