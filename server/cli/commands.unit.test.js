@@ -30,7 +30,7 @@ vi.mock('../config.js', () => ({
   getConfig: () => {
     const port = Number.parseInt(process.env.PORT || '', 10) || 3000;
     const host = process.env.HOST || '127.0.0.1';
-    return { url: `http://${host}:${port}` };
+    return { host, port, url: `http://${host}:${port}` };
   }
 }));
 
@@ -43,6 +43,7 @@ describe('handleStart (unit)', () => {
   test('returns 1 when daemon start fails', async () => {
     vi.spyOn(daemon, 'readPidFile').mockReturnValue(null);
     vi.spyOn(daemon, 'isProcessRunning').mockReturnValue(false);
+    vi.spyOn(daemon, 'findAvailablePort').mockResolvedValue(3000);
     vi.spyOn(daemon, 'startDaemon').mockReturnValue(null);
 
     const code = await handleStart({ open: false });
@@ -113,6 +114,7 @@ describe('handleStart (unit)', () => {
       .mockImplementation(() => {});
 
     vi.spyOn(daemon, 'readPidFile').mockReturnValue(null);
+    vi.spyOn(daemon, 'findAvailablePort').mockResolvedValue(3000);
     vi.spyOn(daemon, 'startDaemon').mockReturnValue({ pid: 7777 });
     vi.spyOn(daemon, 'isProcessRunning').mockImplementation((pid) => pid === 1);
 
@@ -140,6 +142,7 @@ describe('handleStart (unit)', () => {
       .mockImplementation(() => {});
 
     vi.spyOn(daemon, 'readPidFile').mockReturnValue(null);
+    vi.spyOn(daemon, 'findAvailablePort').mockResolvedValue(3000);
     vi.spyOn(daemon, 'startDaemon').mockReturnValue({ pid: 4321 });
     vi.spyOn(daemon, 'isProcessRunning').mockImplementation(
       (pid) => pid === 4321
@@ -207,6 +210,7 @@ describe('handleRestart (unit)', () => {
       .mockReturnValueOnce(3333) // handleStop: find process
       .mockReturnValueOnce(null); // handleStart: no existing
     vi.spyOn(daemon, 'detectListeningPort').mockReturnValue(4000);
+    vi.spyOn(daemon, 'findAvailablePort').mockResolvedValue(4000);
     vi.spyOn(daemon, 'isProcessRunning').mockImplementation(
       (pid) => pid === 3333 || pid === 5555
     );
@@ -237,7 +241,6 @@ describe('handleRestart (unit)', () => {
     );
     vi.spyOn(daemon, 'terminateProcess').mockResolvedValue(true);
     vi.spyOn(daemon, 'removePidFile').mockImplementation(() => {});
-    vi.spyOn(daemon, 'printServerUrl').mockImplementation(() => {});
 
     const start_daemon = vi
       .spyOn(daemon, 'startDaemon')
@@ -257,6 +260,7 @@ describe('handleRestart (unit)', () => {
       .mockReturnValueOnce(3333)
       .mockReturnValueOnce(null);
     vi.spyOn(daemon, 'detectListeningPort').mockReturnValue(null);
+    vi.spyOn(daemon, 'findAvailablePort').mockResolvedValue(3000);
     vi.spyOn(daemon, 'isProcessRunning').mockImplementation(
       (pid) => pid === 3333 || pid === 7777
     );
@@ -275,5 +279,88 @@ describe('handleRestart (unit)', () => {
     expect(start_daemon.mock.calls[0]?.[0]).toEqual(
       expect.not.objectContaining({ port: expect.any(Number) })
     );
+  });
+});
+
+describe('port auto-increment (unit)', () => {
+  test('auto-increments port when default is in use by non-bdui', async () => {
+    const register_workspace = /** @type {import('vitest').Mock} */ (
+      open.registerWorkspaceWithServer
+    );
+    // Registration fails — not a bdui instance on that port
+    register_workspace.mockResolvedValueOnce(false);
+
+    vi.spyOn(daemon, 'readPidFile').mockReturnValue(null);
+    vi.spyOn(daemon, 'findAvailablePort').mockResolvedValue(3001);
+    vi.spyOn(daemon, 'isProcessRunning').mockImplementation(
+      (pid) => pid === 8888
+    );
+    vi.spyOn(daemon, 'printServerUrl').mockImplementation(() => {});
+
+    const start_daemon = vi
+      .spyOn(daemon, 'startDaemon')
+      .mockReturnValue({ pid: 8888 });
+
+    const code = await handleStart({ open: false });
+
+    expect(code).toBe(0);
+    expect(start_daemon).toHaveBeenCalledWith(
+      expect.objectContaining({ port: 3001 })
+    );
+  });
+
+  test('reuses existing bdui when default port is occupied', async () => {
+    const register_workspace = /** @type {import('vitest').Mock} */ (
+      open.registerWorkspaceWithServer
+    );
+    // Registration succeeds — existing bdui on that port
+    register_workspace.mockResolvedValueOnce(true);
+
+    vi.spyOn(daemon, 'readPidFile').mockReturnValue(null);
+    vi.spyOn(daemon, 'findAvailablePort').mockResolvedValue(3001);
+
+    const start_daemon = vi
+      .spyOn(daemon, 'startDaemon')
+      .mockReturnValue({ pid: 8888 });
+
+    const code = await handleStart({ open: false });
+
+    expect(code).toBe(0);
+    // Should NOT have started a new daemon — reused existing
+    expect(start_daemon).not.toHaveBeenCalled();
+  });
+
+  test('does not auto-increment when explicit port is given', async () => {
+    vi.spyOn(daemon, 'readPidFile').mockReturnValue(null);
+    vi.spyOn(daemon, 'isProcessRunning').mockImplementation(
+      (pid) => pid === 8888
+    );
+    vi.spyOn(daemon, 'printServerUrl').mockImplementation(() => {});
+
+    const find_port = vi
+      .spyOn(daemon, 'findAvailablePort')
+      .mockResolvedValue(5000);
+
+    const start_daemon = vi
+      .spyOn(daemon, 'startDaemon')
+      .mockReturnValue({ pid: 8888 });
+
+    const code = await handleStart({ open: false, port: 5000 });
+
+    expect(code).toBe(0);
+    // findAvailablePort should not be called when port is explicit
+    expect(find_port).not.toHaveBeenCalled();
+    expect(start_daemon).toHaveBeenCalledWith(
+      expect.objectContaining({ port: 5000 })
+    );
+  });
+
+  test('returns 1 when no port is available', async () => {
+    vi.spyOn(daemon, 'readPidFile').mockReturnValue(null);
+    vi.spyOn(daemon, 'findAvailablePort').mockResolvedValue(null);
+
+    const code = await handleStart({ open: false });
+
+    expect(code).toBe(1);
   });
 });

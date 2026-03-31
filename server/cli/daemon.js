@@ -3,6 +3,7 @@
  */
 import { execFileSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
+import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -285,6 +286,41 @@ export function detectListeningPort(pid) {
     }
   } catch {
     // lsof not available or process gone — fall through
+  }
+  return null;
+}
+
+/**
+ * Check whether a TCP port is available on the given host.
+ *
+ * @param {number} port
+ * @param {string} host
+ * @returns {Promise<boolean>}
+ */
+export function isPortAvailable(port, host) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', () => resolve(false));
+    server.listen(port, host, () => {
+      server.close(() => resolve(true));
+    });
+  });
+}
+
+/**
+ * Starting from `port`, find the first available port on `host`.
+ * Tries up to `max_attempts` consecutive ports.
+ *
+ * @param {number} port
+ * @param {string} host
+ * @param {number} [max_attempts]
+ * @returns {Promise<number | null>}
+ */
+export async function findAvailablePort(port, host, max_attempts = 10) {
+  for (let i = 0; i < max_attempts; i++) {
+    if (await isPortAvailable(port + i, host)) {
+      return port + i;
+    }
   }
   return null;
 }
