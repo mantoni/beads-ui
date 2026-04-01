@@ -4,7 +4,10 @@
 import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
-import { registerWorkspace } from './registry-watcher.js';
+import {
+  getAvailableWorkspaces,
+  registerWorkspace
+} from './registry-watcher.js';
 
 /**
  * Create and configure the Express application.
@@ -49,6 +52,12 @@ export function createApp(config) {
     }
     registerWorkspace({ path: workspace_path, database });
     res.status(200).json({ ok: true, registered: workspace_path });
+  });
+
+  // List all known workspaces (file-based registry + in-memory)
+  app.get('/api/workspaces', (_req, res) => {
+    const workspaces = getAvailableWorkspaces();
+    res.status(200).json({ ok: true, workspaces });
   });
 
   if (
