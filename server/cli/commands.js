@@ -2,6 +2,7 @@ import { getConfig } from '../config.js';
 import { resolveWorkspaceDatabase } from '../db.js';
 import {
   detectListeningPort,
+  findAvailablePort,
   isProcessRunning,
   printServerUrl,
   readPidFile,
@@ -63,12 +64,50 @@ export async function handleStart(options) {
     removePidFile();
   }
 
+  const { port: config_port, host: config_host } = getConfig();
+
+  // When the user did not pass an explicit --port, check whether the default
+  // port is already in use. If something is already listening, try to register
+  // with it first — it may be an existing bdui instance we can reuse.
+  // Only auto-increment to the next port if registration fails.
+  let effective_port = options?.port;
+  if (!effective_port) {
+    const available = await findAvailablePort(config_port, config_host);
+    if (available === null) {
+      console.error(
+        'No available port found (tried %d–%d).',
+        config_port,
+        config_port + 9
+      );
+      return 1;
+    }
+    if (available !== config_port) {
+      // Default port is busy — try to register with whatever is there.
+      const existing_url = `http://${config_host}:${config_port}`;
+      const registered = await registerCurrentWorkspace(existing_url, cwd);
+      if (registered) {
+        console.log('Workspace registered with existing server: %s', cwd);
+        if (should_open) {
+          await openUrl(existing_url);
+        }
+        return 0;
+      }
+      // Not a bdui instance — auto-increment to the next available port.
+      console.log('Port %d in use, using %d instead.', config_port, available);
+      effective_port = available;
+    }
+  }
+
+  // Set PORT env so getConfig() returns the correct URL for registration
+  if (effective_port) {
+    process.env.PORT = String(effective_port);
+  }
   const { url } = getConfig();
 
   const started = startDaemon({
     is_debug: options?.is_debug,
     host: options?.host,
-    port: options?.port
+    port: effective_port
   });
   if (started && started.pid > 0) {
     // Give the spawned daemon a brief moment to fail fast (for example EADDRINUSE).
