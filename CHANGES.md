@@ -1,5 +1,22 @@
 # Changes
 
+## 0.12.0
+
+- [`8559d4a`](https://github.com/mantoni/beads-ui/commit/8559d4af699555b9943914a2e790965c9e4d8da7)
+  feat(cli): auto-increment port when default is in use (#73) (Leon Letto)
+- [`527e9a5`](https://github.com/mantoni/beads-ui/commit/527e9a59a01e1b93c1488cb1e2ed26ae346b358c)
+  feat(cli): preserve workspaces across bdui restart (#72) (Leon Letto)
+- [`5996b39`](https://github.com/mantoni/beads-ui/commit/5996b39499bcf0e460133c27a7ee20b30c677ab5)
+  chore: add dev-docs to .prettierignore (Leon Letto)
+- [`08f1439`](https://github.com/mantoni/beads-ui/commit/08f1439d13fc5b534de13e1ea94af4407174d76f)
+  style: fix prettier formatting in daemon and test files (Leon Letto)
+- [`4a0c791`](https://github.com/mantoni/beads-ui/commit/4a0c791300f12e47faae74e8237f823857be7dd9)
+  fix: resolve TS18048 type error in restart test (Leon Letto)
+- [`c973d86`](https://github.com/mantoni/beads-ui/commit/c973d8693c6cfa3a5f8ad0905134465903e527a2)
+  feat(cli): preserve listening port across bdui restart (Leon Letto)
+
+_Released by [Maximilian Antoni](https://github.com/mantoni) on 2026-04-02._
+
 ## 0.11.3
 
 - [`47261a7`](https://github.com/mantoni/beads-ui/commit/47261a7a95d5a17b480ae56c4a10b5eeb49d1007)
