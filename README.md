@@ -1,4 +1,5 @@
 <h1 align="center">
+  <img src="https://github.com/alexx-ftw/beads-ui/raw/icon-proposals/assets/icons/beads-icon.png" alt="Beads Icon" width="128" height="128"><br>
   Beads UI
 </h1>
 <p align="center">
