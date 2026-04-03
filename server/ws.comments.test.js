@@ -153,7 +153,8 @@ describe('add-comment handler', () => {
 
     // Verify bd was called with correct args including --author
     expect(rb).toHaveBeenCalledWith([
-      'comment',
+      'comments',
+      'add',
       'UI-1',
       'New comment',
       '--author',
@@ -190,7 +191,7 @@ describe('add-comment handler', () => {
     expect(reply.ok).toBe(true);
 
     // Verify bd was called without --author
-    expect(rb).toHaveBeenCalledWith(['comment', 'UI-1', 'Anonymous comment']);
+    expect(rb).toHaveBeenCalledWith(['comments', 'add', 'UI-1', 'Anonymous comment']);
   });
 
   test('returns error when text is empty', async () => {
