@@ -3,6 +3,7 @@ import { watchDb } from './watcher.js';
 
 /** @type {{ dir: string, cb: (event: string, filename?: string) => void, w: { close: () => void } }[]} */
 const watchers = [];
+const directories = new Set();
 
 vi.mock('node:fs', () => {
   const watch = vi.fn((dir, _opts, cb) => {
@@ -16,11 +17,15 @@ vi.mock('node:fs', () => {
     watchers.push({ dir, cb, w });
     return /** @type {any} */ (w);
   });
-  return { default: { watch }, watch };
+  const statSync = vi.fn((file_path) => ({
+    isDirectory: () => directories.has(String(file_path))
+  }));
+  return { default: { watch, statSync }, watch, statSync };
 });
 
 beforeEach(() => {
   watchers.length = 0;
+  directories.clear();
   vi.useFakeTimers();
   vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
@@ -114,6 +119,28 @@ describe('watchDb', () => {
     cb('change', 'ui.db');
     vi.advanceTimersByTime(10);
     expect(calls.length).toBe(2);
+
+    handle.close();
+  });
+
+  test('ignores housekeeping files for directory-backed workspaces', () => {
+    const calls = [];
+    directories.add('/repo/.beads/embeddeddolt');
+    const handle = watchDb('/repo', () => calls.push(null), {
+      debounce_ms: 10,
+      explicit_db: '/repo/.beads/embeddeddolt'
+    });
+    const { cb } = watchers[0];
+
+    cb('change', '.lock');
+    cb('change', 'last-touched');
+    cb('change', 'push-state.json');
+    vi.advanceTimersByTime(20);
+    expect(calls.length).toBe(0);
+
+    cb('change', 'bd');
+    vi.advanceTimersByTime(20);
+    expect(calls.length).toBe(1);
 
     handle.close();
   });

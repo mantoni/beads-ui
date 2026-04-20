@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   findNearestBeadsDb,
   findNearestBeadsMetadata,
+  findNearestEmbeddedDolt,
   resolveDbPath,
   resolveWorkspaceDatabase
 } from './db.js';
@@ -113,7 +114,44 @@ describe('findNearestBeadsMetadata', () => {
   });
 });
 
+describe('findNearestEmbeddedDolt', () => {
+  test('finds nearest embeddeddolt directory walking up', () => {
+    const root = mkdtemp();
+    const nested = path.join(root, 'a', 'b', 'c');
+    fs.mkdirSync(nested, { recursive: true });
+    const embedded_dolt = path.join(root, '.beads', 'embeddeddolt');
+    fs.mkdirSync(embedded_dolt, { recursive: true });
+
+    const found = findNearestEmbeddedDolt(nested);
+
+    expect(found).toBe(embedded_dolt);
+  });
+
+  test('returns null when embeddeddolt is missing', () => {
+    const root = mkdtemp();
+
+    const found = findNearestEmbeddedDolt(root);
+
+    expect(found).toBeNull();
+  });
+});
+
 describe('resolveWorkspaceDatabase', () => {
+  test('uses embeddeddolt directory for embedded Dolt workspace', () => {
+    const root = mkdtemp();
+    const nested = path.join(root, 'workspace', 'nested');
+    fs.mkdirSync(nested, { recursive: true });
+    const beads_dir = path.join(root, '.beads');
+    fs.mkdirSync(path.join(beads_dir, 'embeddeddolt'), { recursive: true });
+    fs.writeFileSync(path.join(beads_dir, 'metadata.json'), '{}');
+
+    const found = resolveWorkspaceDatabase({ cwd: nested, env: {} });
+
+    expect(found.path).toBe(path.join(beads_dir, 'embeddeddolt'));
+    expect(found.source).toBe('embedded-dolt');
+    expect(found.exists).toBe(true);
+  });
+
   test('uses metadata directory for non-SQLite workspace', () => {
     const root = mkdtemp();
     const nested = path.join(root, 'workspace', 'nested');
