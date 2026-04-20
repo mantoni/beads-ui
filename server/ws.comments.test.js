@@ -113,7 +113,7 @@ describe('add-comment handler', () => {
     vi.clearAllMocks();
   });
 
-  test('adds comment with git author and returns updated comments', async () => {
+  test('adds comment with git actor and returns updated comments', async () => {
     const gitUser = /** @type {import('vitest').Mock} */ (getGitUserName);
     const rb = /** @type {import('vitest').Mock} */ (runBd);
     const rj = /** @type {import('vitest').Mock} */ (runBdJson);
@@ -151,12 +151,12 @@ describe('add-comment handler', () => {
     expect(reply.ok).toBe(true);
     expect(reply.payload).toEqual(updatedComments);
 
-    // Verify bd was called with correct args including --author
+    // Verify bd was called with correct args including --actor
     expect(rb).toHaveBeenCalledWith([
       'comment',
       'UI-1',
       'New comment',
-      '--author',
+      '--actor',
       'Test User'
     ]);
   });
