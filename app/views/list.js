@@ -5,6 +5,7 @@ import { ISSUE_TYPES, typeLabel } from '../utils/issue-type.js';
 import { issueHashFor } from '../utils/issue-url.js';
 import { debug } from '../utils/logging.js';
 import { statusLabel } from '../utils/status.js';
+import { showToast } from '../utils/toast.js';
 import { createIssueRowRenderer } from './issue-row.js';
 
 // List view implementation; requires a transport send function.
@@ -60,6 +61,9 @@ export function createListView(
   let unsubscribe = null;
   let status_dropdown_open = false;
   let type_dropdown_open = false;
+  /** @type {Set<string>} */
+  const selected_issue_ids = new Set();
+  let bulk_action_busy = false;
 
   /**
    * Normalize legacy string filter to array format.
@@ -96,7 +100,11 @@ export function createListView(
     onUpdate: updateInline,
     requestRender: doRender,
     getSelectedId: () => selected_id,
-    row_class: 'issue-row'
+    row_class: 'issue-row',
+    showSelection: true,
+    isSelected: (id) => selected_issue_ids.has(id),
+    onToggleSelected: toggleIssueSelection,
+    isSelectionDisabled: () => bulk_action_busy
   });
 
   /**
@@ -203,9 +211,9 @@ export function createListView(
   const selectors = issue_stores ? createListSelectors(issue_stores) : null;
 
   /**
-   * Build lit-html template for the list view.
+   * @returns {Issue[]}
    */
-  function template() {
+  function computeFilteredIssues() {
     let filtered = issues_cache;
     if (status_filters.length > 0 && !status_filters.includes('ready')) {
       filtered = filtered.filter((it) =>
@@ -225,11 +233,311 @@ export function createListView(
         type_filters.includes(String(it.issue_type || ''))
       );
     }
-    // Sorting: closed list is a special case → sort by closed_at desc only
     if (status_filters.length === 1 && status_filters[0] === 'closed') {
       filtered = filtered.slice().sort(cmpClosedDesc);
     }
+    return filtered;
+  }
 
+  /**
+   * @param {Issue[]} filtered_issues
+   */
+  function pruneSelection(filtered_issues) {
+    const allowed_ids = new Set(filtered_issues.map((it) => it.id));
+    for (const issue_id of Array.from(selected_issue_ids)) {
+      if (!allowed_ids.has(issue_id)) {
+        selected_issue_ids.delete(issue_id);
+      }
+    }
+  }
+
+  /**
+   * @param {string} issue_id
+   * @param {boolean} is_selected
+   */
+  function toggleIssueSelection(issue_id, is_selected) {
+    if (is_selected) {
+      selected_issue_ids.add(issue_id);
+    } else {
+      selected_issue_ids.delete(issue_id);
+    }
+    doRender();
+  }
+
+  /**
+   * @param {Issue[]} filtered_issues
+   * @param {boolean} checked
+   */
+  function toggleAllVisibleIssues(filtered_issues, checked) {
+    if (checked) {
+      for (const issue of filtered_issues) {
+        selected_issue_ids.add(issue.id);
+      }
+    } else {
+      for (const issue of filtered_issues) {
+        selected_issue_ids.delete(issue.id);
+      }
+    }
+    doRender();
+  }
+
+  /**
+   * @returns {Issue[]}
+   */
+  function getSelectedIssues() {
+    const selected_issues = [];
+    for (const issue of issues_cache) {
+      if (selected_issue_ids.has(issue.id)) {
+        selected_issues.push(issue);
+      }
+    }
+    return selected_issues;
+  }
+
+  /**
+   * @param {number} count
+   * @param {string} word
+   * @returns {string}
+   */
+  function pluralize(count, word) {
+    if (count === 1) {
+      return `1 ${word}`;
+    }
+    return `${count} ${word}s`;
+  }
+
+  /**
+   * @param {string} raw
+   * @returns {string[]}
+   */
+  function parseLabels(raw) {
+    /** @type {string[]} */
+    const labels = [];
+    /** @type {Set<string>} */
+    const seen = new Set();
+    for (const part of String(raw).split(',')) {
+      const next = part.trim();
+      if (next.length === 0 || seen.has(next)) {
+        continue;
+      }
+      seen.add(next);
+      labels.push(next);
+    }
+    return labels;
+  }
+
+  /**
+   * @param {Issue[]} selected_issues
+   * @returns {string}
+   */
+  function labelsPromptDefault(selected_issues) {
+    if (selected_issues.length === 0) {
+      return '';
+    }
+    const first_labels = Array.isArray(selected_issues[0].labels)
+      ? selected_issues[0].labels
+      : [];
+    for (const issue of selected_issues) {
+      const labels = Array.isArray(issue.labels) ? issue.labels : [];
+      if (labels.join(',') !== first_labels.join(',')) {
+        return '';
+      }
+    }
+    return first_labels.join(', ');
+  }
+
+  /**
+   * @param {Issue[]} selected_issues
+   * @returns {number}
+   */
+  function priorityPromptDefault(selected_issues) {
+    if (selected_issues.length === 0) {
+      return 2;
+    }
+    const first_priority = Number(selected_issues[0].priority ?? 2);
+    for (const issue of selected_issues) {
+      const current_priority = Number(issue.priority ?? 2);
+      if (current_priority !== first_priority) {
+        return 2;
+      }
+    }
+    return first_priority;
+  }
+
+  /**
+   * @param {number} next_priority
+   * @returns {Promise<number>}
+   */
+  async function applyBulkPriority(next_priority) {
+    let failed_count = 0;
+    for (const issue_id of Array.from(selected_issue_ids)) {
+      try {
+        await sendFn('update-priority', { id: issue_id, priority: next_priority });
+      } catch {
+        failed_count++;
+      }
+    }
+    return failed_count;
+  }
+
+  /**
+   * @param {'open'|'closed'} next_status
+   * @returns {Promise<number>}
+   */
+  async function applyBulkStatus(next_status) {
+    let failed_count = 0;
+    for (const issue_id of Array.from(selected_issue_ids)) {
+      try {
+        await sendFn('update-status', { id: issue_id, status: next_status });
+      } catch {
+        failed_count++;
+      }
+    }
+    return failed_count;
+  }
+
+  /**
+   * @param {string[]} next_labels
+   * @returns {Promise<number>}
+   */
+  async function applyBulkLabels(next_labels) {
+    let failed_count = 0;
+    const issue_by_id = new Map(issues_cache.map((it) => [it.id, it]));
+    for (const issue_id of Array.from(selected_issue_ids)) {
+      const issue = issue_by_id.get(issue_id);
+      const current_labels = Array.isArray(issue && issue.labels)
+        ? issue.labels
+        : [];
+      const current_set = new Set(current_labels);
+      const next_set = new Set(next_labels);
+      try {
+        for (const label of current_labels) {
+          if (!next_set.has(label)) {
+            await sendFn('label-remove', { id: issue_id, label });
+          }
+        }
+        for (const label of next_labels) {
+          if (!current_set.has(label)) {
+            await sendFn('label-add', { id: issue_id, label });
+          }
+        }
+      } catch {
+        failed_count++;
+      }
+    }
+    return failed_count;
+  }
+
+  /**
+   * @param {string} action_name
+   * @param {() => Promise<number>} run_action
+   */
+  async function runBulkAction(action_name, run_action) {
+    if (bulk_action_busy || selected_issue_ids.size === 0) {
+      return;
+    }
+    const total_count = selected_issue_ids.size;
+    bulk_action_busy = true;
+    doRender();
+    let failed_count = total_count;
+    try {
+      failed_count = await run_action();
+    } catch {
+      failed_count = total_count;
+    } finally {
+      bulk_action_busy = false;
+    }
+    if (failed_count === 0) {
+      showToast(
+        `${action_name}: ${pluralize(total_count, 'issue')} updated`,
+        'success'
+      );
+      selected_issue_ids.clear();
+    } else {
+      const success_count = total_count - failed_count;
+      if (success_count > 0) {
+        showToast(
+          `${action_name}: ${success_count}/${total_count} updated`,
+          'info'
+        );
+      } else {
+        showToast(`${action_name} failed`, 'error');
+      }
+    }
+    await load();
+  }
+
+  /**
+   * @returns {Promise<void>}
+   */
+  async function onBulkEditLabels() {
+    if (bulk_action_busy || selected_issue_ids.size === 0) {
+      return;
+    }
+    const selected_issues = getSelectedIssues();
+    const initial = labelsPromptDefault(selected_issues);
+    const input = window.prompt(
+      'Set labels for selected issues (comma-separated). Leave empty to clear labels.',
+      initial
+    );
+    if (input === null) {
+      return;
+    }
+    const next_labels = parseLabels(input);
+    await runBulkAction('Labels', () => applyBulkLabels(next_labels));
+  }
+
+  /**
+   * @returns {Promise<void>}
+   */
+  async function onBulkChangePriority() {
+    if (bulk_action_busy || selected_issue_ids.size === 0) {
+      return;
+    }
+    const selected_issues = getSelectedIssues();
+    const initial = priorityPromptDefault(selected_issues);
+    const input = window.prompt(
+      'Set priority for selected issues (0-4).',
+      String(initial)
+    );
+    if (input === null) {
+      return;
+    }
+    const parsed = Number(String(input).trim());
+    if (!Number.isInteger(parsed) || parsed < 0 || parsed > 4) {
+      showToast('Priority must be an integer from 0 to 4', 'error');
+      return;
+    }
+    await runBulkAction('Priority', () => applyBulkPriority(parsed));
+  }
+
+  /**
+   * @returns {Promise<void>}
+   */
+  async function onBulkCloseSelected() {
+    await runBulkAction('Close', () => applyBulkStatus('closed'));
+  }
+
+  /**
+   * @returns {Promise<void>}
+   */
+  async function onBulkReopenSelected() {
+    await runBulkAction('Reopen', () => applyBulkStatus('open'));
+  }
+
+  /**
+   * Build lit-html template for the list view.
+   *
+   * @param {Issue[]} filtered
+   */
+  function template(filtered) {
+    const selected_visible_count = filtered.reduce((count, issue) => {
+      return selected_issue_ids.has(issue.id) ? count + 1 : count;
+    }, 0);
+    const all_visible_selected =
+      filtered.length > 0 && selected_visible_count === filtered.length;
+    const is_partial_selection =
+      selected_visible_count > 0 && !all_visible_selected;
     return html`
       <div class="panel__header">
         <div class="filter-dropdown ${status_dropdown_open ? 'is-open' : ''}">
@@ -282,6 +590,25 @@ export function createListView(
           .value=${search_text}
         />
       </div>
+      ${selected_issue_ids.size > 0
+        ? html`<div class="bulk-toolbar" role="toolbar" aria-label="Bulk actions">
+            <span class="bulk-toolbar__count"
+              >${pluralize(selected_issue_ids.size, 'issue')} selected</span
+            >
+            <button ?disabled=${bulk_action_busy} @click=${onBulkEditLabels}>
+              Edit labels
+            </button>
+            <button ?disabled=${bulk_action_busy} @click=${onBulkChangePriority}>
+              Change priority
+            </button>
+            <button ?disabled=${bulk_action_busy} @click=${onBulkCloseSelected}>
+              Close selected
+            </button>
+            <button ?disabled=${bulk_action_busy} @click=${onBulkReopenSelected}>
+              Reopen selected
+            </button>
+          </div>`
+        : null}
       <div class="panel__body" id="list-root">
         ${filtered.length === 0
           ? html`<div class="issues-block">
@@ -292,9 +619,10 @@ export function createListView(
                 class="table"
                 role="grid"
                 aria-rowcount=${String(filtered.length)}
-                aria-colcount="6"
+                aria-colcount="8"
               >
                 <colgroup>
+                  <col style="width: 48px" />
                   <col style="width: 100px" />
                   <col style="width: 120px" />
                   <col />
@@ -305,6 +633,22 @@ export function createListView(
                 </colgroup>
                 <thead>
                   <tr role="row">
+                    <th role="columnheader" class="row-select-cell">
+                      <input
+                        type="checkbox"
+                        class="row-select-all-checkbox"
+                        aria-label="Select all issues"
+                        .checked=${all_visible_selected}
+                        .indeterminate=${is_partial_selection}
+                        .disabled=${bulk_action_busy}
+                        @change=${/** @param {Event} ev */ (ev) => {
+                          const input = /** @type {HTMLInputElement} */ (
+                            ev.currentTarget
+                          );
+                          toggleAllVisibleIssues(filtered, input.checked);
+                        }}
+                      />
+                    </th>
                     <th role="columnheader">ID</th>
                     <th role="columnheader">Type</th>
                     <th role="columnheader">Title</th>
@@ -327,7 +671,9 @@ export function createListView(
    * Render the current issues_cache with filters applied.
    */
   function doRender() {
-    render(template(), mount_element);
+    const filtered = computeFilteredIssues();
+    pruneSelection(filtered);
+    render(template(filtered), mount_element);
   }
 
   // Initial render (header + body shell with current state)

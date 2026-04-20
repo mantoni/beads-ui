@@ -89,7 +89,7 @@ describe('views/list navigation', () => {
     // Focus Title cell (3rd column) in first row
     const first_title = /** @type {HTMLElement} */ (
       mount.querySelector(
-        'tbody tr.issue-row:nth-child(1) td:nth-child(3) .editable'
+        'tbody tr.issue-row:nth-child(1) td:nth-child(4) .editable'
       )
     );
     first_title.focus();
@@ -102,7 +102,7 @@ describe('views/list navigation', () => {
 
     const second_title = /** @type {HTMLElement} */ (
       mount.querySelector(
-        'tbody tr.issue-row:nth-child(2) td:nth-child(3) .editable'
+        'tbody tr.issue-row:nth-child(2) td:nth-child(4) .editable'
       )
     );
     expect(document.activeElement).toBe(second_title);
@@ -153,7 +153,7 @@ describe('views/list navigation', () => {
 
     const third_title = /** @type {HTMLElement} */ (
       mount.querySelector(
-        'tbody tr.issue-row:nth-child(3) td:nth-child(3) .editable'
+        'tbody tr.issue-row:nth-child(3) td:nth-child(4) .editable'
       )
     );
     third_title.focus();
@@ -163,7 +163,7 @@ describe('views/list navigation', () => {
 
     const second_title = /** @type {HTMLElement} */ (
       mount.querySelector(
-        'tbody tr.issue-row:nth-child(2) td:nth-child(3) .editable'
+        'tbody tr.issue-row:nth-child(2) td:nth-child(4) .editable'
       )
     );
     expect(document.activeElement).toBe(second_title);
@@ -208,7 +208,7 @@ describe('views/list navigation', () => {
     // Focus Status select (4th column) in first row
     const status_select = /** @type {HTMLSelectElement} */ (
       mount.querySelector(
-        'tbody tr.issue-row:nth-child(1) td:nth-child(4) select'
+        'tbody tr.issue-row:nth-child(1) td:nth-child(5) select'
       )
     );
     status_select.focus();
@@ -258,7 +258,7 @@ describe('views/list navigation', () => {
 
     const id_btn_row1 = /** @type {HTMLButtonElement} */ (
       mount.querySelector(
-        'tbody tr.issue-row:nth-child(1) td:nth-child(1) button'
+        'tbody tr.issue-row:nth-child(1) td:nth-child(2) button'
       )
     );
     id_btn_row1.focus();
@@ -268,7 +268,7 @@ describe('views/list navigation', () => {
 
     const id_btn_row2 = /** @type {HTMLButtonElement} */ (
       mount.querySelector(
-        'tbody tr.issue-row:nth-child(2) td:nth-child(1) button'
+        'tbody tr.issue-row:nth-child(2) td:nth-child(2) button'
       )
     );
     expect(document.activeElement).toBe(id_btn_row2);

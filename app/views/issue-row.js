@@ -18,7 +18,11 @@ import { createTypeBadge } from '../utils/type-badge.js';
  *   onUpdate: (id: string, patch: { title?: string, assignee?: string, status?: 'open'|'in_progress'|'closed', priority?: number }) => Promise<void>,
  *   requestRender: () => void,
  *   getSelectedId?: () => string | null,
- *   row_class?: string
+ *   row_class?: string,
+ *   showSelection?: boolean,
+ *   isSelected?: (id: string) => boolean,
+ *   onToggleSelected?: (id: string, is_selected: boolean) => void,
+ *   isSelectionDisabled?: () => boolean
  * }} options
  * @returns {(it: IssueRowData) => import('lit-html').TemplateResult<1>}
  */
@@ -28,6 +32,10 @@ export function createIssueRowRenderer(options) {
   const request_render = options.requestRender;
   const get_selected_id = options.getSelectedId || (() => null);
   const row_class = options.row_class || 'issue-row';
+  const show_selection = options.showSelection === true;
+  const is_selected_fn = options.isSelected || (() => false);
+  const on_toggle_selected = options.onToggleSelected || (() => {});
+  const is_selection_disabled = options.isSelectionDisabled || (() => false);
 
   /** @type {Set<string>} */
   const editing = new Set();
@@ -141,12 +149,34 @@ export function createIssueRowRenderer(options) {
     const cur_status = String(it.status || 'open');
     const cur_prio = String(it.priority ?? 2);
     const is_selected = get_selected_id() === it.id;
+    const is_checked = is_selected_fn(it.id);
+    const selection_disabled = is_selection_disabled();
     return html`<tr
       role="row"
       class="${row_class} ${is_selected ? 'selected' : ''}"
       data-issue-id=${it.id}
       @click=${makeRowClick(it.id)}
     >
+      ${show_selection
+        ? html`<td role="gridcell" class="row-select-cell">
+            <input
+              type="checkbox"
+              class="row-select-checkbox"
+              aria-label=${`Select ${it.id}`}
+              .checked=${is_checked}
+              .disabled=${selection_disabled}
+              @click=${/** @param {MouseEvent} e */ (e) => {
+                e.stopPropagation();
+              }}
+              @change=${/** @param {Event} ev */ (ev) => {
+                const input = /** @type {HTMLInputElement} */ (
+                  ev.currentTarget
+                );
+                on_toggle_selected(it.id, input.checked);
+              }}
+            />
+          </td>`
+        : null}
       <td role="gridcell" class="mono">${createIssueIdRenderer(it.id)}</td>
       <td role="gridcell">${createTypeBadge(it.issue_type)}</td>
       <td role="gridcell">${editableText(it.id, 'title', it.title || '')}</td>
