@@ -1342,7 +1342,7 @@ input.inline-edit:focus {
   }
 
   .board-column__body {
-    touch-action: pan-y;
+    touch-action: pan-x pan-y;
   }
 }
 
