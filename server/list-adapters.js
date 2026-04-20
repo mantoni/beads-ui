@@ -151,6 +151,32 @@ export async function fetchListForSubscription(spec, options = {}) {
         ? [res.stdoutJson]
         : [];
 
+    if (String(spec.type) === 'issue-detail') {
+      const detail_id = String(spec.params?.id || '').trim();
+      if (detail_id.length > 0 && raw.length > 0) {
+        try {
+          const comments = await runBdJson(['comments', detail_id, '--json'], {
+            cwd: options.cwd
+          });
+          if (
+            comments?.code === 0 &&
+            Array.isArray(comments.stdoutJson) &&
+            raw[0] &&
+            typeof raw[0] === 'object'
+          ) {
+            raw = [
+              {
+                ...raw[0],
+                comments: comments.stdoutJson
+              }
+            ];
+          }
+        } catch (err) {
+          log('comments lookup failed for %s: %o', detail_id, err);
+        }
+      }
+    }
+
     // Special-case mapping for `epics`: current bd output nests the epic under
     // an `epic` key and exposes counters at the top level. Flatten so that
     // each entry has a top-level `id` and core fields expected by the registry.

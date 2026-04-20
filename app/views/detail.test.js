@@ -416,6 +416,127 @@ describe('views/detail', () => {
     expect(commentItems[0].textContent).toContain('Fetched');
   });
 
+  test('skips comments fetch when detail snapshot already includes comments', async () => {
+    document.body.innerHTML =
+      '<section class="panel"><div id="mount"></div></section>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+
+    const issue = {
+      id: 'UI-102A',
+      title: 'Snapshot already has comments',
+      dependencies: [],
+      dependents: [],
+      comments: [
+        {
+          id: 1,
+          author: 'Snapshot',
+          text: 'Snapshot comment',
+          created_at: '2025-01-15T12:00:00Z'
+        }
+      ]
+    };
+
+    /** @type {Array<{type: string, payload: unknown}>} */
+    const calls = [];
+    const sendFn = async (
+      /** @type {string} */ type,
+      /** @type {unknown} */ payload
+    ) => {
+      calls.push({ type, payload });
+      return {};
+    };
+
+    const stores = {
+      snapshotFor(/** @type {string} */ id) {
+        return id === 'detail:UI-102A' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+
+    const view = createDetailView(mount, sendFn, undefined, stores);
+    await view.load('UI-102A');
+    await new Promise((r) => setTimeout(r, 20));
+
+    expect(calls).toHaveLength(0);
+    const commentItems = mount.querySelectorAll('.comment-item');
+    expect(commentItems.length).toBe(1);
+    expect(commentItems[0].textContent).toContain('Snapshot comment');
+  });
+
+  test('preserves fetched comments when a live detail refresh omits them', async () => {
+    document.body.innerHTML =
+      '<section class="panel"><div id="mount"></div></section>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+
+    /** @type {Array<Record<string, unknown>>} */
+    const snapshot = [
+      {
+        id: 'UI-103',
+        title: 'Comment refresh regression',
+        dependencies: [],
+        dependents: []
+      }
+    ];
+
+    /** @type {Array<{ type: string, payload: unknown }>} */
+    const calls = [];
+
+    /** @type {null | (() => void)} */
+    let emit = null;
+    const sendFn = async (
+      /** @type {string} */ type,
+      /** @type {unknown} */ payload
+    ) => {
+      calls.push({ type, payload });
+      if (type === 'get-comments') {
+        return [
+          {
+            id: 1,
+            author: 'Fetched',
+            text: 'Fetched comment',
+            created_at: '2025-01-15T12:00:00Z'
+          }
+        ];
+      }
+      return {};
+    };
+
+    const stores = {
+      snapshotFor(/** @type {string} */ id) {
+        return id === 'detail:UI-103' ? snapshot : [];
+      },
+      subscribe(/** @type {() => void} */ fn) {
+        emit = fn;
+        return () => {};
+      }
+    };
+
+    const view = createDetailView(mount, sendFn, undefined, stores);
+    await view.load('UI-103');
+    await new Promise((r) => setTimeout(r, 50));
+
+    snapshot[0] = {
+      id: 'UI-103',
+      title: 'Comment refresh regression',
+      updated_at: '2025-01-16T12:00:00Z',
+      dependencies: [],
+      dependents: []
+    };
+
+    const notify = emit;
+    if (notify) {
+      /** @type {() => void} */ (notify)();
+    }
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(calls.filter((c) => c.type === 'get-comments')).toHaveLength(2);
+    const commentItems = mount.querySelectorAll('.comment-item');
+    expect(commentItems.length).toBe(1);
+    expect(commentItems[0].textContent).toContain('Fetched comment');
+  });
+
   test('renders close reason when present on closed issue', async () => {
     document.body.innerHTML =
       '<section class="panel"><div id="mount"></div></section>';
