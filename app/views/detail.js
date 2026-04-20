@@ -114,6 +114,10 @@ export function createDetailView(
   let comment_text = '';
   /** @type {boolean} */
   let comment_pending = false;
+  /** @type {boolean} */
+  let comments_loading = false;
+  /** @type {Comment[] | null} */
+  let comments_override = null;
 
   /** @type {HTMLDialogElement | null} */
   let delete_dialog = null;
@@ -230,6 +234,37 @@ export function createDetailView(
     );
   }
 
+  async function refreshComments(force = false) {
+    if (!current_id || !current) {
+      return;
+    }
+    if (!force && Array.isArray(/** @type {any} */ (current).comments)) {
+      return;
+    }
+    if (comments_loading) {
+      return;
+    }
+    comments_loading = true;
+    const target_id = current_id;
+    try {
+      const comments = await sendFn('get-comments', { id: target_id });
+      if (
+        Array.isArray(comments) &&
+        current &&
+        current_id === target_id &&
+        String(current.id) === String(target_id)
+      ) {
+        /** @type {any} */ (current).comments = comments;
+        comments_override = null;
+        doRender();
+      }
+    } catch (err) {
+      log('fetch comments failed %s %o', target_id, err);
+    } finally {
+      comments_loading = false;
+    }
+  }
+
   /**
    * Refresh current from subscription store snapshot if available.
    */
@@ -245,10 +280,28 @@ export function createDetailView(
       issue_stores.snapshotFor(`detail:${current_id}`)
     );
     if (Array.isArray(arr) && arr.length > 0) {
+      const previous = current;
       // First item is the issue for this subscription
       const found =
         arr.find((it) => String(it.id) === String(current_id)) || arr[0];
-      current = /** @type {IssueDetail} */ (found);
+      const next = /** @type {IssueDetail & { comments?: Comment[] }} */ (
+        found
+      );
+      let preserved_comments = false;
+      const previous_comments =
+        previous && Array.isArray(/** @type {any} */ (previous).comments)
+          ? /** @type {Comment[]} */ (/** @type {any} */ (previous).comments)
+          : comments_override;
+      if (!Array.isArray(next.comments) && Array.isArray(previous_comments)) {
+        comments_override = previous_comments;
+        preserved_comments = true;
+      } else if (Array.isArray(next.comments)) {
+        comments_override = null;
+      }
+      current = next;
+      if (preserved_comments) {
+        void refreshComments(true);
+      }
     }
   }
 
@@ -839,6 +892,7 @@ export function createDetailView(
       if (Array.isArray(result)) {
         // Update comments in current issue
         /** @type {any} */ (current).comments = result;
+        comments_override = null;
         comment_text = '';
         doRender();
       }
@@ -1170,7 +1224,9 @@ export function createDetailView(
     // Comments section
     const comments = Array.isArray(/** @type {any} */ (issue).comments)
       ? /** @type {Comment[]} */ (/** @type {any} */ (issue).comments)
-      : [];
+      : Array.isArray(comments_override)
+        ? comments_override
+        : [];
     const comments_block = html`<div class="comments">
       <div class="props-card__title">Comments</div>
       ${comments.length === 0
@@ -1500,19 +1556,13 @@ export function createDetailView(
       pending = false;
       comment_text = '';
       comment_pending = false;
+      comments_loading = false;
+      comments_override = null;
       doRender();
 
       // Fetch comments if not already present
       if (current && !(/** @type {any} */ (current).comments)) {
-        try {
-          const comments = await sendFn('get-comments', { id: current_id });
-          if (Array.isArray(comments) && current && current_id === id) {
-            /** @type {any} */ (current).comments = comments;
-            doRender();
-          }
-        } catch (err) {
-          log('fetch comments failed %s %o', id, err);
-        }
+        void refreshComments();
       }
     },
     clear() {

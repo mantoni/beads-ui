@@ -106,6 +106,93 @@ describe('list adapters for subscription types', () => {
     }
   });
 
+  test('fetchListForSubscription enriches issue-detail with comments', async () => {
+    /** @type {import('vitest').Mock} */ (runBdJson)
+      .mockResolvedValueOnce({
+        code: 0,
+        stdoutJson: {
+          id: 'UI-123',
+          title: 'Detail issue',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          closed_at: null
+        }
+      })
+      .mockResolvedValueOnce({
+        code: 0,
+        stdoutJson: [
+          {
+            id: 1,
+            author: 'alice',
+            text: 'Existing comment',
+            created_at: '2024-01-01T00:00:00.000Z'
+          }
+        ]
+      });
+
+    const res = await fetchListForSubscription({
+      type: 'issue-detail',
+      params: { id: 'UI-123' }
+    });
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.items).toHaveLength(1);
+      expect(res.items[0]).toMatchObject({
+        id: 'UI-123',
+        comments: [
+          {
+            id: 1,
+            author: 'alice',
+            text: 'Existing comment'
+          }
+        ]
+      });
+    }
+
+    expect(runBdJson).toHaveBeenNthCalledWith(
+      1,
+      ['show', 'UI-123', '--json'],
+      {}
+    );
+    expect(runBdJson).toHaveBeenNthCalledWith(
+      2,
+      ['comments', 'UI-123', '--json'],
+      {}
+    );
+  });
+
+  test('fetchListForSubscription keeps issue-detail when comments lookup fails', async () => {
+    /** @type {import('vitest').Mock} */ (runBdJson)
+      .mockResolvedValueOnce({
+        code: 0,
+        stdoutJson: {
+          id: 'UI-124',
+          title: 'Detail issue',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          closed_at: null
+        }
+      })
+      .mockResolvedValueOnce({
+        code: 1,
+        stderr: 'comments unavailable'
+      });
+
+    const res = await fetchListForSubscription({
+      type: 'issue-detail',
+      params: { id: 'UI-124' }
+    });
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.items).toHaveLength(1);
+      expect(res.items[0]).toMatchObject({
+        id: 'UI-124',
+        title: 'Detail issue'
+      });
+      expect('comments' in res.items[0]).toBe(false);
+    }
+  });
+
   test('filters tombstoned epics', async () => {
     /** @type {import('vitest').Mock} */ (runBdJson).mockResolvedValue({
       code: 0,
