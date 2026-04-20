@@ -4,6 +4,7 @@
 import { html, render } from 'lit-html';
 import { createListSelectors } from './data/list-selectors.js';
 import { createDataLayer } from './data/providers.js';
+import { createSnapshotCache } from './data/snapshot-cache.js';
 import { createSubscriptionIssueStores } from './data/subscription-issue-stores.js';
 import { createSubscriptionStore } from './data/subscriptions-store.js';
 import { createHashRouter, parseHash, parseView } from './router.js';
@@ -109,6 +110,86 @@ export function bootstrap(root_element) {
     const subscriptions = createSubscriptionStore(tracked_send);
     // Per-subscription stores (source of truth)
     const sub_issue_stores = createSubscriptionIssueStores();
+    const snapshot_cache = createSnapshotCache(window.localStorage);
+    /** @type {Map<string, { type: string, params?: Record<string, string|number|boolean> }>} */
+    const cached_specs = new Map();
+    /** @type {ReturnType<typeof setTimeout> | null} */
+    let persist_snapshot_timer = null;
+
+    /**
+     * @returns {string | null}
+     */
+    function getSnapshotWorkspacePath() {
+      const current = store.getState().workspace.current?.path;
+      if (current) {
+        return current;
+      }
+      const saved = window.localStorage.getItem('beads-ui.workspace');
+      return saved && saved.length > 0 ? saved : null;
+    }
+
+    /**
+     * @param {string} client_id
+     * @param {{ type: string, params?: Record<string, string|number|boolean> }} spec
+     */
+    function hydrateStoreFromCache(client_id, spec) {
+      const store_for_id = sub_issue_stores.getStore(client_id);
+      if (!store_for_id || typeof store_for_id.hydrate !== 'function') {
+        return;
+      }
+      const cached_items = snapshot_cache.read(
+        getSnapshotWorkspacePath(),
+        spec
+      );
+      if (cached_items && cached_items.length > 0) {
+        store_for_id.hydrate(cached_items);
+      }
+    }
+
+    /**
+     * @param {string} client_id
+     * @param {{ type: string, params?: Record<string, string|number|boolean> }} spec
+     */
+    function registerCachedStore(client_id, spec) {
+      sub_issue_stores.register(client_id, spec);
+      cached_specs.set(client_id, spec);
+      hydrateStoreFromCache(client_id, spec);
+    }
+
+    /**
+     * @param {string} client_id
+     */
+    function unregisterCachedStore(client_id) {
+      cached_specs.delete(client_id);
+      sub_issue_stores.unregister(client_id);
+    }
+
+    function persistCachedSnapshots() {
+      const workspace_path = getSnapshotWorkspacePath();
+      if (!workspace_path) {
+        return;
+      }
+      for (const [client_id, spec] of cached_specs.entries()) {
+        const items = sub_issue_stores.snapshotFor(client_id);
+        if (items.length > 0) {
+          snapshot_cache.write(workspace_path, spec, items);
+        }
+      }
+    }
+
+    function schedulePersistCachedSnapshots() {
+      if (persist_snapshot_timer) {
+        clearTimeout(persist_snapshot_timer);
+      }
+      persist_snapshot_timer = setTimeout(() => {
+        persist_snapshot_timer = null;
+        persistCachedSnapshots();
+      }, 50);
+    }
+
+    sub_issue_stores.subscribe(() => {
+      schedulePersistCachedSnapshots();
+    });
     // Route per-subscription push envelopes to the owning store
     client.on('snapshot', (payload) => {
       const p = /** @type {any} */ (payload);
@@ -192,7 +273,7 @@ export function bootstrap(root_element) {
       ];
       for (const id of storeIds) {
         try {
-          sub_issue_stores.unregister(id);
+          unregisterCachedStore(id);
         } catch {
           // ignore
         }
@@ -286,6 +367,9 @@ export function bootstrap(root_element) {
               }
             : null;
           store.setState({ workspace: { current, available } });
+          if (current?.path) {
+            window.localStorage.setItem('beads-ui.workspace', current.path);
+          }
 
           // Check if we have a saved preference that differs from current
           const savedWorkspace =
@@ -706,7 +790,7 @@ export function bootstrap(root_element) {
         const key = JSON.stringify(spec);
         // Register store first to capture the initial snapshot
         try {
-          sub_issue_stores.register('tab:issues', spec);
+          registerCachedStore('tab:issues', spec);
         } catch (err) {
           log('register issues store failed: %o', err);
         }
@@ -736,7 +820,7 @@ export function bootstrap(root_element) {
         unsub_issues_tab = null;
         last_issues_spec_key = null;
         try {
-          sub_issue_stores.unregister('tab:issues');
+          unregisterCachedStore('tab:issues');
         } catch (err) {
           log('unregister issues store failed: %o', err);
         }
@@ -746,7 +830,7 @@ export function bootstrap(root_element) {
       if (s.view === 'epics') {
         // Register store first to avoid race with initial snapshot
         try {
-          sub_issue_stores.register('tab:epics', { type: 'epics' });
+          registerCachedStore('tab:epics', { type: 'epics' });
         } catch (err) {
           log('register epics store failed: %o', err);
         }
@@ -770,7 +854,7 @@ export function bootstrap(root_element) {
         void unsub_epics_tab().catch(() => {});
         unsub_epics_tab = null;
         try {
-          sub_issue_stores.unregister('tab:epics');
+          unregisterCachedStore('tab:epics');
         } catch (err) {
           log('unregister epics store failed: %o', err);
         }
@@ -784,7 +868,7 @@ export function bootstrap(root_element) {
           !pending_subscriptions.has('tab:board:ready')
         ) {
           try {
-            sub_issue_stores.register('tab:board:ready', {
+            registerCachedStore('tab:board:ready', {
               type: 'ready-issues'
             });
           } catch (err) {
@@ -808,7 +892,7 @@ export function bootstrap(root_element) {
           !pending_subscriptions.has('tab:board:in-progress')
         ) {
           try {
-            sub_issue_stores.register('tab:board:in-progress', {
+            registerCachedStore('tab:board:in-progress', {
               type: 'in-progress-issues'
             });
           } catch (err) {
@@ -834,7 +918,7 @@ export function bootstrap(root_element) {
           !pending_subscriptions.has('tab:board:closed')
         ) {
           try {
-            sub_issue_stores.register('tab:board:closed', {
+            registerCachedStore('tab:board:closed', {
               type: 'closed-issues'
             });
           } catch (err) {
@@ -858,7 +942,7 @@ export function bootstrap(root_element) {
           !pending_subscriptions.has('tab:board:blocked')
         ) {
           try {
-            sub_issue_stores.register('tab:board:blocked', {
+            registerCachedStore('tab:board:blocked', {
               type: 'blocked-issues'
             });
           } catch (err) {
@@ -882,7 +966,7 @@ export function bootstrap(root_element) {
           void unsub_board_ready().catch(() => {});
           unsub_board_ready = null;
           try {
-            sub_issue_stores.unregister('tab:board:ready');
+            unregisterCachedStore('tab:board:ready');
           } catch (err) {
             log('unregister board:ready failed: %o', err);
           }
@@ -891,7 +975,7 @@ export function bootstrap(root_element) {
           void unsub_board_in_progress().catch(() => {});
           unsub_board_in_progress = null;
           try {
-            sub_issue_stores.unregister('tab:board:in-progress');
+            unregisterCachedStore('tab:board:in-progress');
           } catch (err) {
             log('unregister board:in-progress failed: %o', err);
           }
@@ -900,7 +984,7 @@ export function bootstrap(root_element) {
           void unsub_board_closed().catch(() => {});
           unsub_board_closed = null;
           try {
-            sub_issue_stores.unregister('tab:board:closed');
+            unregisterCachedStore('tab:board:closed');
           } catch (err) {
             log('unregister board:closed failed: %o', err);
           }
@@ -909,7 +993,7 @@ export function bootstrap(root_element) {
           void unsub_board_blocked().catch(() => {});
           unsub_board_blocked = null;
           try {
-            sub_issue_stores.unregister('tab:board:blocked');
+            unregisterCachedStore('tab:board:blocked');
           } catch (err) {
             log('unregister board:blocked failed: %o', err);
           }

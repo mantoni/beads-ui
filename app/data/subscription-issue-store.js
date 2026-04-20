@@ -47,6 +47,31 @@ export function createSubscriptionIssueStore(id, options = {}) {
   }
 
   /**
+   * Seed the store from a cached snapshot without advancing revision state.
+   *
+   * @param {any[]} items
+   * @returns {boolean}
+   */
+  function hydrate(items) {
+    if (is_disposed || last_revision > 0 || items_by_id.size > 0) {
+      return false;
+    }
+    const next_items = Array.isArray(items) ? items : [];
+    if (next_items.length === 0) {
+      return false;
+    }
+    items_by_id.clear();
+    for (const it of next_items) {
+      if (it && typeof it.id === 'string' && it.id.length > 0) {
+        items_by_id.set(it.id, it);
+      }
+    }
+    rebuildOrdered();
+    emit();
+    return true;
+  }
+
+  /**
    * Apply snapshot/upsert/delete in revision order. Snapshots reset state.
    * - Ignore messages with revision <= last_revision (except snapshot which resets first).
    * - Preserve object identity when updating an existing item by mutating
@@ -139,6 +164,7 @@ export function createSubscriptionIssueStore(id, options = {}) {
         listeners.delete(fn);
       };
     },
+    hydrate,
     applyPush,
     snapshot() {
       // Return as read-only view; callers must not mutate
