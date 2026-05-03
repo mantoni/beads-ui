@@ -17,8 +17,8 @@ import { debug } from './logging.js';
  * @returns {{ close: () => void, rebind: (opts?: { root_dir?: string, explicit_db?: string }) => void, path: string }}
  */
 export function watchDb(root_dir, onChange, options = {}) {
-  const debounce_ms = options.debounce_ms ?? 250;
-  const cooldown_ms = options.cooldown_ms ?? 1000;
+  const debounce_ms = options.debounce_ms ?? 750;
+  const cooldown_ms = options.cooldown_ms ?? 4000;
   const log = debug('watcher');
 
   /** @type {ReturnType<typeof setTimeout> | undefined} */
@@ -37,10 +37,12 @@ export function watchDb(root_dir, onChange, options = {}) {
     if (timer) {
       clearTimeout(timer);
     }
+    const now = Date.now();
+    const wait_ms = Math.max(debounce_ms, cooldown_until - now);
     timer = setTimeout(() => {
       onChange();
       cooldown_until = Date.now() + cooldown_ms;
-    }, debounce_ms);
+    }, wait_ms);
     timer.unref();
   };
 
@@ -73,13 +75,16 @@ export function watchDb(root_dir, onChange, options = {}) {
         current_dir,
         { persistent: true },
         (event_type, filename) => {
-          if (current_file && filename && String(filename) !== current_file) {
-            return;
-          }
-          if (event_type === 'change' || event_type === 'rename') {
-            if (Date.now() < cooldown_until) {
+          const signal_files = new Set(['issues.jsonl', 'interactions.jsonl']);
+          if (filename) {
+            const name = String(filename);
+            const matches_db_basename = current_file && name === current_file;
+            const is_signal_file = signal_files.has(name);
+            if (!matches_db_basename && !is_signal_file) {
               return;
             }
+          }
+          if (event_type === 'change' || event_type === 'rename') {
             log('fs %s %s', event_type, filename || '');
             schedule();
           }
@@ -119,6 +124,10 @@ export function watchDb(root_dir, onChange, options = {}) {
       const next_path = next_resolved.path;
       if (next_path !== current_path) {
         // swap watcher
+        if (timer) {
+          clearTimeout(timer);
+          timer = undefined;
+        }
         watcher?.close();
         cooldown_until = 0;
         bind(next_root, next_explicit);

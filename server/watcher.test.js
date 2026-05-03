@@ -55,12 +55,37 @@ describe('watchDb', () => {
     const calls = [];
     const handle = watchDb('/repo', () => calls.push(null), {
       debounce_ms: 50,
+      cooldown_ms: 100,
       explicit_db: '/repo/.beads/ui.db'
     });
     const { cb } = watchers[0];
     cb('change', 'something-else.db');
     vi.advanceTimersByTime(60);
     expect(calls.length).toBe(0);
+    handle.close();
+  });
+
+  test('accepts Dolt JSONL mutation signal files', () => {
+    const calls = [];
+    const handle = watchDb('/repo', () => calls.push(null), {
+      debounce_ms: 50,
+      cooldown_ms: 100,
+      explicit_db: '/repo/.beads/ui.db'
+    });
+    const { cb } = watchers[0];
+
+    cb('change', 'issues.jsonl');
+    vi.advanceTimersByTime(50);
+    expect(calls.length).toBe(1);
+
+    cb('change', 'interactions.jsonl');
+    vi.advanceTimersByTime(101);
+    expect(calls.length).toBe(2);
+
+    cb('change', 'last-touched');
+    vi.advanceTimersByTime(101);
+    expect(calls.length).toBe(2);
+
     handle.close();
   });
 
@@ -93,7 +118,28 @@ describe('watchDb', () => {
     handle.close();
   });
 
-  test('ignores changes during cooldown window', () => {
+  test('rebind clears pending cooldown refresh', () => {
+    const calls = [];
+    const handle = watchDb('/repo', () => calls.push(null), {
+      debounce_ms: 10,
+      cooldown_ms: 100,
+      explicit_db: '/repo/.beads/ui.db'
+    });
+    const first = watchers[0];
+
+    first.cb('change', 'ui.db');
+    vi.advanceTimersByTime(10);
+    expect(calls.length).toBe(1);
+
+    first.cb('change', 'ui.db');
+    handle.rebind({ explicit_db: '/other/.beads/alt.db' });
+    vi.advanceTimersByTime(100);
+    expect(calls.length).toBe(1);
+
+    handle.close();
+  });
+
+  test('delays changes during cooldown window', () => {
     const calls = [];
     const handle = watchDb('/repo', () => calls.push(null), {
       debounce_ms: 10,
@@ -110,9 +156,7 @@ describe('watchDb', () => {
     vi.advanceTimersByTime(10);
     expect(calls.length).toBe(1);
 
-    vi.advanceTimersByTime(100);
-    cb('change', 'ui.db');
-    vi.advanceTimersByTime(10);
+    vi.advanceTimersByTime(90);
     expect(calls.length).toBe(2);
 
     handle.close();
