@@ -146,6 +146,17 @@ function runBdUnlocked(args, options = {}) {
       finish(127);
     });
     child.on('close', (code) => {
+      const exit_code = Number(code || 0);
+      if (exit_code !== 0) {
+        // Mirror the logging runBdJson already does so non-JSON callers
+        // (mutation handlers) leave a debug trace on failure.
+        log(
+          'bd exited with code %d (args=%o) stderr=%s',
+          exit_code,
+          final_args,
+          err_chunks.join('')
+        );
+      }
       finish(code);
     });
   });
@@ -207,12 +218,7 @@ async function withBdRunQueue(operation) {
 export async function runBdJson(args, options = {}) {
   const result = await runBd(args, options);
   if (result.code !== 0) {
-    log(
-      'bd exited with code %d (args=%o) stderr=%s',
-      result.code,
-      args,
-      result.stderr
-    );
+    // Non-zero exits are logged centrally in runBdUnlocked's child.on('close').
     return { code: result.code, stderr: result.stderr };
   }
   /** @type {unknown} */

@@ -153,6 +153,43 @@ describe('runBd', () => {
     const options = mockedSpawn.mock.calls[0][2];
     expect(options.env.BEADS_DB).toBe('/custom/workspace.db');
   });
+
+  test('logs non-zero exit with args and stderr (parity with runBdJson)', async () => {
+    // Enable the bd debug namespace and capture stderr writes so we can
+    // assert the new exit log fires. Without this log, write failures from
+    // mutation handlers (which use runBd, not runBdJson) leave no trace.
+    const debug_mod = await import('debug');
+    const prev_enabled = process.env.DEBUG;
+    debug_mod.default.enable('beads-ui:bd');
+
+    /** @type {string[]} */
+    const captured = [];
+    const spy = vi.spyOn(process.stderr, 'write').mockImplementation(
+      /** @param {any} chunk */ (chunk) => {
+        captured.push(String(chunk));
+        return true;
+      }
+    );
+
+    try {
+      mockedSpawn.mockReturnValueOnce(makeFakeProc('', 'boom', 2));
+      const res = await runBd(['update', 'UI-7', '--status', 'in_progress']);
+      expect(res.code).toBe(2);
+
+      const joined = captured.join('');
+      expect(joined).toMatch(/beads-ui:bd/);
+      expect(joined).toMatch(/code 2/);
+      expect(joined).toMatch(/update/);
+      expect(joined).toMatch(/boom/);
+    } finally {
+      spy.mockRestore();
+      if (prev_enabled === undefined) {
+        debug_mod.default.disable();
+      } else {
+        debug_mod.default.enable(prev_enabled);
+      }
+    }
+  });
 });
 
 describe('runBdJson', () => {
