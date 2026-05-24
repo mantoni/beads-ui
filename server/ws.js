@@ -597,6 +597,12 @@ export async function handleMessage(ws, data) {
 
   const req = json;
 
+  // Pin every bd invocation made during this message to the active workspace.
+  // Without this, runBd/runBdJson fall back to process.cwd() and bd reports
+  // "no beads database found" for any workspace selected via set-workspace.
+  // See mantoni/beads-ui#87.
+  const bd_options = { cwd: CURRENT_WORKSPACE?.root_dir };
+
   // Dispatch known types here as we implement them. For now, only a ping utility.
   if (req.type === /** @type {MessageType} */ ('ping')) {
     ws.send(JSON.stringify(makeOk(req, { ts: Date.now() })));
@@ -749,14 +755,14 @@ export async function handleMessage(ws, data) {
       return;
     }
     // Pass empty string to clear assignee when requested
-    const res = await runBd(['update', id, '--assignee', assignee]);
+    const res = await runBd(['update', id, '--assignee', assignee], bd_options);
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
       );
       return;
     }
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(['show', id, '--json'], bd_options);
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -794,14 +800,14 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const res = await runBd(['update', id, '--status', status]);
+    const res = await runBd(['update', id, '--status', status], bd_options);
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
       );
       return;
     }
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(['show', id, '--json'], bd_options);
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -840,14 +846,17 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const res = await runBd(['update', id, '--priority', String(priority)]);
+    const res = await runBd(
+      ['update', id, '--priority', String(priority)],
+      bd_options
+    );
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
       );
       return;
     }
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(['show', id, '--json'], bd_options);
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -904,14 +913,14 @@ export async function handleMessage(ws, data) {
             : field === 'notes'
               ? '--notes'
               : '--design';
-    const res = await runBd(['update', id, flag, value]);
+    const res = await runBd(['update', id, flag, value], bd_options);
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
       );
       return;
     }
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(['show', id, '--json'], bd_options);
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -962,7 +971,7 @@ export async function handleMessage(ws, data) {
     if (typeof description === 'string' && description.length > 0) {
       args.push('-d', description);
     }
-    const res = await runBd(args);
+    const res = await runBd(args, bd_options);
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
@@ -1000,7 +1009,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const res = await runBd(['dep', 'add', a, b]);
+    const res = await runBd(['dep', 'add', a, b], bd_options);
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
@@ -1008,7 +1017,7 @@ export async function handleMessage(ws, data) {
       return;
     }
     const id = typeof view_id === 'string' && view_id.length > 0 ? view_id : a;
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(['show', id, '--json'], bd_options);
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -1044,7 +1053,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const res = await runBd(['dep', 'remove', a, b]);
+    const res = await runBd(['dep', 'remove', a, b], bd_options);
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
@@ -1052,7 +1061,7 @@ export async function handleMessage(ws, data) {
       return;
     }
     const id = typeof view_id === 'string' && view_id.length > 0 ? view_id : a;
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(['show', id, '--json'], bd_options);
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -1088,14 +1097,14 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const res = await runBd(['label', 'add', id, label.trim()]);
+    const res = await runBd(['label', 'add', id, label.trim()], bd_options);
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
       );
       return;
     }
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(['show', id, '--json'], bd_options);
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -1131,14 +1140,14 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const res = await runBd(['label', 'remove', id, label.trim()]);
+    const res = await runBd(['label', 'remove', id, label.trim()], bd_options);
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
       );
       return;
     }
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(['show', id, '--json'], bd_options);
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -1165,7 +1174,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const res = await runBdJson(['comments', id, '--json']);
+    const res = await runBdJson(['comments', id, '--json'], bd_options);
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
@@ -1204,7 +1213,7 @@ export async function handleMessage(ws, data) {
       args.push('--author', author);
     }
 
-    const res = await runBd(args);
+    const res = await runBd(args, bd_options);
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
@@ -1213,7 +1222,7 @@ export async function handleMessage(ws, data) {
     }
 
     // Return updated comments list
-    const comments = await runBdJson(['comments', id, '--json']);
+    const comments = await runBdJson(['comments', id, '--json'], bd_options);
     if (comments.code !== 0) {
       ws.send(
         JSON.stringify(
@@ -1237,7 +1246,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const res = await runBd(['delete', id, '--force']);
+    const res = await runBd(['delete', id, '--force'], bd_options);
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(
