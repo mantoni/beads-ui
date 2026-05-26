@@ -1170,6 +1170,46 @@ input.inline-edit:focus {
 .epic-children {
   padding: 8px 12px 12px;
 }
+
+/* In-table epic layout: title cell hosts chevron, title text, and progress */
+.epic-title-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.epic-title-cell .epic-title-text {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.epic-title-cell .epic-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.epic-title-cell .epic-progress progress {
+  width: 140px;
+  height: 8px;
+  accent-color: var(--status-closed-base);
+}
+
+.epic-chevron {
+  display: inline-block;
+  width: 14px;
+  text-align: center;
+  user-select: none;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.epic-chevron:hover {
+  color: var(--text-strong, currentColor);
+}
 .table {
   width: 100%;
   border-collapse: collapse;
