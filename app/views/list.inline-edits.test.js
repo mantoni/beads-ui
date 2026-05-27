@@ -133,4 +133,94 @@ describe('views/list inline edits', () => {
     );
     expect(prio2.value).toBe('4');
   });
+
+  test('type select dispatches update-type and offers decision option', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+
+    const initial = [
+      {
+        id: 'UI-1',
+        title: 'One',
+        status: 'open',
+        priority: 1,
+        issue_type: 'task'
+      }
+    ];
+
+    /** @type {{ calls: Array<{ type: string, payload: any }> }} */
+    const spy = { calls: [] };
+    let current = [...initial];
+
+    /** @type {(type: string, payload?: any) => Promise<any>} */
+    const send = vi.fn(async (type, payload) => {
+      spy.calls.push({ type, payload });
+      if (type === 'update-type') {
+        const id = payload.id;
+        const idx = current.findIndex((x) => x.id === id);
+        if (idx >= 0) {
+          const updated = { ...current[idx], issue_type: payload.type };
+          current[idx] = updated;
+          issueStores.getStore('tab:issues').applyPush({
+            type: 'upsert',
+            id: 'tab:issues',
+            revision: 2,
+            issues: [updated]
+          });
+        }
+        return {};
+      }
+      throw new Error('Unexpected');
+    });
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues: current
+    });
+
+    const view = createListView(
+      mount,
+      send,
+      undefined,
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+
+    const row = /** @type {HTMLElement} */ (
+      mount.querySelector('tr.issue-row[data-issue-id="UI-1"]')
+    );
+    expect(row).toBeTruthy();
+    const typeSel = /** @type {HTMLSelectElement} */ (
+      row.querySelector('select.badge--type')
+    );
+    expect(typeSel).toBeTruthy();
+    expect(typeSel.value).toBe('task');
+
+    // 'decision' must be present as an option
+    const optionValues = Array.from(typeSel.options).map((o) => o.value);
+    expect(optionValues).toContain('decision');
+
+    typeSel.value = 'feature';
+    typeSel.dispatchEvent(new Event('change'));
+
+    await Promise.resolve();
+
+    const typeCall = spy.calls.find((c) => c.type === 'update-type');
+    expect(typeCall).toBeTruthy();
+    expect(typeCall && typeCall.payload).toEqual({
+      id: 'UI-1',
+      type: 'feature'
+    });
+
+    const typeSel2 = /** @type {HTMLSelectElement} */ (
+      mount.querySelector(
+        'tr.issue-row[data-issue-id="UI-1"] select.badge--type'
+      )
+    );
+    expect(typeSel2.value).toBe('feature');
+  });
 });
