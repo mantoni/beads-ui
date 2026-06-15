@@ -20,6 +20,8 @@ export interface Issue extends IssueRef {
   issue_type?: string;
   assignee?: string | null;
   labels?: string[];
+  comment_count?: number;
+  comments?: Array<Record<string, unknown>>;
   // Relationship fields for detail payloads
   dependencies?: DependencyRef[];
   dependents?: DependencyRef[];

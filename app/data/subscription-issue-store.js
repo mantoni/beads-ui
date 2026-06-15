@@ -5,6 +5,14 @@ import { debug } from '../utils/logging.js';
 import { cmpPriorityThenCreated } from './sort.js';
 
 /**
+ * @param {object} obj
+ * @param {string} key
+ */
+function hasOwn(obj, key) {
+  return Object.prototype.hasOwnProperty.call(obj, key);
+}
+
+/**
  * Per-subscription issue store. Holds full Issue objects and exposes a
  * deterministic, read-only snapshot for rendering. Applies snapshot/upsert/
  * delete messages in revision order and preserves object identity per id.
@@ -98,6 +106,12 @@ export function createSubscriptionIssueStore(id, options = {}) {
             ? /** @type {number} */ (it.updated_at)
             : 0;
           if (prev_ts <= next_ts) {
+            const has_incoming_comments = hasOwn(it, 'comments');
+            const preserve_comments =
+              !has_incoming_comments && hasOwn(existing, 'comments');
+            const previous_comments = preserve_comments
+              ? existing.comments
+              : undefined;
             // Mutate existing object to preserve reference
             for (const k of Object.keys(existing)) {
               if (!(k in it)) {
@@ -108,6 +122,9 @@ export function createSubscriptionIssueStore(id, options = {}) {
             for (const [k, v] of Object.entries(it)) {
               // @ts-ignore - dynamic assignment
               existing[k] = v;
+            }
+            if (preserve_comments) {
+              existing.comments = previous_comments;
             }
           } else {
             // stale by timestamp; ignore
