@@ -45,7 +45,7 @@ export function mapSubscriptionToBdArgs(spec) {
       if (id.length === 0) {
         throw badRequest('Missing param: params.id');
       }
-      return ['show', id, '--json'];
+      return ['show', id, '--json', '--include-dependents'];
     }
     default: {
       throw badRequest(`Unknown subscription type: ${t}`);
