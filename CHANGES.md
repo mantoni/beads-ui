@@ -1,5 +1,22 @@
 # Changes
 
+## 0.12.1
+
+- [`dee0ffa`](https://github.com/mantoni/beads-ui/commit/dee0ffac6a5635c6761a4c97e3878157f2131f6b)
+  Fix detail comments after live updates (#92) (Greg Procunier)
+    >
+    > Co-authored-by: gprocunier <gprocunier@users.noreply.github.com>
+- [`41135d1`](https://github.com/mantoni/beads-ui/commit/41135d185936c73b719a8cd27519b0918108de00)
+  feat(cli): print server URL on start/restart when reusing existing server (#79) (Leon Letto)
+    >
+    > Previously `bdui restart` (and `start` when the default port was already
+    > in use by another bdui) only reported that the workspace was registered
+    > with an existing server, with no clickable URL in the terminal output.
+    > This adds a `beads ui   listening on <url>` line to those paths so users
+    > can click straight through to the UI.
+
+_Released by gprocunier on 2026-07-03._
+
 ## 0.12.0
 
 - [`8559d4a`](https://github.com/mantoni/beads-ui/commit/8559d4af699555b9943914a2e790965c9e4d8da7)
