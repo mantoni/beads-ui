@@ -1,5 +1,18 @@
 # Changes
 
+## 0.12.2
+
+- [`92b80f9`](https://github.com/mantoni/beads-ui/commit/92b80f90339a7619dc0d8f7a10046b023658004d)
+  fix: use 'bd comments add' so --author is accepted (#97) (Jim C)
+    >
+    > Fixes #67 and #74.
+- [`bc972a2`](https://github.com/mantoni/beads-ui/commit/bc972a2af68c0ae6fcab9b6c0613a28543fea5ec)
+  fix(detail): request --include-dependents so children render (#94) (Nick Veenhof)
+    >
+    > Fixes #93.
+
+_Released by gprocunier on 2026-07-10._
+
 ## 0.12.1
 
 - [`dee0ffa`](https://github.com/mantoni/beads-ui/commit/dee0ffac6a5635c6761a4c97e3878157f2131f6b)
