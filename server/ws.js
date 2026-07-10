@@ -749,14 +749,14 @@ export async function handleMessage(ws, data) {
       return;
     }
     // Pass empty string to clear assignee when requested
-    const res = await runBd(['update', id, '--assignee', assignee]);
+    const res = await runBd(['update', id, '--assignee', assignee], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
       );
       return;
     }
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(['show', id, '--json'], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -794,14 +794,14 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const res = await runBd(['update', id, '--status', status]);
+    const res = await runBd(['update', id, '--status', status], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
       );
       return;
     }
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(['show', id, '--json'], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -840,14 +840,14 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const res = await runBd(['update', id, '--priority', String(priority)]);
+    const res = await runBd(['update', id, '--priority', String(priority)], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
       );
       return;
     }
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(['show', id, '--json'], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -904,14 +904,14 @@ export async function handleMessage(ws, data) {
             : field === 'notes'
               ? '--notes'
               : '--design';
-    const res = await runBd(['update', id, flag, value]);
+    const res = await runBd(['update', id, flag, value], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
       );
       return;
     }
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(['show', id, '--json'], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -962,7 +962,7 @@ export async function handleMessage(ws, data) {
     if (typeof description === 'string' && description.length > 0) {
       args.push('-d', description);
     }
-    const res = await runBd(args);
+    const res = await runBd(args, { cwd: CURRENT_WORKSPACE?.root_dir });
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
@@ -1000,7 +1000,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const res = await runBd(['dep', 'add', a, b]);
+    const res = await runBd(['dep', 'add', a, b], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
@@ -1008,7 +1008,7 @@ export async function handleMessage(ws, data) {
       return;
     }
     const id = typeof view_id === 'string' && view_id.length > 0 ? view_id : a;
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(['show', id, '--json'], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -1044,7 +1044,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const res = await runBd(['dep', 'remove', a, b]);
+    const res = await runBd(['dep', 'remove', a, b], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
@@ -1052,7 +1052,7 @@ export async function handleMessage(ws, data) {
       return;
     }
     const id = typeof view_id === 'string' && view_id.length > 0 ? view_id : a;
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(['show', id, '--json'], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -1088,14 +1088,14 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const res = await runBd(['label', 'add', id, label.trim()]);
+    const res = await runBd(['label', 'add', id, label.trim()], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
       );
       return;
     }
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(['show', id, '--json'], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -1131,14 +1131,14 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const res = await runBd(['label', 'remove', id, label.trim()]);
+    const res = await runBd(['label', 'remove', id, label.trim()], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
       );
       return;
     }
-    const shown = await runBdJson(['show', id, '--json']);
+    const shown = await runBdJson(['show', id, '--json'], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (shown.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
@@ -1165,7 +1165,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const res = await runBdJson(['comments', id, '--json']);
+    const res = await runBdJson(['comments', id, '--json'], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
@@ -1204,7 +1204,7 @@ export async function handleMessage(ws, data) {
       args.push('--author', author);
     }
 
-    const res = await runBd(args);
+    const res = await runBd(args, { cwd: CURRENT_WORKSPACE?.root_dir });
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
@@ -1213,7 +1213,7 @@ export async function handleMessage(ws, data) {
     }
 
     // Return updated comments list
-    const comments = await runBdJson(['comments', id, '--json']);
+    const comments = await runBdJson(['comments', id, '--json'], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (comments.code !== 0) {
       ws.send(
         JSON.stringify(
@@ -1237,7 +1237,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    const res = await runBd(['delete', id, '--force']);
+    const res = await runBd(['delete', id, '--force'], { cwd: CURRENT_WORKSPACE?.root_dir });
     if (res.code !== 0) {
       ws.send(
         JSON.stringify(

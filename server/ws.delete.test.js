@@ -42,7 +42,7 @@ describe('delete-issue handler', () => {
     );
 
     // Check bd delete was called with --force
-    expect(rb).toHaveBeenCalledWith(['delete', 'beads-abc123', '--force']);
+    expect(rb).toHaveBeenCalledWith(['delete', 'beads-abc123', '--force'], { cwd: undefined });
 
     // Check response
     expect(ws.sent.length).toBe(1);

@@ -63,7 +63,7 @@ describe('get-comments handler', () => {
     expect(reply.payload).toEqual(comments);
 
     // Verify bd was called with correct args
-    expect(rj).toHaveBeenCalledWith(['comments', 'UI-1', '--json']);
+    expect(rj).toHaveBeenCalledWith(['comments', 'UI-1', '--json'], { cwd: undefined });
   });
 
   test('returns error when issue id missing', async () => {
@@ -158,7 +158,7 @@ describe('add-comment handler', () => {
       'New comment',
       '--author',
       'Test User'
-    ]);
+    ], { cwd: undefined });
   });
 
   test('adds comment without author when git user name is empty', async () => {
@@ -190,7 +190,7 @@ describe('add-comment handler', () => {
     expect(reply.ok).toBe(true);
 
     // Verify bd was called without --author
-    expect(rb).toHaveBeenCalledWith(['comment', 'UI-1', 'Anonymous comment']);
+    expect(rb).toHaveBeenCalledWith(['comment', 'UI-1', 'Anonymous comment'], { cwd: undefined });
   });
 
   test('returns error when text is empty', async () => {
