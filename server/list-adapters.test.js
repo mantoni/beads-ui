@@ -14,7 +14,8 @@ describe('list adapters for subscription types', () => {
 
   test('mapSubscriptionToBdArgs returns args for all-issues', () => {
     const args = mapSubscriptionToBdArgs({ type: 'all-issues' });
-    expect(args).toEqual(['list', '--json', '--tree=false']);
+    // `--limit 0` = unlimited; without it bd list truncates at its default 50
+    expect(args).toEqual(['list', '--json', '--tree=false', '--limit', '0']);
   });
 
   test('mapSubscriptionToBdArgs returns args for epics', () => {
@@ -35,12 +36,15 @@ describe('list adapters for subscription types', () => {
 
   test('mapSubscriptionToBdArgs returns args for in-progress-issues', () => {
     const args = mapSubscriptionToBdArgs({ type: 'in-progress-issues' });
+    // `--limit 0` = unlimited; without it bd list truncates at its default 50
     expect(args).toEqual([
       'list',
       '--json',
       '--tree=false',
       '--status',
-      'in_progress'
+      'in_progress',
+      '--limit',
+      '0'
     ]);
   });
 
