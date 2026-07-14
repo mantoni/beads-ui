@@ -1,5 +1,6 @@
 /**
  * @import { MessageType } from './protocol.js'
+ * @import { StatusFilter } from './state.js'
  */
 import { html, render } from 'lit-html';
 import { createListSelectors } from './data/list-selectors.js';
@@ -10,6 +11,7 @@ import { createHashRouter, parseHash, parseView } from './router.js';
 import { createStore } from './state.js';
 import { createActivityIndicator } from './utils/activity-indicator.js';
 import { debug } from './utils/logging.js';
+import { STATUSES } from './utils/status.js';
 import { showToast } from './utils/toast.js';
 import { createBoardView } from './views/board.js';
 import { createDetailView } from './views/detail.js';
@@ -345,7 +347,7 @@ export function bootstrap(root_element) {
       client.onConnection(onConn);
     }
     // Load persisted filters (status/search/type) from localStorage
-    /** @type {{ status: 'all'|'open'|'in_progress'|'closed'|'ready', search: string, type: string }} */
+    /** @type {{ status: StatusFilter, search: string, type: string }} */
     let persisted_filters = { status: 'all', search: '', type: '' };
     try {
       const raw = window.localStorage.getItem('beads-ui.filters');
@@ -368,9 +370,7 @@ export function bootstrap(root_element) {
             parsed_type = first_valid;
           }
           persisted_filters = {
-            status: ['all', 'open', 'in_progress', 'closed', 'ready'].includes(
-              obj.status
-            )
+            status: ['all', 'ready', ...STATUSES].includes(obj.status)
               ? obj.status
               : 'all',
             search: typeof obj.search === 'string' ? obj.search : '',

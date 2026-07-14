@@ -4,7 +4,14 @@
 import { debug } from './utils/logging.js';
 
 /**
- * @typedef {'all'|'open'|'in_progress'|'closed'|'ready'} StatusFilter
+ * @import { Status } from './protocol.js'
+ */
+
+/**
+ * A status filter is any status bd can report, plus the derived `ready`
+ * selection and the `all` default.
+ *
+ * @typedef {'all'|'ready'|Status} StatusFilter
  */
 
 /**

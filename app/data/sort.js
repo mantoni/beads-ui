@@ -4,7 +4,11 @@
  */
 
 /**
- * @typedef {{ id: string, title?: string, status?: 'open'|'in_progress'|'closed', priority?: number, issue_type?: string, created_at?: number, updated_at?: number, closed_at?: number }} IssueLite
+ * @import { Status } from '../protocol.js'
+ */
+
+/**
+ * @typedef {{ id: string, title?: string, status?: Status, priority?: number, issue_type?: string, created_at?: number, updated_at?: number, closed_at?: number }} IssueLite
  */
 
 /**

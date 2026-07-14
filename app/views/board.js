@@ -1,3 +1,6 @@
+/**
+ * @import { Status } from '../protocol.js'
+ */
 import { html, render } from 'lit-html';
 import { createListSelectors } from '../data/list-selectors.js';
 import { cmpClosedDesc, cmpPriorityThenCreated } from '../data/sort.js';
@@ -11,7 +14,7 @@ import { createTypeBadge } from '../utils/type-badge.js';
  * @typedef {{
  *   id: string,
  *   title?: string,
- *   status?: 'open'|'in_progress'|'closed',
+ *   status?: Status,
  *   priority?: number,
  *   issue_type?: string,
  *   created_at?: number,

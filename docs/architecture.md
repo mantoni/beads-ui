@@ -82,7 +82,9 @@ Push‑only subscriptions for lists and details:
 Common message types (mutations only; list reads removed):
 
 - `update-status` payload:
-  `{ id: string, status: 'open'|'in_progress'|'closed' }`
+  `{ id: string, status: 'open'|'in_progress'|'blocked'|'deferred'|'closed' }`
+  (the human-settable statuses; `pinned` and `hooked` are bd's to manage and are
+  rejected)
 - `edit-text` payload:
   `{ id: string, field: 'title'|'description'|'acceptance'|'notes'|'design', value: string }`
 - `update-priority` payload: `{ id: string, priority: 0|1|2|3|4 }`
@@ -99,7 +101,8 @@ Removed in v2:
 ## UI → bd Command Mapping
 
 - Lists and details: push‑only via `subscribe-list` (no list reads)
-- Update status: `bd update <id> --status <open|in_progress|closed>`
+- Update status:
+  `bd update <id> --status <open|in_progress|blocked|deferred|closed>`
 - Update priority: `bd update <id> --priority <0..4>`
 - Edit title: `bd update <id> --title <text>`
 - Edit description: `bd update <id> --description <text>`
@@ -123,7 +126,16 @@ interface Issue {
   title?: string;
   description?: string;
   acceptance?: string;
-  status?: 'open' | 'in_progress' | 'closed';
+  // Read side: every status bd can report. Only the five human-settable ones
+  // are accepted by `update-status`.
+  status?:
+    | 'open'
+    | 'in_progress'
+    | 'blocked'
+    | 'deferred'
+    | 'closed'
+    | 'pinned'
+    | 'hooked';
   priority?: 0 | 1 | 2 | 3 | 4;
   dependencies?: Array<{
     id: string;
