@@ -12,6 +12,63 @@
 /** @typedef {'list-issues'|'update-status'|'edit-text'|'update-priority'|'create-issue'|'list-ready'|'dep-add'|'dep-remove'|'epic-status'|'update-assignee'|'label-add'|'label-remove'|'subscribe-list'|'unsubscribe-list'|'snapshot'|'upsert'|'delete'|'get-comments'|'add-comment'|'delete-issue'|'list-workspaces'|'set-workspace'|'get-workspace'|'workspace-changed'} MessageType */
 
 /**
+ * Every status `bd` can report on an issue.
+ *
+ * @typedef {'open'|'in_progress'|'blocked'|'deferred'|'closed'|'pinned'|'hooked'} Status
+ */
+
+/**
+ * The subset of {@link Status} a human may set. `pinned` and `hooked` are
+ * owned by bd's own machinery (list pinning, gate/formula workflow engine), so
+ * the UI renders them but never offers them as an edit, and `update-status`
+ * rejects them.
+ *
+ * @typedef {'open'|'in_progress'|'blocked'|'deferred'|'closed'} SettableStatus
+ */
+
+/**
+ * All statuses, in canonical order.
+ *
+ * @type {readonly Status[]}
+ */
+export const STATUSES = [
+  'open',
+  'in_progress',
+  'blocked',
+  'deferred',
+  'closed',
+  'pinned',
+  'hooked'
+];
+
+/**
+ * Statuses a human may set, in canonical order. Shared by the client (the
+ * status `<select>`s) and the server (`update-status` validation) so the two
+ * cannot drift.
+ *
+ * @type {readonly SettableStatus[]}
+ */
+export const SETTABLE_STATUSES = [
+  'open',
+  'in_progress',
+  'blocked',
+  'deferred',
+  'closed'
+];
+
+/**
+ * Whether an arbitrary string is a status a human may set. The single gate for
+ * both the client (which options a `<select>` offers) and the server (which
+ * `update-status` payloads it accepts).
+ *
+ * @param {string} status
+ * @returns {status is SettableStatus}
+ */
+export function isSettableStatus(status) {
+  return /** @type {readonly string[]} */ (SETTABLE_STATUSES).includes(status);
+}
+
+/**
  * @typedef {Object} RequestEnvelope
  * @property {string} id - Unique id to correlate request/response.
  * @property {MessageType} type - Message type.

@@ -1,8 +1,15 @@
+/**
+ * @import { SettableStatus } from '../protocol.js'
+ */
 import { html } from 'lit-html';
 import { createIssueIdRenderer } from '../utils/issue-id-renderer.js';
 import { emojiForPriority } from '../utils/priority-badge.js';
 import { priority_levels } from '../utils/priority.js';
-import { statusLabel } from '../utils/status.js';
+import {
+  isSettableStatus,
+  statusLabel,
+  statusOptions
+} from '../utils/status.js';
 import { createTypeBadge } from '../utils/type-badge.js';
 
 /**
@@ -15,7 +22,7 @@ import { createTypeBadge } from '../utils/type-badge.js';
  *
  * @param {{
  *   navigate: (id: string) => void,
- *   onUpdate: (id: string, patch: { title?: string, assignee?: string, status?: 'open'|'in_progress'|'closed', priority?: number }) => Promise<void>,
+ *   onUpdate: (id: string, patch: { title?: string, assignee?: string, status?: SettableStatus, priority?: number }) => Promise<void>,
  *   requestRender: () => void,
  *   getSelectedId?: () => string | null,
  *   row_class?: string
@@ -156,9 +163,16 @@ export function createIssueRowRenderer(options) {
           .value=${cur_status}
           @change=${makeSelectChange(it.id, 'status')}
         >
-          ${['open', 'in_progress', 'closed'].map(
+          ${statusOptions(cur_status).map(
             (s) =>
-              html`<option value=${s} ?selected=${cur_status === s}>
+              // An out-of-set current status (e.g. `pinned`) is shown so the
+              // select tells the truth, but disabled so it cannot be re-chosen:
+              // the server rejects `update-status pinned`.
+              html`<option
+                value=${s}
+                ?selected=${cur_status === s}
+                ?disabled=${!isSettableStatus(s)}
+              >
                 ${statusLabel(s)}
               </option>`
           )}

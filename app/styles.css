@@ -11,7 +11,11 @@
   /* Status base colors */
   --status-open-base: #51cb4e; /* open */
   --status-in-progress-base: #666666; /* in_progress */
+  --status-blocked-base: #c0392b; /* blocked */
+  --status-deferred-base: #5b7fa6; /* deferred */
   --status-closed-base: #5f26c9; /* closed */
+  --status-pinned-base: #f69842; /* pinned (machine-managed) */
+  --status-hooked-base: #6b7280; /* hooked (machine-managed) */
 
   /* Type base colors */
   --type-bug-base: #9f2011;
@@ -628,12 +632,40 @@ button:disabled {
     var(--status-in-progress-base) 90%,
     #000
   );
+  --badge-bg-blocked: color-mix(
+    in srgb,
+    var(--panel-bg) 85%,
+    var(--status-blocked-base)
+  );
+  --badge-fg-blocked: color-mix(in srgb, var(--status-blocked-base) 90%, #000);
+  --badge-bg-deferred: color-mix(
+    in srgb,
+    var(--panel-bg) 85%,
+    var(--status-deferred-base)
+  );
+  --badge-fg-deferred: color-mix(
+    in srgb,
+    var(--status-deferred-base) 90%,
+    #000
+  );
   --badge-bg-closed: color-mix(
     in srgb,
     var(--panel-bg) 85%,
     var(--status-closed-base)
   );
   --badge-fg-closed: color-mix(in srgb, var(--status-closed-base) 90%, #000);
+  --badge-bg-pinned: color-mix(
+    in srgb,
+    var(--panel-bg) 85%,
+    var(--status-pinned-base)
+  );
+  --badge-fg-pinned: color-mix(in srgb, var(--status-pinned-base) 90%, #000);
+  /* `hooked` shares in_progress's neutral grey on purpose (both are "in
+     flight"), so it cannot be told apart by hue. It is set apart structurally
+     instead: an unfilled, dashed badge (see `.is-hooked` below) that reads as
+     machine-managed and recedes next to the filled human statuses. */
+  --badge-bg-hooked: transparent;
+  --badge-fg-hooked: color-mix(in srgb, var(--status-hooked-base) 90%, #000);
 
   /* Priority palette mapped to provided colors */
   /* p0 -> bug, p1 -> epic, p2 -> task, p3 -> feature, p4 -> chore */
@@ -675,12 +707,41 @@ button:disabled {
       var(--status-in-progress-base) 75%,
       #fff
     );
+    --badge-bg-blocked: color-mix(
+      in srgb,
+      var(--panel-bg) 80%,
+      var(--status-blocked-base)
+    );
+    --badge-fg-blocked: color-mix(
+      in srgb,
+      var(--status-blocked-base) 75%,
+      #fff
+    );
+    --badge-bg-deferred: color-mix(
+      in srgb,
+      var(--panel-bg) 80%,
+      var(--status-deferred-base)
+    );
+    --badge-fg-deferred: color-mix(
+      in srgb,
+      var(--status-deferred-base) 75%,
+      #fff
+    );
     --badge-bg-closed: color-mix(
       in srgb,
       var(--panel-bg) 80%,
       var(--status-closed-base)
     );
     --badge-fg-closed: color-mix(in srgb, var(--status-closed-base) 75%, #fff);
+    --badge-bg-pinned: color-mix(
+      in srgb,
+      var(--panel-bg) 80%,
+      var(--status-pinned-base)
+    );
+    --badge-fg-pinned: color-mix(in srgb, var(--status-pinned-base) 75%, #fff);
+    /* Unfilled + dashed; see the light palette's note. */
+    --badge-bg-hooked: transparent;
+    --badge-fg-hooked: color-mix(in srgb, var(--status-hooked-base) 75%, #fff);
 
     --badge-bg-p0: color-mix(
       in srgb,
@@ -732,12 +793,37 @@ html[data-theme='dark'] {
     var(--status-in-progress-base) 75%,
     #fff
   );
+  --badge-bg-blocked: color-mix(
+    in srgb,
+    var(--panel-bg) 80%,
+    var(--status-blocked-base)
+  );
+  --badge-fg-blocked: color-mix(in srgb, var(--status-blocked-base) 75%, #fff);
+  --badge-bg-deferred: color-mix(
+    in srgb,
+    var(--panel-bg) 80%,
+    var(--status-deferred-base)
+  );
+  --badge-fg-deferred: color-mix(
+    in srgb,
+    var(--status-deferred-base) 75%,
+    #fff
+  );
   --badge-bg-closed: color-mix(
     in srgb,
     var(--panel-bg) 80%,
     var(--status-closed-base)
   );
   --badge-fg-closed: color-mix(in srgb, var(--status-closed-base) 75%, #fff);
+  --badge-bg-pinned: color-mix(
+    in srgb,
+    var(--panel-bg) 80%,
+    var(--status-pinned-base)
+  );
+  --badge-fg-pinned: color-mix(in srgb, var(--status-pinned-base) 75%, #fff);
+  /* Unfilled + dashed; see the light palette's note. */
+  --badge-bg-hooked: transparent;
+  --badge-fg-hooked: color-mix(in srgb, var(--status-hooked-base) 75%, #fff);
 
   --badge-bg-p0: color-mix(in srgb, var(--panel-bg) 80%, var(--type-bug-base));
   --badge-fg-p0: color-mix(in srgb, var(--type-bug-base) 75%, #fff);
@@ -769,10 +855,34 @@ html[data-theme='dark'] {
   background: var(--badge-bg-in-progress);
   color: var(--badge-fg-in-progress);
 }
+.status-badge.is-blocked,
+.badge-select.badge--status.is-blocked {
+  background: var(--badge-bg-blocked);
+  color: var(--badge-fg-blocked);
+}
+.status-badge.is-deferred,
+.badge-select.badge--status.is-deferred {
+  background: var(--badge-bg-deferred);
+  color: var(--badge-fg-deferred);
+}
 .status-badge.is-closed,
 .badge-select.badge--status.is-closed {
   background: var(--badge-bg-closed);
   color: var(--badge-fg-closed);
+}
+.status-badge.is-pinned,
+.badge-select.badge--status.is-pinned {
+  background: var(--badge-bg-pinned);
+  color: var(--badge-fg-pinned);
+}
+/* Machine-managed: unfilled with a dashed border so it never reads as a
+   human's `in_progress`, which shares the same neutral grey. */
+.status-badge.is-hooked,
+.badge-select.badge--status.is-hooked {
+  background: var(--badge-bg-hooked);
+  color: var(--badge-fg-hooked);
+  border-style: dashed;
+  border-color: color-mix(in srgb, currentColor 55%, transparent);
 }
 
 .priority-badge.is-p0,
