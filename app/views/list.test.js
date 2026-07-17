@@ -712,6 +712,192 @@ describe('views/list', () => {
     expect(rows).toEqual(['UI-1', 'UI-2']);
   });
 
+  test('clicking epic chevron toggles expanded state', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const stores = createTestIssueStores();
+    stores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues: [
+        {
+          id: 'X-1',
+          title: 'Epic A',
+          status: 'open',
+          priority: 1,
+          issue_type: 'epic'
+        }
+      ]
+    });
+    // Counters live in tab:epics (separate subscription backed by `bd epic status`)
+    stores.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
+      revision: 1,
+      issues: [{ id: 'X-1', total_children: 3, closed_children: 1 }]
+    });
+    const view = createListView(
+      mount,
+      async () => null,
+      () => {},
+      undefined,
+      undefined,
+      stores
+    );
+    await view.load();
+    const chevron = mount.querySelector('[data-epic-id="X-1"] .epic-chevron');
+    expect(chevron).toBeTruthy();
+    expect(chevron?.getAttribute('aria-expanded')).toBe('false');
+    /** @type {HTMLElement} */ (chevron).click();
+    await Promise.resolve();
+    expect(chevron?.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  test('clicking epic chevron twice collapses (toggle is bidirectional)', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const stores = createTestIssueStores();
+    stores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues: [
+        {
+          id: 'X-1',
+          title: 'Epic A',
+          status: 'open',
+          priority: 1,
+          issue_type: 'epic'
+        }
+      ]
+    });
+    stores.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
+      revision: 1,
+      issues: [{ id: 'X-1', total_children: 1, closed_children: 0 }]
+    });
+    // Seed children so the expand path has something to render.
+    stores.getStore('detail:X-1').applyPush({
+      type: 'snapshot',
+      id: 'detail:X-1',
+      revision: 1,
+      issues: [
+        {
+          id: 'X-1',
+          dependents: [
+            {
+              id: 'X-2',
+              title: 'child',
+              status: 'open',
+              priority: 2,
+              issue_type: 'task'
+            }
+          ]
+        }
+      ]
+    });
+    const view = createListView(
+      mount,
+      async () => null,
+      () => {},
+      undefined,
+      undefined,
+      stores
+    );
+    await view.load();
+
+    const chevron = mount.querySelector('[data-epic-id="X-1"] .epic-chevron');
+    expect(chevron).toBeTruthy();
+
+    // Click 1: expand
+    /** @type {HTMLElement} */ (chevron).click();
+    await Promise.resolve();
+    expect(chevron?.getAttribute('aria-expanded')).toBe('true');
+
+    // Click 2: collapse
+    /** @type {HTMLElement} */ (chevron).click();
+    await Promise.resolve();
+    expect(chevron?.getAttribute('aria-expanded')).toBe('false');
+    // Child row no longer in DOM after collapse
+    expect(mount.querySelector('[data-issue-id="X-2"]')).toBeFalsy();
+  });
+
+  test('epic row renders progress bar and hides child duplicates', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const stores = createTestIssueStores();
+    stores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues: [
+        {
+          id: 'X-EPIC',
+          title: 'Epic A',
+          status: 'open',
+          priority: 1,
+          issue_type: 'epic'
+        },
+        // Child rows present in the flat list (should be hidden because parent is in list)
+        {
+          id: 'X-2',
+          title: 'Child One',
+          status: 'open',
+          priority: 2,
+          issue_type: 'task',
+          parent: 'X-EPIC'
+        },
+        {
+          id: 'X-3',
+          title: 'Child Two',
+          status: 'closed',
+          priority: 2,
+          issue_type: 'task',
+          parent: 'X-EPIC'
+        },
+        // Non-child top-level row (should remain visible)
+        {
+          id: 'X-4',
+          title: 'Standalone',
+          status: 'open',
+          priority: 2,
+          issue_type: 'task'
+        }
+      ]
+    });
+    // Counters live in tab:epics
+    stores.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
+      revision: 1,
+      issues: [{ id: 'X-EPIC', total_children: 2, closed_children: 1 }]
+    });
+    const view = createListView(
+      mount,
+      async () => null,
+      () => {},
+      undefined,
+      undefined,
+      stores
+    );
+    await view.load();
+
+    // Epic row present with progress bar
+    const epicRow = mount.querySelector('[data-issue-id="X-EPIC"]');
+    expect(epicRow).toBeTruthy();
+    expect(epicRow?.querySelector('progress')).toBeTruthy();
+    expect(epicRow?.textContent).toContain('1/2');
+
+    // Children X-2 and X-3 hidden from top-level (no rows with their IDs)
+    expect(mount.querySelector('[data-issue-id="X-2"]')).toBeFalsy();
+    expect(mount.querySelector('[data-issue-id="X-3"]')).toBeFalsy();
+
+    // Standalone visible
+    expect(mount.querySelector('[data-issue-id="X-4"]')).toBeTruthy();
+  });
+
   test('deselecting all checkboxes shows all issues', async () => {
     document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
@@ -748,5 +934,230 @@ describe('views/list', () => {
     toggleFilter(mount, 0, 'Open');
     await Promise.resolve();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(2);
+  });
+
+  test('status filter applies to expanded children (expanded epic persists)', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const stores = createTestIssueStores();
+    // Epic is open — would be filtered out by 'Closed' filter without the
+    // expanded-epics-always-render rule. Test exercises both child filtering
+    // AND the expanded-epic recovery branch in partitionForTree.
+    stores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues: [
+        {
+          id: 'X-EPIC',
+          title: 'Epic',
+          status: 'open',
+          priority: 1,
+          issue_type: 'epic'
+        }
+      ]
+    });
+    stores.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
+      revision: 1,
+      issues: [{ id: 'X-EPIC', total_children: 2, closed_children: 1 }]
+    });
+    // Seed children into the epic's detail store
+    // (selectEpicChildren reads `detail:${id}` and returns the entry whose id === epic_id, .dependents)
+    stores.getStore('detail:X-EPIC').applyPush({
+      type: 'snapshot',
+      id: 'detail:X-EPIC',
+      revision: 1,
+      issues: [
+        {
+          id: 'X-EPIC',
+          dependents: [
+            {
+              id: 'X-2',
+              title: 'open child',
+              status: 'open',
+              priority: 2,
+              issue_type: 'task'
+            },
+            {
+              id: 'X-3',
+              title: 'closed child',
+              status: 'closed',
+              priority: 2,
+              issue_type: 'task'
+            }
+          ]
+        }
+      ]
+    });
+    const view = createListView(
+      mount,
+      async () => null,
+      () => {},
+      undefined,
+      undefined,
+      stores
+    );
+    await view.load();
+
+    // Expand the epic
+    /** @type {HTMLElement} */ (
+      mount.querySelector('[data-epic-id="X-EPIC"] .epic-chevron')
+    ).click();
+    await Promise.resolve();
+
+    // Both children visible initially
+    expect(mount.querySelector('[data-issue-id="X-2"]')).toBeTruthy();
+    expect(mount.querySelector('[data-issue-id="X-3"]')).toBeTruthy();
+
+    // Apply Closed filter
+    toggleFilter(mount, 0, 'Closed');
+    await Promise.resolve();
+
+    // Epic should still render (expanded epics always render — Key Decision)
+    expect(mount.querySelector('[data-epic-id="X-EPIC"]')).toBeTruthy();
+    // Open child hidden, closed child visible
+    expect(mount.querySelector('[data-issue-id="X-2"]')).toBeFalsy();
+    expect(mount.querySelector('[data-issue-id="X-3"]')).toBeTruthy();
+  });
+
+  test('non-expanded epic filtered out hides entirely (top-level filter still works)', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const stores = createTestIssueStores();
+    stores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues: [
+        {
+          id: 'X-EPIC',
+          title: 'Epic',
+          status: 'open',
+          priority: 1,
+          issue_type: 'epic'
+        },
+        {
+          id: 'X-5',
+          title: 'closed task',
+          status: 'closed',
+          priority: 2,
+          issue_type: 'task'
+        }
+      ]
+    });
+    stores.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
+      revision: 1,
+      issues: [{ id: 'X-EPIC', total_children: 1, closed_children: 0 }]
+    });
+    const view = createListView(
+      mount,
+      async () => null,
+      () => {},
+      undefined,
+      undefined,
+      stores
+    );
+    await view.load();
+
+    // Apply Closed filter — open epic was never expanded, so should be filtered out
+    toggleFilter(mount, 0, 'Closed');
+    await Promise.resolve();
+
+    expect(mount.querySelector('[data-epic-id="X-EPIC"]')).toBeFalsy();
+    expect(mount.querySelector('[data-issue-id="X-5"]')).toBeTruthy();
+  });
+
+  test('no auto-expand on initial load', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const stores = createTestIssueStores();
+    stores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues: [
+        {
+          id: 'X-EPIC',
+          title: 'E',
+          status: 'open',
+          priority: 1,
+          issue_type: 'epic'
+        }
+      ]
+    });
+    stores.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
+      revision: 1,
+      issues: [{ id: 'X-EPIC', total_children: 1, closed_children: 0 }]
+    });
+    const view = createListView(
+      mount,
+      async () => null,
+      () => {},
+      undefined,
+      undefined,
+      stores
+    );
+    await view.load();
+
+    const chevron = mount.querySelector(
+      '[data-epic-id="X-EPIC"] .epic-chevron'
+    );
+    expect(chevron?.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  test('clicking epic title (not chevron) navigates instead of expanding', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const stores = createTestIssueStores();
+    stores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues: [
+        {
+          id: 'X-1',
+          title: 'Epic A',
+          status: 'open',
+          priority: 1,
+          issue_type: 'epic'
+        }
+      ]
+    });
+    stores.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
+      revision: 1,
+      issues: [{ id: 'X-1', total_children: 1, closed_children: 0 }]
+    });
+    const view = createListView(
+      mount,
+      async () => null,
+      () => {},
+      undefined,
+      undefined,
+      stores
+    );
+    await view.load();
+
+    // Title text uses a span (no inline edit on epic rows — title_renderer
+    // emits a plain text span); clicking it should bubble to the row click
+    // handler and navigate, NOT expand the epic.
+    const titleText = mount.querySelector(
+      '[data-issue-id="X-1"] .epic-title-text'
+    );
+    expect(titleText).toBeTruthy();
+    const chevron = mount.querySelector('[data-issue-id="X-1"] .epic-chevron');
+    expect(chevron?.getAttribute('aria-expanded')).toBe('false');
+
+    // Click title — should NOT expand (chevron's click target is independent)
+    /** @type {HTMLElement} */ (titleText).click();
+    await Promise.resolve();
+    expect(chevron?.getAttribute('aria-expanded')).toBe('false');
   });
 });

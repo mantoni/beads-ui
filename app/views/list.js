@@ -20,7 +20,10 @@ import { createIssueRowRenderer } from './issue-row.js';
  * @param {(type: string, payload?: unknown) => Promise<unknown>} sendFn - RPC transport.
  * @param {(hash: string) => void} [navigate_fn] - Navigation function (defaults to setting location.hash).
  * @param {{ getState: () => any, setState: (patch: any) => void, subscribe: (fn: (s:any)=>void)=>()=>void }} [store] - Optional state store.
- * @param {{ selectors: { getIds: (client_id: string) => string[] } }} [_subscriptions]
+ * @param {{
+ *   selectors?: { getIds?: (client_id: string) => string[] },
+ *   subscribeList?: (client_id: string, spec: { type: string, params?: Record<string, string|number|boolean> }) => Promise<() => Promise<void>>
+ * }} [subscriptions]
  * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void }} [issueStores]
  * @returns {{ load: () => Promise<void>, destroy: () => void }} View API.
  */
@@ -31,7 +34,10 @@ import { createIssueRowRenderer } from './issue-row.js';
  * @param {(type: string, payload?: unknown) => Promise<unknown>} sendFn
  * @param {(hash: string) => void} [navigateFn]
  * @param {{ getState: () => any, setState: (patch: any) => void, subscribe: (fn: (s:any)=>void)=>()=>void }} [store]
- * @param {{ selectors: { getIds: (client_id: string) => string[] } }} [_subscriptions]
+ * @param {{
+ *   selectors?: { getIds?: (client_id: string) => string[] },
+ *   subscribeList?: (client_id: string, spec: { type: string, params?: Record<string, string|number|boolean> }) => Promise<() => Promise<void>>
+ * }} [subscriptions]
  * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void }} [issue_stores]
  * @returns {{ load: () => Promise<void>, destroy: () => void }}
  */
@@ -40,12 +46,10 @@ export function createListView(
   sendFn,
   navigateFn,
   store,
-  _subscriptions = undefined,
+  subscriptions = undefined,
   issue_stores = undefined
 ) {
   const log = debug('views:list');
-  // Touch unused param to satisfy lint rules without impacting behavior
-  /** @type {any} */ (void _subscriptions);
   /** @type {string[]} */
   let status_filters = [];
   /** @type {string} */
@@ -56,6 +60,12 @@ export function createListView(
   let type_filters = [];
   /** @type {string | null} */
   let selected_id = store ? store.getState().selected_id : null;
+  /** @type {Set<string>} */
+  const expanded = new Set();
+  /** @type {Set<string>} */
+  const loading = new Set();
+  /** @type {Map<string, () => Promise<void>>} */
+  const epic_unsubs = new Map();
   /** @type {null | (() => void)} */
   let unsubscribe = null;
   let status_dropdown_open = false;
@@ -85,18 +95,82 @@ export function createListView(
     return [];
   }
 
-  // Shared row renderer (used in template below)
+  /**
+   * Build navigate handler shared by all three row renderers.
+   *
+   * @param {string} id
+   */
+  function navigateToIssue(id) {
+    const nav = navigateFn || ((h) => (window.location.hash = h));
+    /** @type {'issues'|'epics'|'board'} */
+    const view = store ? store.getState().view : 'issues';
+    nav(issueHashFor(view, id));
+  }
+
+  // Shared row renderer for non-epic top-level rows
   const row_renderer = createIssueRowRenderer({
-    navigate: (id) => {
-      const nav = navigateFn || ((h) => (window.location.hash = h));
-      /** @type {'issues'|'epics'|'board'} */
-      const view = store ? store.getState().view : 'issues';
-      nav(issueHashFor(view, id));
-    },
+    navigate: navigateToIssue,
     onUpdate: updateInline,
     requestRender: doRender,
     getSelectedId: () => selected_id,
     row_class: 'issue-row'
+  });
+
+  // Child rows are canonical rows with an extra class for visual differentiation
+  const child_row_renderer = createIssueRowRenderer({
+    navigate: navigateToIssue,
+    onUpdate: updateInline,
+    requestRender: doRender,
+    getSelectedId: () => selected_id,
+    row_class: 'issue-row epic-child-row'
+  });
+
+  // Epic rows use the canonical pipeline but inject a custom title cell
+  // (chevron + title text + progress bar). Only the chevron toggles expand.
+  const epic_row_renderer = createIssueRowRenderer({
+    navigate: navigateToIssue,
+    onUpdate: updateInline,
+    requestRender: doRender,
+    getSelectedId: () => selected_id,
+    row_class: 'issue-row epic-row-inline',
+    title_renderer: /** @param {{ id: string, title?: string }} it */ (it) => {
+      const id = String(it.id);
+      const is_open = expanded.has(id);
+      const { total, closed } = getEpicCounters(id);
+      return html`
+        <span class="epic-title-cell" data-epic-id=${id}>
+          <span
+            class="epic-chevron"
+            role="button"
+            tabindex="0"
+            aria-expanded=${is_open ? 'true' : 'false'}
+            aria-label=${is_open ? 'Collapse epic' : 'Expand epic'}
+            @click=${
+              /** @param {Event} ev */ (ev) => {
+                ev.stopPropagation();
+                ev.preventDefault();
+                void toggleEpic(id);
+              }
+            }
+            @keydown=${
+              /** @param {KeyboardEvent} ev */ (ev) => {
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                  ev.preventDefault();
+                  ev.stopPropagation();
+                  void toggleEpic(id);
+                }
+              }
+            }
+            >${is_open ? '▾' : '▸'}</span
+          >
+          <span class="epic-title-text">${it.title || ''}</span>
+          <span class="epic-progress">
+            <progress value=${closed} max=${Math.max(1, total)}></progress>
+            <span class="muted mono">${closed}/${total}</span>
+          </span>
+        </span>
+      `;
+    }
   });
 
   /**
@@ -203,6 +277,110 @@ export function createListView(
   const selectors = issue_stores ? createListSelectors(issue_stores) : null;
 
   /**
+   * Look up counters for an epic from the tab:epics snapshot.
+   * Returns {total: 0, closed: 0} if the epic isn't in the snapshot yet
+   * (race condition during initial load — progress bar will update on
+   * the next push when tab:epics arrives).
+   *
+   * @param {string} epic_id
+   */
+  function getEpicCounters(epic_id) {
+    if (!issue_stores || typeof issue_stores.snapshotFor !== 'function') {
+      return { total: 0, closed: 0 };
+    }
+    const arr = issue_stores.snapshotFor('tab:epics') || [];
+    const meta = arr.find((e) => String(e?.id || '') === String(epic_id));
+    if (!meta) return { total: 0, closed: 0 };
+    return {
+      total: Number(/** @type {any} */ (meta).total_children || 0),
+      closed: Number(/** @type {any} */ (meta).closed_children || 0)
+    };
+  }
+
+  /**
+   * Partition the (filtered ∪ expanded-epics) list into:
+   *  - epic_rows: items with issue_type === 'epic' (rendered with header + optional children)
+   *  - top_level_rows: non-epic items WHOSE PARENT IS NOT IN epic_ids
+   *  - (children of epics in epic_ids are rendered inline under their epic when expanded)
+   *
+   * Recovers any expanded epic that the filter excluded — expanded epics
+   * always render so their (possibly-matching) children remain reachable.
+   *
+   * @param {Issue[]} filtered - Items that passed the top-level filter
+   * @param {Issue[]} all - The full issues_cache (used to recover expanded-but-filtered epics)
+   */
+  function partitionForTree(filtered, all) {
+    const filtered_ids = new Set(filtered.map((it) => String(it.id)));
+    /** @type {Issue[]} */
+    const recovered = [];
+    for (const ep of all) {
+      if (String(ep.issue_type || '') !== 'epic') continue;
+      const id = String(ep.id);
+      if (expanded.has(id) && !filtered_ids.has(id)) {
+        recovered.push(ep);
+      }
+    }
+    const effective = filtered.concat(recovered);
+
+    const epic_ids = new Set(
+      effective
+        .filter((it) => String(it.issue_type || '') === 'epic')
+        .map((it) => String(it.id))
+    );
+    /** @type {Issue[]} */
+    const epic_rows = [];
+    /** @type {Issue[]} */
+    const top_level_rows = [];
+    for (const it of effective) {
+      const is_epic = String(it.issue_type || '') === 'epic';
+      if (is_epic) {
+        epic_rows.push(it);
+        continue;
+      }
+      const parent = String(/** @type {any} */ (it).parent || '');
+      if (parent && epic_ids.has(parent)) {
+        continue; // Hidden — will appear under its epic if expanded
+      }
+      top_level_rows.push(it);
+    }
+    return { epic_rows, top_level_rows, epic_ids };
+  }
+
+  /**
+   * Apply current filters to a list of issues (used for child filtering).
+   *
+   * Intentionally narrower than the top-level filter:
+   *  - No 'ready' branch — 'ready' is a top-level membership concept, not a per-row predicate.
+   *    Children inherit visibility from their epic's filter pass.
+   *  - No closed-sort branch — children sort within their parent epic; closed-only sort
+   *    is a list-level concern, not a child concern.
+   *
+   * @param {Issue[]} list
+   */
+  function applyFiltersToIssues(list) {
+    let out = list;
+    if (status_filters.length > 0 && !status_filters.includes('ready')) {
+      out = out.filter((it) =>
+        status_filters.includes(String(it.status || ''))
+      );
+    }
+    if (search_text) {
+      const needle = search_text.toLowerCase();
+      out = out.filter((it) => {
+        const a = String(it.id).toLowerCase();
+        const b = String(it.title || '').toLowerCase();
+        return a.includes(needle) || b.includes(needle);
+      });
+    }
+    if (type_filters.length > 0) {
+      out = out.filter((it) =>
+        type_filters.includes(String(it.issue_type || ''))
+      );
+    }
+    return out;
+  }
+
+  /**
    * Build lit-html template for the list view.
    */
   function template() {
@@ -228,6 +406,43 @@ export function createListView(
     // Sorting: closed list is a special case → sort by closed_at desc only
     if (status_filters.length === 1 && status_filters[0] === 'closed') {
       filtered = filtered.slice().sort(cmpClosedDesc);
+    }
+
+    const { epic_rows, top_level_rows } = partitionForTree(
+      filtered,
+      issues_cache
+    );
+
+    // Merge epics and non-epic top-level rows by the existing priority/created sort.
+    const merged = [...epic_rows, ...top_level_rows].sort((a, b) => {
+      const pa = a.priority ?? 2;
+      const pb = b.priority ?? 2;
+      if (pa !== pb) return pa - pb;
+      const ca = /** @type {any} */ (a).created_at ?? 0;
+      const cb = /** @type {any} */ (b).created_at ?? 0;
+      if (ca !== cb) return ca < cb ? -1 : 1;
+      return String(a.id) < String(b.id) ? -1 : 1;
+    });
+
+    /** @type {import('lit-html').TemplateResult<1>[]} */
+    const rows_array = [];
+    for (const it of merged) {
+      if (String(it.issue_type || '') === 'epic') {
+        rows_array.push(epic_row_renderer(it));
+        if (expanded.has(String(it.id))) {
+          const children = selectors
+            ? selectors.selectEpicChildren(String(it.id))
+            : [];
+          const filtered_children = applyFiltersToIssues(
+            /** @type {Issue[]} */ (children)
+          );
+          for (const child of filtered_children) {
+            rows_array.push(child_row_renderer(child));
+          }
+        }
+      } else {
+        rows_array.push(row_renderer(it));
+      }
     }
 
     return html`
@@ -283,7 +498,7 @@ export function createListView(
         />
       </div>
       <div class="panel__body" id="list-root">
-        ${filtered.length === 0
+        ${rows_array.length === 0
           ? html`<div class="issues-block">
               <div class="muted" style="padding:10px 12px;">No issues</div>
             </div>`
@@ -291,7 +506,7 @@ export function createListView(
               <table
                 class="table"
                 role="grid"
-                aria-rowcount=${String(filtered.length)}
+                aria-rowcount=${String(rows_array.length)}
                 aria-colcount="6"
               >
                 <colgroup>
@@ -315,7 +530,7 @@ export function createListView(
                   </tr>
                 </thead>
                 <tbody role="rowgroup">
-                  ${filtered.map((it) => row_renderer(it))}
+                  ${rows_array}
                 </tbody>
               </table>
             </div>`}
@@ -359,6 +574,62 @@ export function createListView(
     } catch {
       // ignore failures; UI state remains as-is
     }
+  }
+
+  /**
+   * Toggle expanded state for an epic row.
+   *
+   * @param {string} epic_id
+   */
+  async function toggleEpic(epic_id) {
+    if (!expanded.has(epic_id)) {
+      expanded.add(epic_id);
+      loading.add(epic_id);
+      doRender();
+      if (
+        subscriptions &&
+        typeof (/** @type {any} */ (subscriptions).subscribeList) === 'function'
+      ) {
+        try {
+          if (issue_stores && /** @type {any} */ (issue_stores).register) {
+            /** @type {any} */ (issue_stores).register(`detail:${epic_id}`, {
+              type: 'issue-detail',
+              params: { id: epic_id }
+            });
+          }
+          const u = await /** @type {any} */ (subscriptions).subscribeList(
+            `detail:${epic_id}`,
+            {
+              type: 'issue-detail',
+              params: { id: epic_id }
+            }
+          );
+          epic_unsubs.set(epic_id, u);
+        } catch {
+          // ignore subscription failures
+        }
+      }
+      loading.delete(epic_id);
+    } else {
+      expanded.delete(epic_id);
+      const u = epic_unsubs.get(epic_id);
+      if (u) {
+        try {
+          await u();
+        } catch {
+          /* ignore */
+        }
+        epic_unsubs.delete(epic_id);
+      }
+      if (issue_stores && /** @type {any} */ (issue_stores).unregister) {
+        try {
+          /** @type {any} */ (issue_stores).unregister(`detail:${epic_id}`);
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    doRender();
   }
 
   /**
@@ -575,6 +846,15 @@ export function createListView(
   return {
     load,
     destroy() {
+      for (const u of epic_unsubs.values()) {
+        try {
+          void u();
+        } catch {
+          /* ignore */
+        }
+      }
+      epic_unsubs.clear();
+      expanded.clear();
       mount_element.replaceChildren();
       document.removeEventListener('click', clickOutsideHandler);
       if (unsubscribe) {

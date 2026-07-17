@@ -743,7 +743,9 @@ export function bootstrap(root_element) {
       }
 
       // Epics tab
-      if (s.view === 'epics') {
+      // Keep tab:epics open for Issues view too — Issues renderer looks up
+      // epic progress counters from this snapshot.
+      if (s.view === 'epics' || s.view === 'issues') {
         // Register store first to avoid race with initial snapshot
         try {
           sub_issue_stores.register('tab:epics', { type: 'epics' });

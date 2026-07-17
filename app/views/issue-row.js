@@ -18,7 +18,8 @@ import { createTypeBadge } from '../utils/type-badge.js';
  *   onUpdate: (id: string, patch: { title?: string, assignee?: string, status?: 'open'|'in_progress'|'closed', priority?: number }) => Promise<void>,
  *   requestRender: () => void,
  *   getSelectedId?: () => string | null,
- *   row_class?: string
+ *   row_class?: string,
+ *   title_renderer?: (it: IssueRowData) => import('lit-html').TemplateResult<1>
  * }} options
  * @returns {(it: IssueRowData) => import('lit-html').TemplateResult<1>}
  */
@@ -28,6 +29,7 @@ export function createIssueRowRenderer(options) {
   const request_render = options.requestRender;
   const get_selected_id = options.getSelectedId || (() => null);
   const row_class = options.row_class || 'issue-row';
+  const title_renderer = options.title_renderer || null;
 
   /** @type {Set<string>} */
   const editing = new Set();
@@ -149,7 +151,11 @@ export function createIssueRowRenderer(options) {
     >
       <td role="gridcell" class="mono">${createIssueIdRenderer(it.id)}</td>
       <td role="gridcell">${createTypeBadge(it.issue_type)}</td>
-      <td role="gridcell">${editableText(it.id, 'title', it.title || '')}</td>
+      <td role="gridcell">
+        ${title_renderer
+          ? title_renderer(it)
+          : editableText(it.id, 'title', it.title || '')}
+      </td>
       <td role="gridcell">
         <select
           class="badge-select badge--status is-${cur_status}"

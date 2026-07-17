@@ -1170,6 +1170,76 @@ input.inline-edit:focus {
 .epic-children {
   padding: 8px 12px 12px;
 }
+
+/* In-table epic layout: title cell hosts chevron, title text, and progress */
+.epic-title-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.epic-title-cell .epic-title-text {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.epic-title-cell .epic-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.epic-title-cell .epic-progress progress {
+  width: 140px;
+  height: 8px;
+  accent-color: var(--status-closed-base);
+}
+
+.epic-chevron {
+  display: inline-block;
+  width: 14px;
+  text-align: center;
+  user-select: none;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.epic-chevron:hover {
+  color: var(--text-strong, currentColor);
+}
+
+/* Child rows: deeper indent than the parent's chevron, lighter text,
+   subtle background tint, and a leader marker so children are visually
+   distinct from top-level rows at a glance. */
+.epic-child-row {
+  font-size: 0.88em;
+  background: color-mix(in srgb, var(--panel-bg) 88%, var(--muted) 12%);
+}
+
+.epic-child-row td {
+  color: var(--muted);
+  /* Compact row height: tighten vertical padding from --space-6 default to
+     --space-3 so child rows read denser than top-level/epic rows. */
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+
+.epic-child-row td:first-child,
+.epic-child-row td:nth-child(3) {
+  padding-left: 36px;
+}
+
+/* Leader marker on the Title cell (column 3) — visually pairs with the
+   chevron position above and reads as a continuation of the title flow. */
+.epic-child-row td:nth-child(3)::before {
+  content: '↳ ';
+  opacity: 0.55;
+  margin-right: 4px;
+  font-family: monospace;
+}
 .table {
   width: 100%;
   border-collapse: collapse;
