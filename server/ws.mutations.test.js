@@ -339,4 +339,43 @@ describe('ws mutation handlers', () => {
     expect(obj.ok).toBe(true);
     expect(obj.payload && obj.payload.created).toBe(true);
   });
+
+  test('write handlers run bd in the active workspace cwd', async () => {
+    const mRun = /** @type {import('vitest').Mock} */ (runBd);
+    const mJson = /** @type {import('vitest').Mock} */ (runBdJson);
+
+    // Set the active workspace first.
+    const ws_setup = makeStubSocket();
+    await handleMessage(
+      /** @type {any} */ (ws_setup),
+      Buffer.from(
+        JSON.stringify({
+          id: 'sw',
+          type: 'set-workspace',
+          payload: { path: '/tmp/bdui-ws-test-fixture' }
+        })
+      )
+    );
+
+    mRun.mockResolvedValueOnce({ code: 0, stdout: '', stderr: '' });
+    mJson.mockResolvedValueOnce({
+      code: 0,
+      stdoutJson: { id: 'UI-7', status: 'in_progress' }
+    });
+    const ws = makeStubSocket();
+    const req = {
+      id: 'r-cwd',
+      type: 'update-status',
+      payload: { id: 'UI-7', status: 'in_progress' }
+    };
+    await handleMessage(
+      /** @type {any} */ (ws),
+      Buffer.from(JSON.stringify(req))
+    );
+
+    expect(mRun).toHaveBeenCalledWith(
+      ['update', 'UI-7', '--status', 'in_progress'],
+      expect.objectContaining({ cwd: '/tmp/bdui-ws-test-fixture' })
+    );
+  });
 });
