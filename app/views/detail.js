@@ -33,6 +33,35 @@ function formatCommentDate(dateStr) {
 }
 
 /**
+ * Format a date value for display in the Dates card.
+ *
+ * The detail object reaches the client via `bd show --json` →
+ * `normalizeIssueList`, which overwrites `created_at`/`updated_at`/`closed_at`
+ * into numeric epoch-millisecond timestamps (via `parseTimestamp`, which uses
+ * `Date.parse`) while leaving `started_at`/`defer_until` as raw ISO strings.
+ * `new Date(value)` handles both a number(ms) and an ISO string identically.
+ *
+ * @param {number | string | null | undefined} value
+ * @returns {string} Formatted local datetime, or '' when value is missing.
+ */
+export function formatDateValue(value) {
+  if (value === null || value === undefined || value === '') return '';
+  try {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch {
+    return '';
+  }
+}
+
+/**
  * @typedef {Object} Dependency
  * @property {string} id
  * @property {string} [title]
@@ -59,6 +88,11 @@ function formatCommentDate(dateStr) {
  * @property {string} [notes]
  * @property {string} [status]
  * @property {(string|null)} [close_reason]
+ * @property {(number|string)} [created_at]
+ * @property {(number|string)} [updated_at]
+ * @property {(number|string|null)} [closed_at]
+ * @property {string} [started_at]
+ * @property {string} [defer_until]
  * @property {string} [assignee]
  * @property {number} [priority]
  * @property {string[]} [labels]
@@ -1223,6 +1257,43 @@ export function createDetailView(
       </div>
     </div>`;
 
+    // Dates section block — rendered below Properties. Rows render
+    // conditionally; absent values are omitted (no blank rows).
+    // Date only — the close reason is shown in the Properties card, not
+    // duplicated here.
+    const closed_display = formatDateValue(issue.closed_at);
+    const dates_block = html`<div class="props-card dates">
+      <div class="props-card__header">
+        <div class="props-card__title">Dates</div>
+      </div>
+      <div class="prop">
+        <div class="label">Created</div>
+        <div class="value">${formatDateValue(issue.created_at)}</div>
+      </div>
+      ${issue.started_at
+        ? html`<div class="prop">
+            <div class="label">Started</div>
+            <div class="value">${formatDateValue(issue.started_at)}</div>
+          </div>`
+        : ''}
+      <div class="prop">
+        <div class="label">Updated</div>
+        <div class="value">${formatDateValue(issue.updated_at)}</div>
+      </div>
+      ${closed_display
+        ? html`<div class="prop">
+            <div class="label">Closed</div>
+            <div class="value">${closed_display}</div>
+          </div>`
+        : ''}
+      ${issue.defer_until
+        ? html`<div class="prop">
+            <div class="label">Deferred until</div>
+            <div class="value">${formatDateValue(issue.defer_until)}</div>
+          </div>`
+        : ''}
+    </div>`;
+
     // Design section block
     const design_text = String(issue.design || '');
     const design_block = edit_design
@@ -1405,6 +1476,7 @@ export function createDetailView(
                   </div>
                 </div>
               </div>
+              ${dates_block}
               ${labels_block}
               ${depsSection('Dependencies', issue.dependencies || [])}
               ${depsSection('Dependents', issue.dependents || [])}
