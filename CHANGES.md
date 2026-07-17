@@ -1,5 +1,18 @@
 # Changes
 
+## 0.12.3
+
+- [`cee1d6d`](https://github.com/mantoni/beads-ui/commit/cee1d6d945828e33eebaf7ca76604fe8a457a772)
+  fix(list): remove the silent 50-issue list limit (#99) (Inconceivable Labs)
+    >
+    > Pass --limit 0 for all-issues and in-progress subscriptions so the UI does not silently truncate bd results.
+- [`04c78e3`](https://github.com/mantoni/beads-ui/commit/04c78e352fb6c0af0616962701a39e42bc938cb3)
+  fix(ws): pin bd invocations to the active workspace cwd (#88) (Inconceivable Labs)
+    >
+    > Ensure every bd mutation and follow-up read runs in the active workspace, and centralize non-zero bd exit logging.
+
+_Released by gprocunier on 2026-07-17._
+
 ## 0.12.2
 
 - [`92b80f9`](https://github.com/mantoni/beads-ui/commit/92b80f90339a7619dc0d8f7a10046b023658004d)
