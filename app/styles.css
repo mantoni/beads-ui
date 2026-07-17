@@ -1330,7 +1330,19 @@ input.inline-edit:focus {
 
 @media (max-width: 1100px) {
   .board-root {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(4, minmax(18rem, 84vw));
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: var(--space-6);
+  }
+
+  .board-column {
+    min-width: 0;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  .board-column__body {
+    touch-action: pan-x pan-y;
   }
 }
 
@@ -1969,7 +1981,10 @@ html[data-theme='dark'] {
 }
 
 .comment-input textarea {
+  display: block;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   min-height: 60px;
   padding: 8px;
   border: 1px solid var(--control-border);
