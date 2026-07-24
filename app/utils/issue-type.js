@@ -1,9 +1,16 @@
 /**
  * Known issue types in canonical order for dropdowns.
  *
- * @type {Array<'bug'|'feature'|'task'|'epic'|'chore'>}
+ * @type {Array<'bug'|'feature'|'task'|'epic'|'chore'|'decision'>}
  */
-export const ISSUE_TYPES = ['bug', 'feature', 'task', 'epic', 'chore'];
+export const ISSUE_TYPES = [
+  'bug',
+  'feature',
+  'task',
+  'epic',
+  'chore',
+  'decision'
+];
 
 /**
  * Return a human-friendly label for an issue type.
@@ -23,6 +30,8 @@ export function typeLabel(type) {
       return 'Epic';
     case 'chore':
       return 'Chore';
+    case 'decision':
+      return 'Decision';
     default:
       return '';
   }

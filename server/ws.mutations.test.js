@@ -124,7 +124,71 @@ describe('ws mutation handlers', () => {
     expect(obj.payload.title).toBe('New');
   });
 
-  // update-type removed; no server handler remains
+  test('update-type validates and invokes bd with --type', async () => {
+    const mRun = /** @type {import('vitest').Mock} */ (runBd);
+    const mJson = /** @type {import('vitest').Mock} */ (runBdJson);
+    mRun.mockResolvedValueOnce({ code: 0, stdout: '', stderr: '' });
+    mJson.mockResolvedValueOnce({
+      code: 0,
+      stdoutJson: { id: 'UI-7', issue_type: 'feature' }
+    });
+    const ws = makeStubSocket();
+    const req = {
+      id: 'rut',
+      type: /** @type {any} */ ('update-type'),
+      payload: { id: 'UI-7', type: 'feature' }
+    };
+    await handleMessage(
+      /** @type {any} */ (ws),
+      Buffer.from(JSON.stringify(req))
+    );
+    const call = mRun.mock.calls[mRun.mock.calls.length - 1];
+    expect(call[0]).toEqual(['update', 'UI-7', '--type', 'feature']);
+    const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
+    expect(obj.ok).toBe(true);
+    expect(obj.payload.issue_type).toBe('feature');
+  });
+
+  test('update-type accepts decision type', async () => {
+    const mRun = /** @type {import('vitest').Mock} */ (runBd);
+    const mJson = /** @type {import('vitest').Mock} */ (runBdJson);
+    mRun.mockResolvedValueOnce({ code: 0, stdout: '', stderr: '' });
+    mJson.mockResolvedValueOnce({
+      code: 0,
+      stdoutJson: { id: 'UI-9', issue_type: 'decision' }
+    });
+    const ws = makeStubSocket();
+    const req = {
+      id: 'rut2',
+      type: /** @type {any} */ ('update-type'),
+      payload: { id: 'UI-9', type: 'decision' }
+    };
+    await handleMessage(
+      /** @type {any} */ (ws),
+      Buffer.from(JSON.stringify(req))
+    );
+    const call = mRun.mock.calls[mRun.mock.calls.length - 1];
+    expect(call[0]).toEqual(['update', 'UI-9', '--type', 'decision']);
+    const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
+    expect(obj.ok).toBe(true);
+    expect(obj.payload.issue_type).toBe('decision');
+  });
+
+  test('update-type invalid payload yields bad_request', async () => {
+    const ws = makeStubSocket();
+    const req = {
+      id: 'rut3',
+      type: /** @type {any} */ ('update-type'),
+      payload: { id: 'UI-7', type: 'bogus' }
+    };
+    await handleMessage(
+      /** @type {any} */ (ws),
+      Buffer.from(JSON.stringify(req))
+    );
+    const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
+    expect(obj.ok).toBe(false);
+    expect(obj.error.code).toBe('bad_request');
+  });
 
   test('update-assignee validates and returns updated issue', async () => {
     const mRun = /** @type {import('vitest').Mock} */ (runBd);
@@ -375,6 +439,49 @@ describe('ws mutation handlers', () => {
 
     expect(mRun).toHaveBeenCalledWith(
       ['update', 'UI-7', '--status', 'in_progress'],
+      expect.objectContaining({ cwd: '/tmp/bdui-ws-test-fixture' })
+    );
+  });
+
+  test('update-type runs bd in the active workspace cwd', async () => {
+    const mRun = /** @type {import('vitest').Mock} */ (runBd);
+    const mJson = /** @type {import('vitest').Mock} */ (runBdJson);
+
+    // Set the active workspace first.
+    const ws_setup = makeStubSocket();
+    await handleMessage(
+      /** @type {any} */ (ws_setup),
+      Buffer.from(
+        JSON.stringify({
+          id: 'sw',
+          type: 'set-workspace',
+          payload: { path: '/tmp/bdui-ws-test-fixture' }
+        })
+      )
+    );
+
+    mRun.mockResolvedValueOnce({ code: 0, stdout: '', stderr: '' });
+    mJson.mockResolvedValueOnce({
+      code: 0,
+      stdoutJson: { id: 'UI-7', issue_type: 'feature' }
+    });
+    const ws = makeStubSocket();
+    const req = {
+      id: 'r-cwd-type',
+      type: 'update-type',
+      payload: { id: 'UI-7', type: 'feature' }
+    };
+    await handleMessage(
+      /** @type {any} */ (ws),
+      Buffer.from(JSON.stringify(req))
+    );
+
+    expect(mRun).toHaveBeenCalledWith(
+      ['update', 'UI-7', '--type', 'feature'],
+      expect.objectContaining({ cwd: '/tmp/bdui-ws-test-fixture' })
+    );
+    expect(mJson).toHaveBeenCalledWith(
+      ['show', 'UI-7', '--json'],
       expect.objectContaining({ cwd: '/tmp/bdui-ws-test-fixture' })
     );
   });

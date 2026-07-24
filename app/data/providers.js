@@ -9,16 +9,16 @@ import { debug } from '../utils/logging.js';
  * stores and selectors (see docs/adr/001-push-only-lists.md).
  *
  * @param {(type: MessageType, payload?: unknown) => Promise<unknown>} transport - Request/response function.
- * @returns {{ updateIssue: (input: { id: string, title?: string, acceptance?: string, notes?: string, design?: string, status?: 'open'|'in_progress'|'closed', priority?: number, assignee?: string }) => Promise<unknown> }}
+ * @returns {{ updateIssue: (input: { id: string, title?: string, acceptance?: string, notes?: string, design?: string, status?: 'open'|'in_progress'|'closed', priority?: number, assignee?: string, issue_type?: string }) => Promise<unknown> }}
  */
 export function createDataLayer(transport) {
   const log = debug('data');
   /**
    * Update issue fields by dispatching specific mutations.
-   * Supported fields: title, acceptance, notes, design, status, priority, assignee.
+   * Supported fields: title, acceptance, notes, design, status, priority, assignee, issue_type.
    * Returns the updated issue on success.
    *
-   * @param {{ id: string, title?: string, acceptance?: string, notes?: string, design?: string, status?: 'open'|'in_progress'|'closed', priority?: number, assignee?: string }} input
+   * @param {{ id: string, title?: string, acceptance?: string, notes?: string, design?: string, status?: 'open'|'in_progress'|'closed', priority?: number, assignee?: string, issue_type?: string }} input
    * @returns {Promise<unknown>}
    */
   async function updateIssue(input) {
@@ -68,7 +68,12 @@ export function createDataLayer(transport) {
         priority: input.priority
       });
     }
-    // type updates are not supported via UI
+    if (typeof input.issue_type === 'string') {
+      last = await transport('update-type', {
+        id,
+        type: input.issue_type
+      });
+    }
     if (typeof input.assignee === 'string') {
       last = await transport('update-assignee', {
         id,

@@ -356,6 +356,9 @@ export function createListView(
       if (typeof patch.priority === 'number') {
         await sendFn('update-priority', { id, priority: patch.priority });
       }
+      if (typeof patch.issue_type === 'string') {
+        await sendFn('update-type', { id, type: patch.issue_type });
+      }
     } catch {
       // ignore failures; UI state remains as-is
     }

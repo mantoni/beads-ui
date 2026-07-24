@@ -1,7 +1,9 @@
+import { typeLabel } from './issue-type.js';
+
 /**
  * Create a compact, colored badge for an issue type.
  *
- * @param {string | undefined | null} issue_type - One of: bug, feature, task, epic, chore
+ * @param {string | undefined | null} issue_type - One of: bug, feature, task, epic, chore, decision
  * @returns {HTMLSpanElement}
  */
 export function createTypeBadge(issue_type) {
@@ -9,21 +11,18 @@ export function createTypeBadge(issue_type) {
   el.className = 'type-badge';
 
   const t = (issue_type || '').toString().toLowerCase();
-  const KNOWN = new Set(['bug', 'feature', 'task', 'epic', 'chore']);
+  const KNOWN = new Set([
+    'bug',
+    'feature',
+    'task',
+    'epic',
+    'chore',
+    'decision'
+  ]);
   const kind = KNOWN.has(t) ? t : 'neutral';
   el.classList.add(`type-badge--${kind}`);
   el.setAttribute('role', 'img');
-  const label = KNOWN.has(t)
-    ? t === 'bug'
-      ? 'Bug'
-      : t === 'feature'
-        ? 'Feature'
-        : t === 'task'
-          ? 'Task'
-          : t === 'epic'
-            ? 'Epic'
-            : 'Chore'
-    : '—';
+  const label = KNOWN.has(t) ? typeLabel(t) : '—';
   el.setAttribute(
     'aria-label',
     KNOWN.has(t) ? `Issue type: ${label}` : 'Issue type: unknown'
