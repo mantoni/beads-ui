@@ -46,6 +46,55 @@ describe('ws mutation handlers', () => {
     expect(obj.payload.status).toBe('in_progress');
   });
 
+  test('update-status accepts blocked and deferred', async () => {
+    for (const status of ['blocked', 'deferred']) {
+      const mRun = /** @type {import('vitest').Mock} */ (runBd);
+      const mJson = /** @type {import('vitest').Mock} */ (runBdJson);
+      mRun.mockResolvedValueOnce({ code: 0, stdout: '', stderr: '' });
+      mJson.mockResolvedValueOnce({
+        code: 0,
+        stdoutJson: { id: 'UI-7', status }
+      });
+      const ws = makeStubSocket();
+      const req = {
+        id: `r-${status}`,
+        type: 'update-status',
+        payload: { id: 'UI-7', status }
+      };
+      await handleMessage(
+        /** @type {any} */ (ws),
+        Buffer.from(JSON.stringify(req))
+      );
+      const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
+      expect(obj.ok).toBe(true);
+      expect(obj.payload.status).toBe(status);
+      expect(mRun.mock.calls[mRun.mock.calls.length - 1][0]).toEqual([
+        'update',
+        'UI-7',
+        '--status',
+        status
+      ]);
+    }
+  });
+
+  test('update-status rejects machine-managed statuses', async () => {
+    for (const status of ['pinned', 'hooked']) {
+      const ws = makeStubSocket();
+      const req = {
+        id: `r-${status}`,
+        type: 'update-status',
+        payload: { id: 'UI-7', status }
+      };
+      await handleMessage(
+        /** @type {any} */ (ws),
+        Buffer.from(JSON.stringify(req))
+      );
+      const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
+      expect(obj.ok).toBe(false);
+      expect(obj.error.code).toBe('bad_request');
+    }
+  });
+
   test('update-status invalid payload yields bad_request', async () => {
     const ws = makeStubSocket();
     const req = {

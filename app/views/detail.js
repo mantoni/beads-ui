@@ -6,7 +6,11 @@ import { debug } from '../utils/logging.js';
 import { renderMarkdown } from '../utils/markdown.js';
 import { emojiForPriority } from '../utils/priority-badge.js';
 import { priority_levels } from '../utils/priority.js';
-import { statusLabel } from '../utils/status.js';
+import {
+  isSettableStatus,
+  statusLabel,
+  statusOptions
+} from '../utils/status.js';
 import { showToast } from '../utils/toast.js';
 import { createTypeBadge } from '../utils/type-badge.js';
 
@@ -1037,9 +1041,16 @@ export function createDetailView(
     >
       ${(() => {
         const cur = String(issue.status || 'open');
-        return ['open', 'in_progress', 'closed'].map(
+        return statusOptions(cur).map(
           (s) =>
-            html`<option value=${s} ?selected=${cur === s}>
+            // An out-of-set current status (e.g. `pinned`) is shown so the
+            // select tells the truth, but disabled so it cannot be re-chosen:
+            // the server rejects `update-status pinned`.
+            html`<option
+              value=${s}
+              ?selected=${cur === s}
+              ?disabled=${!isSettableStatus(s)}
+            >
               ${statusLabel(s)}
             </option>`
         );

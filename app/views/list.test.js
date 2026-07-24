@@ -749,4 +749,75 @@ describe('views/list', () => {
     await Promise.resolve();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(2);
   });
+
+  test('status filter dropdown offers settable statuses plus Ready and Pinned, but not Hooked', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues: []
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+
+    const dropdown = mount.querySelectorAll('.filter-dropdown')[0];
+    const labels = Array.from(
+      dropdown.querySelectorAll('.filter-dropdown__option')
+    ).map((el) => (el.textContent || '').trim());
+    expect(labels).toEqual([
+      'Ready',
+      'Open',
+      'In progress',
+      'Blocked',
+      'Deferred',
+      'Closed',
+      'Pinned'
+    ]);
+    // Hooked is gate-managed (all-issues query lacks --include-gates), so it
+    // must not be an offered filter option even though it still renders a badge.
+    expect(labels).not.toContain('Hooked');
+  });
+
+  test('filters by a status that is not human-settable', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const issues = [
+      { id: 'UI-1', title: 'Alpha', status: 'open', priority: 1 },
+      { id: 'UI-2', title: 'Beta', status: 'pinned', priority: 2 },
+      { id: 'UI-3', title: 'Gamma', status: 'deferred', priority: 3 }
+    ];
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+    expect(mount.querySelectorAll('tr.issue-row').length).toBe(3);
+
+    toggleFilter(mount, 0, 'Pinned');
+    await Promise.resolve();
+    const rows = mount.querySelectorAll('tr.issue-row');
+    expect(rows.length).toBe(1);
+    expect(rows[0].getAttribute('data-issue-id')).toBe('UI-2');
+  });
 });

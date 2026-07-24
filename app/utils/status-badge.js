@@ -1,33 +1,20 @@
+import { statusLabel } from './status.js';
+
 /**
  * Create a colored badge for a status value.
  *
- * @param {string | null | undefined} status - 'open' | 'in_progress' | 'closed'
+ * @param {string | null | undefined} status - Any status bd can report.
  * @returns {HTMLSpanElement}
  */
 export function createStatusBadge(status) {
   const el = document.createElement('span');
   el.className = 'status-badge';
   const s = String(status || 'open');
+  const label = statusLabel(s);
   el.classList.add(`is-${s}`);
   el.setAttribute('role', 'img');
-  el.setAttribute('title', labelForStatus(s));
-  el.setAttribute('aria-label', `Status: ${labelForStatus(s)}`);
-  el.textContent = labelForStatus(s);
+  el.setAttribute('title', label);
+  el.setAttribute('aria-label', `Status: ${label}`);
+  el.textContent = label;
   return el;
-}
-
-/**
- * @param {string} s
- */
-function labelForStatus(s) {
-  switch (s) {
-    case 'open':
-      return 'Open';
-    case 'in_progress':
-      return 'In progress';
-    case 'closed':
-      return 'Closed';
-    default:
-      return 'Unknown';
-  }
 }

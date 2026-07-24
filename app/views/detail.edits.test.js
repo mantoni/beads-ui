@@ -163,4 +163,88 @@ describe('views/detail edits', () => {
     await vi.advanceTimersByTimeAsync(3000);
     vi.useRealTimers();
   });
+
+  test('status select offers only the human-settable statuses', async () => {
+    document.body.innerHTML =
+      '<section class="panel"><div id="mount"></div></section>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const issue = { id: 'UI-20', title: 'T', status: 'open', priority: 2 };
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-20' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const send = mockSend(async () => {
+      throw new Error('Unexpected');
+    });
+    const view = createDetailView(mount, send, undefined, stores);
+    await view.load('UI-20');
+
+    const select = /** @type {HTMLSelectElement} */ (
+      mount.querySelector('select.badge--status')
+    );
+    expect(Array.from(select.options).map((o) => o.value)).toEqual([
+      'open',
+      'in_progress',
+      'blocked',
+      'deferred',
+      'closed'
+    ]);
+    expect(
+      Array.from(select.options).map((o) => (o.textContent || '').trim())
+    ).toEqual(['Open', 'In progress', 'Blocked', 'Deferred', 'Closed']);
+  });
+
+  test('status select shows a machine-managed current status but disables it', async () => {
+    document.body.innerHTML =
+      '<section class="panel"><div id="mount"></div></section>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const issue = { id: 'UI-21', title: 'T', status: 'hooked', priority: 2 };
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-21' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const send = mockSend(async () => {
+      throw new Error('Unexpected');
+    });
+    const view = createDetailView(mount, send, undefined, stores);
+    await view.load('UI-21');
+
+    const select = /** @type {HTMLSelectElement} */ (
+      mount.querySelector('select.badge--status')
+    );
+    expect(Array.from(select.options).map((o) => o.value)).toEqual([
+      'open',
+      'in_progress',
+      'blocked',
+      'deferred',
+      'closed',
+      'hooked'
+    ]);
+    expect(select.value).toBe('hooked');
+    expect(select.classList.contains('is-hooked')).toBe(true);
+
+    // The out-of-set option must display (so the select tells the truth) but
+    // never be choosable: `update-status hooked` is rejected by the server.
+    const disabled_by_value = Object.fromEntries(
+      Array.from(select.options).map((o) => [o.value, o.disabled])
+    );
+    expect(disabled_by_value).toEqual({
+      open: false,
+      in_progress: false,
+      blocked: false,
+      deferred: false,
+      closed: false,
+      hooked: true
+    });
+  });
 });
