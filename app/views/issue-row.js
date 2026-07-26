@@ -4,10 +4,31 @@ import { emojiForPriority } from '../utils/priority-badge.js';
 import { priority_levels } from '../utils/priority.js';
 import { statusLabel } from '../utils/status.js';
 import { createTypeBadge } from '../utils/type-badge.js';
+import { columnSpacerCell } from './column-resize.js';
+
+/**
+ * @import { ColumnSpec } from './column-resize.js'
+ */
 
 /**
  * @typedef {{ id: string, title?: string, status?: string, priority?: number, issue_type?: string, assignee?: string, dependency_count?: number, dependent_count?: number }} IssueRowData
  */
+
+/**
+ * Columns rendered by `createIssueRowRenderer`, in cell order. Used by the
+ * list and epics views to render matching, resizable headers.
+ *
+ * @type {ColumnSpec[]}
+ */
+export const ISSUE_ROW_COLUMNS = [
+  { key: 'id', label: 'ID', width: 100 },
+  { key: 'type', label: 'Type', width: 120 },
+  { key: 'title', label: 'Title', width: 320, flex: true },
+  { key: 'status', label: 'Status', width: 120 },
+  { key: 'assignee', label: 'Assignee', width: 160 },
+  { key: 'priority', label: 'Priority', width: 130 },
+  { key: 'deps', label: 'Deps', width: 80 }
+];
 
 /**
  * Create a reusable issue row renderer used by list and epics views.
@@ -209,6 +230,7 @@ export function createIssueRowRenderer(options) {
             >`
           : ''}
       </td>
+      ${columnSpacerCell()}
     </tr>`;
   }
 
