@@ -1004,7 +1004,7 @@ input.inline-edit:focus {
   box-shadow: none;
 }
 
-#list-panel .panel__header input[type='search'] {
+.panel__header input[type='search'] {
   flex: 1;
 }
 
@@ -1144,7 +1144,8 @@ input.inline-edit:focus {
   border: 1px solid var(--border);
   border-radius: 6px;
   margin: 0px 12px;
-  overflow: hidden;
+  /* Scroll horizontally when resized columns exceed the panel width */
+  overflow: auto;
   background: var(--bg);
 }
 .epic-header {
@@ -1169,6 +1170,8 @@ input.inline-edit:focus {
 }
 .epic-children {
   padding: 8px 12px 12px;
+  /* Scroll horizontally when resized columns exceed the panel width */
+  overflow-x: auto;
 }
 .table {
   width: 100%;
@@ -1183,6 +1186,9 @@ input.inline-edit:focus {
   }
   /* Ensure form controls fill the cell */
   td {
+    /* Clip cell content instead of spilling into the next column */
+    overflow: hidden;
+
     input[type='text'],
     select {
       width: 100%;
@@ -1192,12 +1198,65 @@ input.inline-edit:focus {
       display: block;
       width: 100%;
     }
+    /* Truncate instead of spilling into the next column when narrowed */
+    .id-copy {
+      display: block;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   }
   th {
     font-size: 12px;
     color: var(--muted);
     font-weight: 600;
+    /* Anchor for the absolutely positioned resize handle */
+    position: relative;
   }
+  /* Trailing column that absorbs the space left by fixed column widths */
+  th.col-spacer,
+  td.col-spacer {
+    padding: 0;
+  }
+}
+
+/* Column resizing */
+.col-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* Straddle the column boundary; half sits over the next column */
+  right: calc(var(--space-4) / -2);
+  width: var(--space-4);
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  z-index: 1;
+}
+.col-resizer::after {
+  content: '';
+  position: absolute;
+  top: 15%;
+  bottom: 15%;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: var(--border);
+  transition: background 120ms ease;
+}
+.col-resizer:hover::after,
+.col-resizer:focus-visible::after,
+body.is-col-resizing .col-resizer:active::after {
+  width: 2px;
+  background: var(--link);
+}
+.col-resizer:focus-visible {
+  outline: none;
+}
+/* Keep the drag cursor and suppress selection for the whole drag */
+body.is-col-resizing {
+  cursor: col-resize;
+  user-select: none;
 }
 .epic-row:hover {
   background: color-mix(in srgb, var(--control-bg) 55%, transparent);

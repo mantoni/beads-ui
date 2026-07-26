@@ -90,6 +90,46 @@ function createTestIssueStores() {
 }
 
 describe('views/list', () => {
+  test('renders resizable column headers and persists a drag', async () => {
+    window.localStorage.removeItem('beads-ui.columns.issues');
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues: [{ id: 'UI-1', title: 'One', status: 'open', priority: 1 }]
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+
+    const handles = mount.querySelectorAll('#list-root th .col-resizer');
+    handles[0].dispatchEvent(
+      new MouseEvent('pointerdown', { clientX: 300, bubbles: true })
+    );
+    window.dispatchEvent(new MouseEvent('pointermove', { clientX: 340 }));
+    window.dispatchEvent(new MouseEvent('pointerup', {}));
+
+    expect(handles.length).toBe(7);
+    const first_col = /** @type {HTMLElement} */ (
+      mount.querySelector('#list-root colgroup > col')
+    );
+    expect(first_col.style.width).toBe('140px');
+    const stored = JSON.parse(
+      window.localStorage.getItem('beads-ui.columns.issues') || '[]'
+    );
+    expect(stored[0]).toBe(140);
+    window.localStorage.removeItem('beads-ui.columns.issues');
+  });
+
   test('renders issues from push stores and navigates on row click', async () => {
     document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
