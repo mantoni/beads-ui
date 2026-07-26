@@ -1,5 +1,14 @@
 # Changes
 
+## 0.12.4
+
+- [`bd211f1`](https://github.com/mantoni/beads-ui/commit/bd211f1a76b3fc0a38f2914e2e33451347d857c6)
+  feat(detail): add dates card (#90) (Inconceivable Labs)
+    >
+    > Show created, started, updated, closed, and deferred timestamps in issue detail. Include focused formatting and conditional-rendering coverage.
+
+_Released by gprocunier on 2026-07-26._
+
 ## 0.12.3
 
 - [`cee1d6d`](https://github.com/mantoni/beads-ui/commit/cee1d6d945828e33eebaf7ca76604fe8a457a772)
