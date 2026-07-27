@@ -26,6 +26,26 @@ function toggleFilter(dropdownIndex, optionText) {
   checkbox.click();
 }
 
+/**
+ * Helper to pick a scope radio in the status dropdown.
+ *
+ * @param {string} label - Visible label of the radio
+ */
+function selectScope(label) {
+  const dropdown = document.querySelectorAll('.filter-dropdown')[0];
+  const trigger = /** @type {HTMLButtonElement} */ (
+    dropdown.querySelector('.filter-dropdown__trigger')
+  );
+  trigger.click();
+  const option = Array.from(
+    dropdown.querySelectorAll('.filter-dropdown__option--scope')
+  ).find((opt) => (opt.textContent || '').trim() === label);
+  const radio = /** @type {HTMLInputElement} */ (
+    option?.querySelector('input[type="radio"]')
+  );
+  radio.click();
+}
+
 // Mock WS client to drive push envelopes and record RPCs
 /** @type {{ type: string, payload: any }[]} */
 const calls = [];
@@ -115,8 +135,10 @@ describe('issues view — fast filter switching', () => {
 
     // Quickly toggle status: all -> ready -> in_progress before any server data
     // all -> ready
-    toggleFilter(0, 'Ready');
-    // ready -> in_progress (fast)
+    selectScope('Ready only');
+    // ready -> in_progress (fast); the Ready scope disables the status
+    // checkboxes, so leaving it is part of the switch
+    selectScope('All issues');
     toggleFilter(0, 'In progress');
     // Allow store subscriptions and sub_issue_stores.register to run
     await Promise.resolve();

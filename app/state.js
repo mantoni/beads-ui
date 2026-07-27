@@ -2,20 +2,18 @@
  * Minimal app state store with subscription.
  */
 import { debug } from './utils/logging.js';
+import { normalizeStatusFilters, sameStatusFilters } from './utils/status.js';
 
 /**
- * @import { Status } from './protocol.js'
+ * @import { StatusFilter } from './utils/status.js'
  */
 
 /**
- * A status filter is any status bd can report, plus the derived `ready`
- * selection and the `all` default.
+ * The status filter is a selection, not a single value: either exactly
+ * `['ready']` or a subset of the stored statuses. An empty selection means
+ * "all issues".
  *
- * @typedef {'all'|'ready'|Status} StatusFilter
- */
-
-/**
- * @typedef {{ status: StatusFilter, search: string, type: string }} Filters
+ * @typedef {{ status: StatusFilter[], search: string, type: string }} Filters
  */
 
 /**
@@ -61,7 +59,7 @@ export function createStore(initial = {}) {
     selected_id: initial.selected_id ?? null,
     view: initial.view ?? 'issues',
     filters: {
-      status: initial.filters?.status ?? 'all',
+      status: normalizeStatusFilters(initial.filters?.status),
       search: initial.filters?.search ?? '',
       type:
         typeof initial.filters?.type === 'string' ? initial.filters?.type : ''
@@ -107,7 +105,14 @@ export function createStore(initial = {}) {
       const next = {
         ...state,
         ...patch,
-        filters: { ...state.filters, ...(patch.filters || {}) },
+        filters: {
+          ...state.filters,
+          ...(patch.filters || {}),
+          status:
+            patch.filters && 'status' in patch.filters
+              ? normalizeStatusFilters(patch.filters.status)
+              : state.filters.status
+        },
         board: { ...state.board, ...(patch.board || {}) },
         workspace: {
           current:
@@ -127,7 +132,7 @@ export function createStore(initial = {}) {
       if (
         next.selected_id === state.selected_id &&
         next.view === state.view &&
-        next.filters.status === state.filters.status &&
+        sameStatusFilters(next.filters.status, state.filters.status) &&
         next.filters.search === state.filters.search &&
         next.filters.type === state.filters.type &&
         next.board.closed_filter === state.board.closed_filter &&

@@ -28,6 +28,27 @@ function toggleFilter(mount, dropdownIndex, optionText) {
 }
 
 /**
+ * Pick a scope radio in the status dropdown.
+ *
+ * @param {HTMLElement} mount - The container element
+ * @param {string} label - Visible label of the radio
+ */
+function selectScope(mount, label) {
+  const dropdown = mount.querySelectorAll('.filter-dropdown')[0];
+  const trigger = /** @type {HTMLButtonElement} */ (
+    dropdown.querySelector('.filter-dropdown__trigger')
+  );
+  trigger.click();
+  const option = Array.from(
+    dropdown.querySelectorAll('.filter-dropdown__option--scope')
+  ).find((opt) => (opt.textContent || '').trim() === label);
+  const radio = /** @type {HTMLInputElement} */ (
+    option?.querySelector('input[type="radio"]')
+  );
+  radio.click();
+}
+
+/**
  * Check if a filter option is checked in a dropdown.
  *
  * @param {HTMLElement} mount - The container element
@@ -334,11 +355,7 @@ describe('views/list', () => {
       issueStores
     );
     await view.load();
-    const statusSelect = /** @type {HTMLSelectElement} */ (
-      mount.querySelector('select')
-    );
-    statusSelect.value = 'ready';
-    statusSelect.dispatchEvent(new Event('change'));
+    selectScope(mount, 'Ready only');
     // switch subscription key and apply ready membership
     issueStores.getStore('tab:issues').applyPush({
       type: 'snapshot',
@@ -443,7 +460,7 @@ describe('views/list', () => {
     expect(isFilterChecked(mount, 1, 'Bug')).toBe(true);
   });
 
-  test('ready filter via select composes from push membership', async () => {
+  test('ready scope composes from push membership', async () => {
     document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
 
@@ -473,11 +490,7 @@ describe('views/list', () => {
     await view.load();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(2);
 
-    const select = /** @type {HTMLSelectElement} */ (
-      mount.querySelector('select')
-    );
-    select.value = 'ready';
-    select.dispatchEvent(new Event('change'));
+    selectScope(mount, 'Ready only');
     issueStores.getStore('tab:issues').applyPush({
       type: 'snapshot',
       id: 'tab:issues',
@@ -520,13 +533,8 @@ describe('views/list', () => {
     await view.load();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(2);
 
-    const select = /** @type {HTMLSelectElement} */ (
-      mount.querySelector('select')
-    );
-
     // Switch to ready (subscription now maps to ready-issues)
-    select.value = 'ready';
-    select.dispatchEvent(new Event('change'));
+    selectScope(mount, 'Ready only');
     issueStores.getStore('tab:issues').applyPush({
       type: 'snapshot',
       id: 'tab:issues',
@@ -537,8 +545,7 @@ describe('views/list', () => {
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(1);
 
     // Switch back to all; view should compose from all-issues membership
-    select.value = 'all';
-    select.dispatchEvent(new Event('change'));
+    selectScope(mount, 'All issues');
     issueStores.getStore('tab:issues').applyPush({
       type: 'snapshot',
       id: 'tab:issues',
@@ -750,7 +757,7 @@ describe('views/list', () => {
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(2);
   });
 
-  test('status filter dropdown offers settable statuses plus Ready and Pinned, but not Hooked', async () => {
+  test('status filter dropdown offers every status but Hooked, with Ready as a scope', async () => {
     document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
     const issueStores = createTestIssueStores();
@@ -771,11 +778,19 @@ describe('views/list', () => {
     await view.load();
 
     const dropdown = mount.querySelectorAll('.filter-dropdown')[0];
-    const labels = Array.from(
-      dropdown.querySelectorAll('.filter-dropdown__option')
-    ).map((el) => (el.textContent || '').trim());
-    expect(labels).toEqual([
-      'Ready',
+    /**
+     * @param {string} group
+     * @returns {string[]}
+     */
+    const labelsOf = (group) =>
+      Array.from(
+        dropdown.querySelectorAll(`.filter-dropdown__option--${group}`)
+      ).map((el) => (el.textContent || '').trim());
+
+    // Ready is a scope, not a status: it is a server-side membership and
+    // cannot be unioned with the client-side status filter.
+    expect(labelsOf('scope')).toEqual(['All issues', 'Ready only']);
+    expect(labelsOf('status')).toEqual([
       'Open',
       'In progress',
       'Blocked',
@@ -785,7 +800,7 @@ describe('views/list', () => {
     ]);
     // Hooked is gate-managed (all-issues query lacks --include-gates), so it
     // must not be an offered filter option even though it still renders a badge.
-    expect(labels).not.toContain('Hooked');
+    expect(labelsOf('status')).not.toContain('Hooked');
   });
 
   test('filters by a status that is not human-settable', async () => {

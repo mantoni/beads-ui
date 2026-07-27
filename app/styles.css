@@ -1104,8 +1104,33 @@ html[data-theme='dark'] {
   background: color-mix(in srgb, var(--link) 10%, transparent);
 }
 
-.filter-dropdown__option input[type='checkbox'] {
+.filter-dropdown__option input[type='checkbox'],
+.filter-dropdown__option input[type='radio'] {
   margin: 0;
+}
+
+/* Status checkboxes are inert while the Ready scope owns the selection */
+.filter-dropdown__option.is-disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.filter-dropdown__option.is-disabled:hover {
+  background: transparent;
+}
+
+.filter-dropdown__group-label {
+  padding: 6px 10px 2px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.filter-dropdown__divider {
+  margin: 4px 0;
+  border-top: 1px solid var(--border);
 }
 
 /* Inline, minimal text input for table editing */
