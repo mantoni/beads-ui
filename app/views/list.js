@@ -284,7 +284,9 @@ export function createListView(
             -->
             <div class="filter-dropdown__group-label">Scope</div>
             ${[
-              { scope: /** @type {const} */ ('all'), label: 'All issues' },
+              // "By status" names the mode, not the result: it stays accurate
+              // once a checkbox narrows the list, where "All issues" would not.
+              { scope: /** @type {const} */ ('all'), label: 'By status' },
               { scope: /** @type {const} */ ('ready'), label: 'Ready only' }
             ].map(
               (opt) => html`

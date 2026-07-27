@@ -231,7 +231,7 @@ describe('views/list — status scope vs status filters', () => {
         .join('|')
     ).toBe('Scope|Status');
     expect(menu?.querySelectorAll('.filter-dropdown__divider').length).toBe(1);
-    expect(groupLabels(mount, 'scope')).toEqual(['All issues', 'Ready only']);
+    expect(groupLabels(mount, 'scope')).toEqual(['By status', 'Ready only']);
     expect(groupLabels(mount, 'status')).toEqual([
       'Open',
       'In progress',
@@ -248,7 +248,7 @@ describe('views/list — status scope vs status filters', () => {
 
     selectScope(mount, 'Ready only');
     await Promise.resolve();
-    selectScope(mount, 'All issues');
+    selectScope(mount, 'By status');
     await Promise.resolve();
     toggleStatus(mount, 'Open');
     await Promise.resolve();
@@ -271,7 +271,7 @@ describe('views/list — status scope vs status filters', () => {
     await Promise.resolve();
 
     expect(store.getState().filters.status).toEqual(['open']);
-    expect(scopeRadio(mount, 'All issues').checked).toBe(true);
+    expect(scopeRadio(mount, 'By status').checked).toBe(true);
     expect(rowIds(mount)).toEqual(['UI-1']);
   });
 
@@ -300,7 +300,7 @@ describe('views/list — status scope vs status filters', () => {
     expect(statusCheckbox(mount, 'Open').disabled).toBe(true);
     expect(statusCheckbox(mount, 'Closed').disabled).toBe(true);
 
-    selectScope(mount, 'All issues');
+    selectScope(mount, 'By status');
     await Promise.resolve();
 
     expect(statusCheckbox(mount, 'Open').disabled).toBe(false);
@@ -327,7 +327,7 @@ describe('views/list — status scope vs status filters', () => {
     const { mount } = await mountList(ISSUES, store);
 
     expect(rowIds(mount)).toEqual(['UI-2']);
-    expect(scopeRadio(mount, 'All issues').checked).toBe(true);
+    expect(scopeRadio(mount, 'By status').checked).toBe(true);
     expect(statusCheckbox(mount, 'Blocked').checked).toBe(true);
   });
 });

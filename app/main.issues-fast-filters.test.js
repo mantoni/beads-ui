@@ -138,7 +138,7 @@ describe('issues view — fast filter switching', () => {
     selectScope('Ready only');
     // ready -> in_progress (fast); the Ready scope disables the status
     // checkboxes, so leaving it is part of the switch
-    selectScope('All issues');
+    selectScope('By status');
     toggleFilter(0, 'In progress');
     // Allow store subscriptions and sub_issue_stores.register to run
     await Promise.resolve();

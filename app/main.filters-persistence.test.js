@@ -245,7 +245,7 @@ describe('issues view — status filter persistence', () => {
 
     await reload();
 
-    expect(selectedScopeLabel()).toBe('All issues');
+    expect(selectedScopeLabel()).toBe('By status');
     expect(checkedStatusLabels()).toEqual(['Open']);
     expect(lastIssuesSpecType()).toBe('all-issues');
     expect(rowIds()).toEqual(['A-1']);
@@ -272,7 +272,7 @@ describe('issues view — status filter persistence', () => {
     await reload();
 
     expect(checkedStatusLabels()).toEqual([]);
-    expect(selectedScopeLabel()).toBe('All issues');
+    expect(selectedScopeLabel()).toBe('By status');
     expect(rowIds()).toEqual(['A-1', 'B-1', 'C-1']);
   });
 

@@ -545,7 +545,7 @@ describe('views/list', () => {
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(1);
 
     // Switch back to all; view should compose from all-issues membership
-    selectScope(mount, 'All issues');
+    selectScope(mount, 'By status');
     issueStores.getStore('tab:issues').applyPush({
       type: 'snapshot',
       id: 'tab:issues',
@@ -789,7 +789,7 @@ describe('views/list', () => {
 
     // Ready is a scope, not a status: it is a server-side membership and
     // cannot be unioned with the client-side status filter.
-    expect(labelsOf('scope')).toEqual(['All issues', 'Ready only']);
+    expect(labelsOf('scope')).toEqual(['By status', 'Ready only']);
     expect(labelsOf('status')).toEqual([
       'Open',
       'In progress',

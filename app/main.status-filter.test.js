@@ -172,7 +172,7 @@ describe('issues view — status filter model', () => {
     selectScope('Ready only');
     await settle();
 
-    selectScope('All issues');
+    selectScope('By status');
     await settle();
     toggleStatus('Open');
     await settle();
@@ -269,7 +269,7 @@ describe('issues view — status filter model', () => {
 
   test('fast toggles back out of the Ready scope keep the last selection', async () => {
     selectScope('Ready only');
-    selectScope('All issues');
+    selectScope('By status');
     toggleStatus('In progress');
     await settle();
 

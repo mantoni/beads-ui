@@ -116,7 +116,7 @@ describe('list view — fast filter switches', () => {
     // out-of-order. The Ready scope disables the status checkboxes, so leaving
     // it is part of the switch.
     selectScope(mount, 'Ready only');
-    selectScope(mount, 'All issues');
+    selectScope(mount, 'By status');
     toggleFilter(mount, 0, 'In progress');
 
     const inProg = [
