@@ -131,9 +131,9 @@ describe('views/list', () => {
     const rows = mount.querySelectorAll('tr.issue-row');
     expect(rows.length).toBe(2);
 
-    // badge present
-    const badges = mount.querySelectorAll('.type-badge');
-    expect(badges.length).toBeGreaterThanOrEqual(2);
+    // type cell renders an editable type select
+    const typeSelects = mount.querySelectorAll('select.badge--type');
+    expect(typeSelects.length).toBeGreaterThanOrEqual(2);
 
     const first = /** @type {HTMLElement} */ (rows[0]);
     first.dispatchEvent(new MouseEvent('click', { bubbles: true }));

@@ -1,9 +1,9 @@
 import { html } from 'lit-html';
 import { createIssueIdRenderer } from '../utils/issue-id-renderer.js';
+import { ISSUE_TYPES, typeLabel } from '../utils/issue-type.js';
 import { emojiForPriority } from '../utils/priority-badge.js';
 import { priority_levels } from '../utils/priority.js';
 import { statusLabel } from '../utils/status.js';
-import { createTypeBadge } from '../utils/type-badge.js';
 
 /**
  * @typedef {{ id: string, title?: string, status?: string, priority?: number, issue_type?: string, assignee?: string, dependency_count?: number, dependent_count?: number }} IssueRowData
@@ -15,7 +15,7 @@ import { createTypeBadge } from '../utils/type-badge.js';
  *
  * @param {{
  *   navigate: (id: string) => void,
- *   onUpdate: (id: string, patch: { title?: string, assignee?: string, status?: 'open'|'in_progress'|'closed', priority?: number }) => Promise<void>,
+ *   onUpdate: (id: string, patch: { title?: string, assignee?: string, status?: 'open'|'in_progress'|'closed', priority?: number, issue_type?: string }) => Promise<void>,
  *   requestRender: () => void,
  *   getSelectedId?: () => string | null,
  *   row_class?: string
@@ -106,7 +106,7 @@ export function createIssueRowRenderer(options) {
 
   /**
    * @param {string} id
-   * @param {'priority'|'status'} key
+   * @param {'priority'|'status'|'issue_type'} key
    * @returns {(ev: Event) => Promise<void>}
    */
   function makeSelectChange(id, key) {
@@ -140,6 +140,7 @@ export function createIssueRowRenderer(options) {
   function rowTemplate(it) {
     const cur_status = String(it.status || 'open');
     const cur_prio = String(it.priority ?? 2);
+    const cur_type = String(it.issue_type || '');
     const is_selected = get_selected_id() === it.id;
     return html`<tr
       role="row"
@@ -148,7 +149,20 @@ export function createIssueRowRenderer(options) {
       @click=${makeRowClick(it.id)}
     >
       <td role="gridcell" class="mono">${createIssueIdRenderer(it.id)}</td>
-      <td role="gridcell">${createTypeBadge(it.issue_type)}</td>
+      <td role="gridcell">
+        <select
+          class="badge-select badge--type type-badge--${cur_type || 'neutral'}"
+          .value=${cur_type}
+          @change=${makeSelectChange(it.id, 'issue_type')}
+        >
+          ${ISSUE_TYPES.map(
+            (t) =>
+              html`<option value=${t} ?selected=${cur_type === t}>
+                ${typeLabel(t)}
+              </option>`
+          )}
+        </select>
+      </td>
       <td role="gridcell">${editableText(it.id, 'title', it.title || '')}</td>
       <td role="gridcell">
         <select

@@ -25,6 +25,7 @@ function makeTransportRecorder() {
       if (
         type === 'update-status' ||
         type === 'update-priority' ||
+        type === 'update-type' ||
         type === 'edit-text' ||
         type === 'update-assignee'
       ) {
@@ -65,6 +66,18 @@ describe('data/providers', () => {
     expect(types).toContain('update-status');
     expect(types).toContain('update-priority');
     expect(types).toContain('update-assignee');
+  });
+
+  test('updateIssue routes issue_type to update-type', async () => {
+    const rec = makeTransportRecorder();
+    const data = createDataLayer((t, p) => rec.send(t, p));
+    await data.updateIssue({ id: 'UI-1', issue_type: 'decision' });
+    const typeCall = rec.calls.find((c) => c.type === 'update-type');
+    expect(typeCall).toBeTruthy();
+    expect(typeCall && typeCall.payload).toEqual({
+      id: 'UI-1',
+      type: 'decision'
+    });
   });
 
   // removed: getIssue (read RPC)

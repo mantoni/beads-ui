@@ -19,6 +19,7 @@
   --type-epic-base: #f69842;
   --type-feature-base: #51cb43;
   --type-chore-base: #666666;
+  --type-decision-base: #7c3aed;
 
   /* Neutral badge */
   --badge-bg-neutral: color-mix(in srgb, var(--panel-bg) 85%, #6b7280);
@@ -51,6 +52,12 @@
     var(--type-chore-base)
   );
   --badge-fg-chore: color-mix(in srgb, var(--type-chore-base) 90%, #000);
+  --badge-bg-decision: color-mix(
+    in srgb,
+    var(--panel-bg) 85%,
+    var(--type-decision-base)
+  );
+  --badge-fg-decision: color-mix(in srgb, var(--type-decision-base) 90%, #000);
 
   /* Links */
   --link: #1d4ed8;
@@ -581,6 +588,10 @@ button:disabled {
 .type-badge--chore {
   background: var(--badge-bg-chore);
   color: var(--badge-fg-chore);
+}
+.type-badge--decision {
+  background: var(--badge-bg-decision);
+  color: var(--badge-fg-decision);
 }
 
 /* Generic badge base (shared look) */

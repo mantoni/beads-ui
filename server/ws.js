@@ -872,6 +872,58 @@ export async function handleMessage(ws, data) {
     return;
   }
 
+  // update-type
+  if (req.type === 'update-type') {
+    log('update-type');
+    const { id, type } = /** @type {any} */ (req.payload);
+    const allowed = new Set([
+      'bug',
+      'feature',
+      'task',
+      'epic',
+      'chore',
+      'decision'
+    ]);
+    if (
+      typeof id !== 'string' ||
+      id.length === 0 ||
+      typeof type !== 'string' ||
+      !allowed.has(type)
+    ) {
+      ws.send(
+        JSON.stringify(
+          makeError(
+            req,
+            'bad_request',
+            "payload requires { id: string, type: 'bug'|'feature'|'task'|'epic'|'chore'|'decision' }"
+          )
+        )
+      );
+      return;
+    }
+    const res = await runBd(['update', id, '--type', type], bd_options);
+    if (res.code !== 0) {
+      ws.send(
+        JSON.stringify(makeError(req, 'bd_error', res.stderr || 'bd failed'))
+      );
+      return;
+    }
+    const shown = await runBdJson(['show', id, '--json'], bd_options);
+    if (shown.code !== 0) {
+      ws.send(
+        JSON.stringify(makeError(req, 'bd_error', shown.stderr || 'bd failed'))
+      );
+      return;
+    }
+    ws.send(JSON.stringify(makeOk(req, shown.stdoutJson)));
+    try {
+      triggerMutationRefreshOnce();
+    } catch {
+      // ignore
+    }
+    return;
+  }
+
   // edit-text
   if (req.type === 'edit-text') {
     log('edit-text');
