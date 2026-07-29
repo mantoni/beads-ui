@@ -93,14 +93,13 @@ export function createEpicsView(
           tabindex="0"
           aria-expanded=${is_open}
         >
-          ${createIssueIdRenderer(id, { class_name: 'mono' })}
-          <span class="text-truncate" style="margin-left:8px"
-            >${epic.title || '(no title)'}</span
-          >
-          <span
-            class="epic-progress"
-            style="margin-left:auto; display:flex; align-items:center; gap:8px;"
-          >
+          <div class="epic-header__main">
+            ${createIssueIdRenderer(id, { class_name: 'mono' })}
+            <span class="epic-header__title text-truncate"
+              >${epic.title || '(no title)'}</span
+            >
+          </div>
+          <span class="epic-progress">
             <progress
               value=${Number(g.closed_children || 0)}
               max=${Math.max(1, Number(g.total_children || 0))}
@@ -116,7 +115,7 @@ export function createEpicsView(
                 ? html`<div class="muted">Loading…</div>`
                 : list.length === 0
                   ? html`<div class="muted">No issues found</div>`
-                  : html`<table class="table">
+                  : html`<table class="table epic-issues-table">
                       <colgroup>
                         <col style="width: 100px" />
                         <col style="width: 120px" />

@@ -231,7 +231,7 @@ export function createListView(
     }
 
     return html`
-      <div class="panel__header">
+      <div class="panel__header list-toolbar">
         <div class="filter-dropdown ${status_dropdown_open ? 'is-open' : ''}">
           <button
             class="filter-dropdown__trigger"
@@ -276,6 +276,7 @@ export function createListView(
           </div>
         </div>
         <input
+          class="list-toolbar__search"
           type="search"
           placeholder="Search…"
           @input=${onSearchInput}
@@ -289,7 +290,7 @@ export function createListView(
             </div>`
           : html`<div class="issues-block">
               <table
-                class="table"
+                class="table issues-table"
                 role="grid"
                 aria-rowcount=${String(filtered.length)}
                 aria-colcount="6"

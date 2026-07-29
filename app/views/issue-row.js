@@ -147,10 +147,28 @@ export function createIssueRowRenderer(options) {
       data-issue-id=${it.id}
       @click=${makeRowClick(it.id)}
     >
-      <td role="gridcell" class="mono">${createIssueIdRenderer(it.id)}</td>
-      <td role="gridcell">${createTypeBadge(it.issue_type)}</td>
-      <td role="gridcell">${editableText(it.id, 'title', it.title || '')}</td>
-      <td role="gridcell">
+      <td
+        role="gridcell"
+        class="issue-cell issue-cell--id mono"
+        data-label="ID"
+      >
+        ${createIssueIdRenderer(it.id)}
+      </td>
+      <td role="gridcell" class="issue-cell issue-cell--type" data-label="Type">
+        ${createTypeBadge(it.issue_type)}
+      </td>
+      <td
+        role="gridcell"
+        class="issue-cell issue-cell--title"
+        data-label="Title"
+      >
+        ${editableText(it.id, 'title', it.title || '')}
+      </td>
+      <td
+        role="gridcell"
+        class="issue-cell issue-cell--status"
+        data-label="Status"
+      >
         <select
           class="badge-select badge--status is-${cur_status}"
           .value=${cur_status}
@@ -164,10 +182,18 @@ export function createIssueRowRenderer(options) {
           )}
         </select>
       </td>
-      <td role="gridcell">
+      <td
+        role="gridcell"
+        class="issue-cell issue-cell--assignee"
+        data-label="Assignee"
+      >
         ${editableText(it.id, 'assignee', it.assignee || '', 'Unassigned')}
       </td>
-      <td role="gridcell">
+      <td
+        role="gridcell"
+        class="issue-cell issue-cell--priority"
+        data-label="Priority"
+      >
         <select
           class="badge-select badge--priority ${'is-p' + cur_prio}"
           .value=${cur_prio}
@@ -184,7 +210,11 @@ export function createIssueRowRenderer(options) {
           )}
         </select>
       </td>
-      <td role="gridcell" class="deps-col">
+      <td
+        role="gridcell"
+        class="issue-cell issue-cell--deps deps-col"
+        data-label="Deps"
+      >
         ${(it.dependency_count || 0) > 0 || (it.dependent_count || 0) > 0
           ? html`<span class="deps-indicator"
               >${(it.dependency_count || 0) > 0
