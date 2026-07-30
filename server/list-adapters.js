@@ -23,6 +23,21 @@ export function mapSubscriptionToBdArgs(spec) {
     case 'blocked-issues': {
       return ['blocked', '--json'];
     }
+    case 'status-blocked-issues': {
+      // `bd blocked` reports only dependency-blocked issues (whose own status
+      // is `open`), so issues whose stored status is `blocked` need their own
+      // query. The Board's Blocked lane is the union of both.
+      // `--limit 0` = unlimited. Without it, `bd list` caps at its default 50.
+      return [
+        'list',
+        '--json',
+        '--tree=false',
+        '--status',
+        'blocked',
+        '--limit',
+        '0'
+      ];
+    }
     case 'ready-issues': {
       return ['ready', '--limit', '1000', '--json'];
     }

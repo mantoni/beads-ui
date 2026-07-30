@@ -209,6 +209,71 @@ describe('list-selectors', () => {
     expect(out).toEqual(['E2', 'E1']);
   });
 
+  test('selectBoardColumnUnion merges sources, dedupes by id and sorts', async () => {
+    const { issueStores, selectors } = setup();
+    issueStores.getStore('tab:board:blocked').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:blocked',
+      revision: 1,
+      issues: [
+        {
+          id: 'D1',
+          priority: 2,
+          created_at: 10_000,
+          updated_at: 10_000,
+          closed_at: null
+        },
+        {
+          id: 'BOTH',
+          priority: 0,
+          created_at: 12_000,
+          updated_at: 12_000,
+          closed_at: null
+        }
+      ]
+    });
+    issueStores.getStore('tab:board:status-blocked').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:status-blocked',
+      revision: 1,
+      issues: [
+        {
+          id: 'BOTH',
+          priority: 0,
+          created_at: 12_000,
+          updated_at: 12_000,
+          closed_at: null
+        },
+        {
+          id: 'S1',
+          priority: 1,
+          created_at: 9_000,
+          updated_at: 9_000,
+          closed_at: null
+        }
+      ]
+    });
+
+    const ids = selectors
+      .selectBoardColumnUnion(
+        ['tab:board:blocked', 'tab:board:status-blocked'],
+        'blocked'
+      )
+      .map((x) => x.id);
+    // Deduped (BOTH appears once) and sorted priority asc → created asc
+    expect(ids).toEqual(['BOTH', 'S1', 'D1']);
+  });
+
+  test('selectBoardColumnUnion returns empty for unknown client ids', async () => {
+    const { selectors } = setup();
+    expect(
+      selectors.selectBoardColumnUnion(
+        ['tab:board:blocked', 'tab:board:status-blocked'],
+        'blocked'
+      )
+    ).toEqual([]);
+  });
+
   test('subscribe triggers once per issues envelope', async () => {
     const { issueStores, selectors } = setup();
     let calls = 0;

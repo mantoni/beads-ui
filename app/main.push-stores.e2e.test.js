@@ -8,15 +8,19 @@ vi.mock('./ws.js', () => {
   const handlers = {};
   /** @type {Set<(s: 'connecting'|'open'|'closed'|'reconnecting') => void>} */
   const connHandlers = new Set();
+  /** @type {Array<[string, any]>} */
+  const sent = [];
   const singleton = {
+    /** Test helper: every message the client was asked to send */
+    _sent: sent,
     /**
      * @param {import('./protocol.js').MessageType} type
      * @param {any} payload
      */
     async send(type, payload) {
-      // Subscriptions are fire-and-forget in tests
-      void type;
-      void payload;
+      // Subscriptions are fire-and-forget in tests, but recorded so tests can
+      // assert which subscriptions a view requests.
+      sent.push([String(type), payload]);
       return null;
     },
     /**
@@ -184,5 +188,67 @@ describe('push stores integration (board view)', () => {
     });
     await Promise.resolve();
     expect(document.querySelectorAll('#ready-col .board-card').length).toBe(2);
+  });
+
+  test('subscribes to both blocked sources when the board is shown', async () => {
+    const client = /** @type {any} */ (createWsClient());
+    client._sent.length = 0;
+    window.location.hash = '#/board';
+    document.body.innerHTML = '<main id="app"></main>';
+    const root = /** @type {HTMLElement} */ (document.getElementById('app'));
+
+    bootstrap(root);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const requested = client._sent
+      .filter((/** @type {[string, any]} */ e) => e[0] === 'subscribe-list')
+      .map((/** @type {[string, any]} */ e) => e[1]);
+    expect(
+      requested.find((/** @type {any} */ p) => p.id === 'tab:board:blocked')
+        ?.type
+    ).toBe('blocked-issues');
+    expect(
+      requested.find(
+        (/** @type {any} */ p) => p.id === 'tab:board:status-blocked'
+      )?.type
+    ).toBe('status-blocked-issues');
+  });
+
+  test('renders both blocked sources into the Blocked column, deduped', async () => {
+    const client = /** @type {any} */ (createWsClient());
+    window.location.hash = '#/board';
+    document.body.innerHTML = '<main id="app"></main>';
+    const root = /** @type {HTMLElement} */ (document.getElementById('app'));
+
+    bootstrap(root);
+    await Promise.resolve();
+
+    // Dependency-blocked (from `bd blocked`; own status is open)
+    client._trigger('snapshot', {
+      type: 'snapshot',
+      id: 'tab:board:blocked',
+      revision: 1,
+      issues: [
+        { id: 'D-1', title: 'dep blocked', priority: 1, updated_at: 10_000 },
+        { id: 'X-1', title: 'both', priority: 1, updated_at: 10_100 }
+      ]
+    });
+    // Stored-status blocked (from `bd list --status blocked`)
+    client._trigger('snapshot', {
+      type: 'snapshot',
+      id: 'tab:board:status-blocked',
+      revision: 1,
+      issues: [
+        { id: 'S-1', title: 'status blocked', priority: 1, updated_at: 10_200 },
+        { id: 'X-1', title: 'both', priority: 1, updated_at: 10_100 }
+      ]
+    });
+    await Promise.resolve();
+
+    const ids = Array.from(
+      document.querySelectorAll('#blocked-col .board-card')
+    ).map((el) => el.getAttribute('data-issue-id'));
+    expect(ids.slice().sort()).toEqual(['D-1', 'S-1', 'X-1']);
   });
 });

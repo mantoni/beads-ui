@@ -374,3 +374,316 @@ describe('views/board', () => {
     expect(prog_ids).toEqual(['X-2']);
   });
 });
+
+describe('views/board Blocked lane union', () => {
+  test('shows issues whose stored status is blocked', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+
+    const issueStores = createTestIssueStores();
+    // Stored-status blocked issues never appear in `bd blocked`; they arrive
+    // on their own subscription.
+    issueStores.getStore('tab:board:status-blocked').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:status-blocked',
+      revision: 1,
+      issues: [
+        {
+          id: 'S-1',
+          title: 's1',
+          status: 'blocked',
+          priority: 1,
+          created_at: new Date('2025-10-21T07:00:00.000Z').getTime(),
+          updated_at: new Date('2025-10-21T07:00:00.000Z').getTime(),
+          issue_type: 'task'
+        }
+      ]
+    });
+
+    const view = createBoardView(
+      mount,
+      null,
+      () => {},
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+
+    const blocked_ids = Array.from(
+      mount.querySelectorAll('#blocked-col .board-card .mono')
+    ).map((el) => el.textContent?.trim());
+    expect(blocked_ids).toEqual(['S-1']);
+  });
+
+  test('still shows dependency-blocked issues', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+
+    const issueStores = createTestIssueStores();
+    // `bd blocked` reports dependency-blocked issues, whose own status is open.
+    issueStores.getStore('tab:board:blocked').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:blocked',
+      revision: 1,
+      issues: [
+        {
+          id: 'D-1',
+          title: 'd1',
+          status: 'open',
+          priority: 1,
+          created_at: new Date('2025-10-21T07:00:00.000Z').getTime(),
+          updated_at: new Date('2025-10-21T07:00:00.000Z').getTime(),
+          issue_type: 'task'
+        }
+      ]
+    });
+
+    const view = createBoardView(
+      mount,
+      null,
+      () => {},
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+
+    const blocked_ids = Array.from(
+      mount.querySelectorAll('#blocked-col .board-card .mono')
+    ).map((el) => el.textContent?.trim());
+    expect(blocked_ids).toEqual(['D-1']);
+  });
+
+  test('renders an issue in both blocked sources exactly once', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+
+    const both = {
+      id: 'X-1',
+      title: 'both',
+      status: 'blocked',
+      priority: 1,
+      created_at: new Date('2025-10-21T07:00:00.000Z').getTime(),
+      updated_at: new Date('2025-10-21T07:00:00.000Z').getTime(),
+      issue_type: 'task'
+    };
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:board:blocked').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:blocked',
+      revision: 1,
+      issues: [both]
+    });
+    issueStores.getStore('tab:board:status-blocked').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:status-blocked',
+      revision: 1,
+      issues: [{ ...both }]
+    });
+
+    const view = createBoardView(
+      mount,
+      null,
+      () => {},
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+
+    const cards = mount.querySelectorAll(
+      '#blocked-col .board-card[data-issue-id="X-1"]'
+    );
+    expect(cards.length).toBe(1);
+    const all_cards = mount.querySelectorAll('#blocked-col .board-card');
+    expect(all_cards.length).toBe(1);
+    const count = mount
+      .querySelector('#blocked-col .board-column__count')
+      ?.textContent?.trim();
+    expect(count).toBe('1');
+  });
+
+  test('does not fall back to the legacy fetch when only stored-blocked issues exist', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:board:status-blocked').applyPush({
+      type: 'snapshot',
+      id: 'tab:board:status-blocked',
+      revision: 1,
+      issues: [
+        {
+          id: 'S-1',
+          title: 's1',
+          status: 'blocked',
+          priority: 1,
+          created_at: 10_000,
+          updated_at: 10_000,
+          issue_type: 'task'
+        }
+      ]
+    });
+
+    /** @type {string[]} */
+    const fetched = [];
+    const data = {
+      async getReady() {
+        fetched.push('ready');
+        return [];
+      },
+      async getBlocked() {
+        fetched.push('blocked');
+        return [{ id: 'LEGACY-1', title: 'legacy', updated_at: 1 }];
+      },
+      async getInProgress() {
+        fetched.push('in-progress');
+        return [];
+      },
+      async getClosed() {
+        fetched.push('closed');
+        return [];
+      }
+    };
+    const subscriptions = {
+      selectors: {
+        /** @param {string} id */
+        count(id) {
+          return id === 'tab:board:status-blocked' ? 1 : 0;
+        },
+        getIds() {
+          return [];
+        }
+      }
+    };
+
+    const view = createBoardView(
+      mount,
+      data,
+      () => {},
+      undefined,
+      subscriptions,
+      issueStores
+    );
+    await view.load();
+
+    // The stored-blocked subscription has items, so the legacy fallback must
+    // not run and must not overwrite the lane.
+    expect(fetched).toEqual([]);
+    const blocked_ids = Array.from(
+      mount.querySelectorAll('#blocked-col .board-card .mono')
+    ).map((el) => el.textContent?.trim());
+    expect(blocked_ids).toEqual(['S-1']);
+  });
+
+  test('dropping into the Blocked lane sets status blocked', async () => {
+    const { mount, calls } = await setupDropBoard();
+
+    dropOn(mount, 'blocked-col', 'S-1');
+    await flush();
+
+    expect(calls).toEqual([
+      ['update-status', { id: 'S-1', status: 'blocked' }]
+    ]);
+  });
+
+  test('dropping out of the Blocked lane sets the target column status', async () => {
+    const ready = await setupDropBoard();
+    dropOn(ready.mount, 'ready-col', 'S-1');
+    await flush();
+    expect(ready.calls).toEqual([
+      ['update-status', { id: 'S-1', status: 'open' }]
+    ]);
+
+    const in_progress = await setupDropBoard();
+    dropOn(in_progress.mount, 'in-progress-col', 'S-1');
+    await flush();
+    expect(in_progress.calls).toEqual([
+      ['update-status', { id: 'S-1', status: 'in_progress' }]
+    ]);
+
+    const closed = await setupDropBoard();
+    dropOn(closed.mount, 'closed-col', 'S-1');
+    await flush();
+    expect(closed.calls).toEqual([
+      ['update-status', { id: 'S-1', status: 'closed' }]
+    ]);
+  });
+});
+
+/**
+ * Flush pending microtasks so the async transport call settles.
+ */
+async function flush() {
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+}
+
+/**
+ * Mount a board holding a single stored-blocked issue and capture the
+ * mutations dispatched through the transport.
+ *
+ * @returns {Promise<{ mount: HTMLElement, calls: Array<[string, unknown]> }>}
+ */
+async function setupDropBoard() {
+  document.body.innerHTML = '<div id="m"></div>';
+  const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+
+  const issueStores = createTestIssueStores();
+  issueStores.getStore('tab:board:status-blocked').applyPush({
+    type: 'snapshot',
+    id: 'tab:board:status-blocked',
+    revision: 1,
+    issues: [
+      {
+        id: 'S-1',
+        title: 's1',
+        status: 'blocked',
+        priority: 1,
+        created_at: new Date('2025-10-21T07:00:00.000Z').getTime(),
+        updated_at: new Date('2025-10-21T07:00:00.000Z').getTime(),
+        issue_type: 'task'
+      }
+    ]
+  });
+
+  /** @type {Array<[string, unknown]>} */
+  const calls = [];
+  const view = createBoardView(
+    mount,
+    null,
+    () => {},
+    undefined,
+    undefined,
+    issueStores,
+    async (type, payload) => {
+      calls.push([type, payload]);
+      return null;
+    }
+  );
+  await view.load();
+  return { mount, calls };
+}
+
+/**
+ * Dispatch a `drop` event on a board column with a stubbed dataTransfer.
+ * jsdom has no DataTransfer implementation, so the payload is stubbed.
+ *
+ * @param {HTMLElement} mount
+ * @param {string} col_id
+ * @param {string} issue_id
+ */
+function dropOn(mount, col_id, issue_id) {
+  const col = /** @type {HTMLElement} */ (mount.querySelector(`#${col_id}`));
+  const ev = new Event('drop', { bubbles: true, cancelable: true });
+  Object.defineProperty(ev, 'dataTransfer', {
+    value: {
+      getData() {
+        return issue_id;
+      }
+    }
+  });
+  col.dispatchEvent(ev);
+}

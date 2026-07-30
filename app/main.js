@@ -183,6 +183,10 @@ export function bootstrap(root_element) {
         void unsub_board_blocked().catch(() => {});
         unsub_board_blocked = null;
       }
+      if (unsub_board_status_blocked) {
+        void unsub_board_status_blocked().catch(() => {});
+        unsub_board_status_blocked = null;
+      }
       // Clear all subscription stores
       const storeIds = [
         'tab:issues',
@@ -190,7 +194,8 @@ export function bootstrap(root_element) {
         'tab:board:ready',
         'tab:board:in-progress',
         'tab:board:closed',
-        'tab:board:blocked'
+        'tab:board:blocked',
+        'tab:board:status-blocked'
       ];
       for (const id of storeIds) {
         try {
@@ -658,6 +663,8 @@ export function bootstrap(root_element) {
     let unsub_board_closed = null;
     /** @type {null | (() => Promise<void>)} */
     let unsub_board_blocked = null;
+    /** @type {null | (() => Promise<void>)} */
+    let unsub_board_status_blocked = null;
 
     // Track in-flight subscriptions to prevent duplicates during rapid view switching
     /** @type {Set<string>} */
@@ -883,6 +890,34 @@ export function bootstrap(root_element) {
               pending_subscriptions.delete('tab:board:blocked');
             });
         }
+        // Blocked column, second source: issues whose stored status is
+        // `blocked`. `bd blocked` reports only dependency-blocked issues, so
+        // without this subscription those issues appear in no lane at all.
+        if (
+          !unsub_board_status_blocked &&
+          !pending_subscriptions.has('tab:board:status-blocked')
+        ) {
+          try {
+            sub_issue_stores.register('tab:board:status-blocked', {
+              type: 'status-blocked-issues'
+            });
+          } catch (err) {
+            log('register board:status-blocked store failed: %o', err);
+          }
+          pending_subscriptions.add('tab:board:status-blocked');
+          void subscriptions
+            .subscribeList('tab:board:status-blocked', {
+              type: 'status-blocked-issues'
+            })
+            .then((u) => (unsub_board_status_blocked = u))
+            .catch((err) => {
+              log('subscribe board status-blocked failed: %o', err);
+              showFatalFromError(err, 'board (Blocked)');
+            })
+            .finally(() => {
+              pending_subscriptions.delete('tab:board:status-blocked');
+            });
+        }
       } else {
         // Unsubscribe all board lists when leaving the board view
         if (unsub_board_ready) {
@@ -919,6 +954,15 @@ export function bootstrap(root_element) {
             sub_issue_stores.unregister('tab:board:blocked');
           } catch (err) {
             log('unregister board:blocked failed: %o', err);
+          }
+        }
+        if (unsub_board_status_blocked) {
+          void unsub_board_status_blocked().catch(() => {});
+          unsub_board_status_blocked = null;
+          try {
+            sub_issue_stores.unregister('tab:board:status-blocked');
+          } catch (err) {
+            log('unregister board:status-blocked failed: %o', err);
           }
         }
       }
