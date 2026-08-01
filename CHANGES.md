@@ -1,5 +1,18 @@
 # Changes
 
+## 0.12.5
+
+- [`7edc3d6`](https://github.com/mantoni/beads-ui/commit/7edc3d66cf095c4eae097a19abaaee5d764d02ec)
+  feat(status): support all built-in bd statuses (#100) (Inconceivable Labs)
+    >
+    > Render every built-in bd status, expose only human-settable statuses for editing, persist multi-status filters with an explicit Ready scope, and keep stored-blocked and dependency-blocked issues visible together on the Board.
+- [`1813560`](https://github.com/mantoni/beads-ui/commit/1813560453dcc07a9af9ef18c259ee94bb11900e)
+  feat(list): make Type column editable (#91) (Inconceivable Labs)
+    >
+    > Allow inline Type changes in issue and epic rows, add decision type support, and keep both the mutation and follow-up read pinned to the active workspace.
+
+_Released by gprocunier on 2026-08-01._
+
 ## 0.12.4
 
 - [`bd211f1`](https://github.com/mantoni/beads-ui/commit/bd211f1a76b3fc0a38f2914e2e33451347d857c6)
