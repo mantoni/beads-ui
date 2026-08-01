@@ -5,7 +5,13 @@
  */
 import path from 'node:path';
 import { WebSocketServer } from 'ws';
-import { isRequest, makeError, makeOk } from '../app/protocol.js';
+import {
+  SETTABLE_STATUSES,
+  isRequest,
+  isSettableStatus,
+  makeError,
+  makeOk
+} from '../app/protocol.js';
 import { getGitUserName, runBd, runBdJson } from './bd.js';
 import { resolveWorkspaceDatabase } from './db.js';
 import { fetchListForSubscription } from './list-adapters.js';
@@ -782,19 +788,21 @@ export async function handleMessage(ws, data) {
   if (req.type === 'update-status') {
     log('update-status');
     const { id, status } = /** @type {any} */ (req.payload);
-    const allowed = new Set(['open', 'in_progress', 'closed']);
+    // Only human-settable statuses: `pinned` and `hooked` are bd's to manage.
     if (
       typeof id !== 'string' ||
       id.length === 0 ||
       typeof status !== 'string' ||
-      !allowed.has(status)
+      !isSettableStatus(status)
     ) {
       ws.send(
         JSON.stringify(
           makeError(
             req,
             'bad_request',
-            "payload requires { id: string, status: 'open'|'in_progress'|'closed' }"
+            `payload requires { id: string, status: ${SETTABLE_STATUSES.map(
+              (s) => `'${s}'`
+            ).join('|')} }`
           )
         )
       );

@@ -268,6 +268,50 @@ describe('ws list subscriptions', () => {
     expect(ids).toEqual(['recent']);
   });
 
+  test('subscribe-list accepts status-blocked-issues', async () => {
+    const sock = {
+      sent: /** @type {string[]} */ ([]),
+      readyState: 1,
+      OPEN: 1,
+      /** @param {string} msg */
+      send(msg) {
+        this.sent.push(String(msg));
+      }
+    };
+
+    await handleMessage(
+      /** @type {any} */ (sock),
+      Buffer.from(
+        JSON.stringify({
+          id: 'sub-status-blocked',
+          type: /** @type {any} */ ('subscribe-list'),
+          payload: {
+            id: 'tab:board:status-blocked',
+            type: 'status-blocked-issues'
+          }
+        })
+      )
+    );
+
+    const last = sock.sent[sock.sent.length - 1];
+    const reply = JSON.parse(last);
+    // Without the validator allowlist entry this is rejected as bad_request
+    // and the Blocked lane silently stays empty.
+    expect(reply && reply.error).toBeUndefined();
+    expect(reply && reply.ok).toBe(true);
+
+    const snapshot_envelope = sock.sent
+      .map((m) => {
+        try {
+          return JSON.parse(m);
+        } catch {
+          return null;
+        }
+      })
+      .find((o) => o && o.type === 'snapshot');
+    expect(snapshot_envelope?.payload?.id).toBe('tab:board:status-blocked');
+  });
+
   test('subscribe-list rejects unknown subscription type', async () => {
     const sock = {
       sent: /** @type {string[]} */ ([]),

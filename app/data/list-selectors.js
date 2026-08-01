@@ -4,7 +4,10 @@
  * triggers once per issues envelope to let views re-render.
  */
 /**
- * @typedef {{ id: string, title?: string, status?: 'open'|'in_progress'|'closed', priority?: number, issue_type?: string, created_at?: number, updated_at?: number, closed_at?: number }} IssueLite
+ * @import { Status } from '../protocol.js'
+ */
+/**
+ * @typedef {{ id: string, title?: string, status?: Status, priority?: number, issue_type?: string, created_at?: number, updated_at?: number, closed_at?: number }} IssueLite
  */
 import { cmpClosedDesc, cmpPriorityThenCreated } from './sort.js';
 
@@ -59,6 +62,45 @@ export function createListSelectors(issue_stores = undefined) {
   }
 
   /**
+   * Get entities for a Board column fed by more than one subscription.
+   *
+   * The Blocked lane is the union of `bd blocked` (dependency-blocked issues,
+   * whose own status is `open`) and `bd list --status blocked` (issues whose
+   * stored status is `blocked`). The two sources overlap, so entries are
+   * deduplicated by id — first occurrence wins — before sorting.
+   *
+   * @param {string[]} client_ids
+   * @param {'ready'|'blocked'|'in_progress'|'closed'} mode
+   * @returns {IssueLite[]}
+   */
+  function selectBoardColumnUnion(client_ids, mode) {
+    if (!issue_stores || typeof issue_stores.snapshotFor !== 'function') {
+      return [];
+    }
+    /** @type {IssueLite[]} */
+    const merged = [];
+    /** @type {Set<string>} */
+    const seen = new Set();
+    for (const client_id of Array.isArray(client_ids) ? client_ids : []) {
+      for (const it of issue_stores.snapshotFor(client_id) || []) {
+        const id = String(it?.id ?? '');
+        if (id.length === 0 || seen.has(id)) {
+          continue;
+        }
+        seen.add(id);
+        merged.push(it);
+      }
+    }
+    if (mode === 'closed') {
+      merged.sort(cmpClosedDesc);
+    } else {
+      // ready/blocked/in_progress share the same sort
+      merged.sort(cmpPriorityThenCreated);
+    }
+    return merged;
+  }
+
+  /**
    * Get children for an epic subscribed as client id `epic:${id}`.
    * Sorted as Issues List (priority asc → created asc).
    *
@@ -97,6 +139,7 @@ export function createListSelectors(issue_stores = undefined) {
   return {
     selectIssuesFor,
     selectBoardColumn,
+    selectBoardColumnUnion,
     selectEpicChildren,
     subscribe
   };

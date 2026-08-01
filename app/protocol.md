@@ -29,7 +29,8 @@ a generated `id`.
 
 - Removed in v2: `list-issues` (use subscriptions + push stores)
 - `update-status` payload:
-  `{ id: string, status: 'open'|'in_progress'|'closed' }`
+  `{ id: string, status: 'open'|'in_progress'|'blocked'|'deferred'|'closed' }`
+  (bd's `pinned` and `hooked` statuses are machine-managed and rejected here)
 - `edit-text` payload:
   `{ id: string, field: 'title'|'description'|'acceptance'|'notes'|'design', value: string }`
 - `update-priority` payload: `{ id: string, priority: 0|1|2|3|4 }`

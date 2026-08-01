@@ -41,7 +41,10 @@ export interface DependencyRef {
 export type SubscriptionType =
   | 'all-issues'
   | 'epics'
+  /** Dependency-blocked issues (`bd blocked`); their own status is `open`. */
   | 'blocked-issues'
+  /** Issues whose stored status is `blocked` (`bd list --status blocked`). */
+  | 'status-blocked-issues'
   | 'ready-issues'
   | 'in-progress-issues'
   | 'closed-issues'

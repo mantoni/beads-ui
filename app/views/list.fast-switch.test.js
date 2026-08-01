@@ -27,6 +27,27 @@ function toggleFilter(mount, dropdownIndex, optionText) {
   checkbox.click();
 }
 
+/**
+ * Helper to pick a scope radio in the status dropdown.
+ *
+ * @param {HTMLElement} mount - The container element
+ * @param {string} label - Visible label of the radio
+ */
+function selectScope(mount, label) {
+  const dropdown = mount.querySelectorAll('.filter-dropdown')[0];
+  const trigger = /** @type {HTMLButtonElement} */ (
+    dropdown.querySelector('.filter-dropdown__trigger')
+  );
+  trigger.click();
+  const option = Array.from(
+    dropdown.querySelectorAll('.filter-dropdown__option--scope')
+  ).find((opt) => (opt.textContent || '').trim() === label);
+  const radio = /** @type {HTMLInputElement} */ (
+    option?.querySelector('input[type="radio"]')
+  );
+  radio.click();
+}
+
 function createTestIssueStores() {
   /** @type {Map<string, any>} */
   const stores = new Map();
@@ -91,8 +112,11 @@ describe('list view — fast filter switches', () => {
     await view.load();
     expect(mount.querySelectorAll('tr.issue-row').length).toBe(0);
 
-    // Simulate quick switch: ready -> in_progress while snapshots arrive out-of-order
-    toggleFilter(mount, 0, 'Ready');
+    // Simulate quick switch: ready -> in_progress while snapshots arrive
+    // out-of-order. The Ready scope disables the status checkboxes, so leaving
+    // it is part of the switch.
+    selectScope(mount, 'Ready only');
+    selectScope(mount, 'By status');
     toggleFilter(mount, 0, 'In progress');
 
     const inProg = [

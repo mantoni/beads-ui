@@ -1,3 +1,6 @@
+/**
+ * @import { Status } from '../protocol.js'
+ */
 import { html, render } from 'lit-html';
 import { createListSelectors } from '../data/list-selectors.js';
 import { cmpClosedDesc, cmpPriorityThenCreated } from '../data/sort.js';
@@ -11,7 +14,7 @@ import { createTypeBadge } from '../utils/type-badge.js';
  * @typedef {{
  *   id: string,
  *   title?: string,
- *   status?: 'open'|'in_progress'|'closed',
+ *   status?: Status,
  *   priority?: number,
  *   issue_type?: string,
  *   created_at?: number,
@@ -23,10 +26,15 @@ import { createTypeBadge } from '../utils/type-badge.js';
 /**
  * Map column IDs to their corresponding status values.
  *
- * @type {Record<string, 'open'|'in_progress'|'closed'>}
+ * The Blocked lane is the union of dependency-blocked issues and issues whose
+ * stored status is `blocked`. A drop must produce membership in the lane it
+ * lands on, and setting `open` only lands in Blocked when the issue happens to
+ * be dependency-blocked — so `blocked-col` sets the stored status `blocked`.
+ *
+ * @type {Record<string, 'open'|'in_progress'|'blocked'|'closed'>}
  */
 const COLUMN_STATUS_MAP = {
-  'blocked-col': 'open',
+  'blocked-col': 'blocked',
   'ready-col': 'open',
   'in-progress-col': 'in_progress',
   'closed-col': 'closed'
@@ -254,7 +262,7 @@ export function createBoardView(
    * Update issue status via WebSocket transport.
    *
    * @param {string} issue_id
-   * @param {'open'|'in_progress'|'closed'} new_status
+   * @param {'open'|'in_progress'|'blocked'|'closed'} new_status
    */
   async function updateIssueStatus(issue_id, new_status) {
     if (!transport) {
@@ -581,8 +589,11 @@ export function createBoardView(
           'tab:board:in-progress',
           'in_progress'
         );
-        const blocked = selectors.selectBoardColumn(
-          'tab:board:blocked',
+        // Blocked is the union of dependency-blocked issues (`bd blocked`)
+        // and issues whose stored status is `blocked`; the two are disjoint
+        // queries but may overlap, so the selector dedupes by id.
+        const blocked = selectors.selectBoardColumnUnion(
+          ['tab:board:blocked', 'tab:board:status-blocked'],
           'blocked'
         );
         const ready_raw = selectors.selectBoardColumn(
@@ -657,6 +668,7 @@ export function createBoardView(
         const total_items =
           cnt('tab:board:ready') +
           cnt('tab:board:blocked') +
+          cnt('tab:board:status-blocked') +
           cnt('tab:board:in-progress') +
           cnt('tab:board:closed');
         const data = /** @type {any} */ (_data);
