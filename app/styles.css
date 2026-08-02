@@ -1319,7 +1319,15 @@ input.inline-edit:focus {
 .table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed; /* keep column proportions stable while editing */
+  /* Auto layout lets the ID column grow to fit long, prefixed issue ids
+     (e.g. "my-project-name-abc-1"). All other columns keep explicit <col>
+     widths so proportions stay stable while editing; only Title flexes. */
+  table-layout: auto;
+
+  th:first-child,
+  td:first-child {
+    white-space: nowrap;
+  }
 
   th,
   td {
