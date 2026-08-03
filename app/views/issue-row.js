@@ -2,6 +2,7 @@
  * @import { SettableStatus } from '../protocol.js'
  */
 import { html } from 'lit-html';
+import { formatDateShort, formatDateValue } from '../utils/date-format.js';
 import { createIssueIdRenderer } from '../utils/issue-id-renderer.js';
 import { ISSUE_TYPES, typeLabel } from '../utils/issue-type.js';
 import { emojiForPriority } from '../utils/priority-badge.js';
@@ -13,7 +14,7 @@ import {
 } from '../utils/status.js';
 
 /**
- * @typedef {{ id: string, title?: string, status?: string, priority?: number, issue_type?: string, assignee?: string, dependency_count?: number, dependent_count?: number }} IssueRowData
+ * @typedef {{ id: string, title?: string, status?: string, priority?: number, issue_type?: string, assignee?: string, created_at?: number|string, updated_at?: number|string, dependency_count?: number, dependent_count?: number }} IssueRowData
  */
 
 /**
@@ -211,6 +212,20 @@ export function createIssueRowRenderer(options) {
               </option>`
           )}
         </select>
+      </td>
+      <td
+        role="gridcell"
+        class="date-col created-col"
+        title=${formatDateValue(it.created_at)}
+      >
+        ${formatDateShort(it.created_at)}
+      </td>
+      <td
+        role="gridcell"
+        class="date-col updated-col"
+        title=${formatDateValue(it.updated_at)}
+      >
+        ${formatDateShort(it.updated_at)}
       </td>
       <td role="gridcell" class="deps-col">
         ${(it.dependency_count || 0) > 0 || (it.dependent_count || 0) > 0

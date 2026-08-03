@@ -1,7 +1,13 @@
 import { html, render } from 'lit-html';
 import { createListSelectors } from '../data/list-selectors.js';
+import { compareByKey } from '../data/sort.js';
 import { createIssueIdRenderer } from '../utils/issue-id-renderer.js';
+import { sortableHeaderCell } from '../utils/sortable-header.js';
 import { createIssueRowRenderer } from './issue-row.js';
+
+/**
+ * @import { SortKey } from '../data/sort.js'
+ */
 
 /**
  * @typedef {{ id: string, title?: string, status?: string, priority?: number, issue_type?: string, assignee?: string, created_at?: number, updated_at?: number }} IssueLite
@@ -36,8 +42,28 @@ export function createEpicsView(
   const loading = new Set();
   /** @type {Map<string, () => Promise<void>>} */
   const epic_unsubs = new Map();
+  // Sort selection is shared across every expanded group, so a header click
+  // sorts all groups' children the same way (and the arrow shows in each).
+  /** @type {{ key: SortKey | null, dir: 'asc' | 'desc' }} */
+  let sort_state = { key: null, dir: 'asc' };
   // Centralized selection helpers
   const selectors = issue_stores ? createListSelectors(issue_stores) : null;
+
+  /**
+   * Toggle sorting for a column: first click sorts ascending, clicking the
+   * active column flips direction.
+   *
+   * @param {string} key
+   */
+  const onSort = (key) => {
+    const k = /** @type {SortKey} */ (key);
+    if (sort_state.key === k) {
+      sort_state = { key: k, dir: sort_state.dir === 'asc' ? 'desc' : 'asc' };
+    } else {
+      sort_state = { key: k, dir: 'asc' };
+    }
+    doRender();
+  };
   // Live re-render on pushes: recompute groups when stores change
   if (selectors) {
     selectors.subscribe(() => {
@@ -81,8 +107,12 @@ export function createEpicsView(
     const epic = g.epic || {};
     const id = String(epic.id || '');
     const is_open = expanded.has(id);
-    // Compose children via selectors
-    const list = selectors ? selectors.selectEpicChildren(id) : [];
+    // Compose children via selectors. A selected column sort overrides the
+    // default (priority asc → created asc) order.
+    const base_list = selectors ? selectors.selectEpicChildren(id) : [];
+    const list = sort_state.key
+      ? base_list.slice().sort(compareByKey(sort_state.key, sort_state.dir))
+      : base_list;
     const is_loading = loading.has(id);
     return html`
       <div class="epic-group" data-epic-id=${id}>
@@ -124,15 +154,34 @@ export function createEpicsView(
                         <col style="width: 120px" />
                         <col style="width: 160px" />
                         <col style="width: 130px" />
+                        <col style="width: 130px" />
+                        <col style="width: 130px" />
                       </colgroup>
                       <thead>
                         <tr>
-                          <th>ID</th>
+                          ${sortableHeaderCell({
+                            label: 'ID',
+                            sort_key: 'id',
+                            sort_state,
+                            on_sort: onSort
+                          })}
                           <th>Type</th>
                           <th>Title</th>
                           <th>Status</th>
                           <th>Assignee</th>
                           <th>Priority</th>
+                          ${sortableHeaderCell({
+                            label: 'Created',
+                            sort_key: 'created_at',
+                            sort_state,
+                            on_sort: onSort
+                          })}
+                          ${sortableHeaderCell({
+                            label: 'Updated',
+                            sort_key: 'updated_at',
+                            sort_state,
+                            on_sort: onSort
+                          })}
                         </tr>
                       </thead>
                       <tbody>

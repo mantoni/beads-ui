@@ -172,6 +172,108 @@ describe('list adapters for subscription types', () => {
     }
   });
 
+  test('issue-detail for an epic enriches dependents with real child timestamps', async () => {
+    // `bd show <id> --json --include-dependents` returns dependents whose
+    // created_at/updated_at are zeroed (Go's 0001-01-01). The real values are
+    // fetched from a second `bd show <id> --children --json` call and merged.
+    /** @type {import('vitest').Mock} */ (runBdJson).mockImplementation(
+      async (/** @type {string[]} */ args) => {
+        if (args.includes('--children')) {
+          return {
+            code: 0,
+            stdoutJson: {
+              'E-1': [
+                {
+                  id: 'C-2',
+                  created_at: '2025-10-22T09:14:01Z',
+                  updated_at: '2025-10-24T10:24:05Z',
+                  closed_at: null
+                },
+                {
+                  id: 'C-1',
+                  created_at: '2025-10-20T09:00:00Z',
+                  updated_at: '2025-10-21T09:00:00Z',
+                  closed_at: '2025-10-25T09:00:00Z'
+                }
+              ]
+            }
+          };
+        }
+        return {
+          code: 0,
+          stdoutJson: {
+            id: 'E-1',
+            issue_type: 'epic',
+            created_at: '2025-10-19T09:00:00Z',
+            updated_at: '2025-10-26T09:00:00Z',
+            closed_at: null,
+            dependents: [
+              {
+                id: 'C-1',
+                title: 'One',
+                status: 'open',
+                created_at: '0001-01-01T00:00:00Z',
+                updated_at: '0001-01-01T00:00:00Z'
+              },
+              {
+                id: 'C-2',
+                title: 'Two',
+                status: 'closed',
+                created_at: '0001-01-01T00:00:00Z',
+                updated_at: '0001-01-01T00:00:00Z'
+              }
+            ]
+          }
+        };
+      }
+    );
+
+    const res = await fetchListForSubscription({
+      type: 'issue-detail',
+      params: { id: 'E-1' }
+    });
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      const epic = res.items[0];
+      const dependents = /** @type {any[]} */ (epic.dependents);
+      const c1 = dependents.find((d) => d.id === 'C-1');
+      const c2 = dependents.find((d) => d.id === 'C-2');
+      // Real timestamps merged in as epoch-ms numbers, not zeroed.
+      expect(c1.created_at).toBe(Date.parse('2025-10-20T09:00:00Z'));
+      expect(c1.updated_at).toBe(Date.parse('2025-10-21T09:00:00Z'));
+      expect(c1.closed_at).toBe(Date.parse('2025-10-25T09:00:00Z'));
+      expect(c2.created_at).toBe(Date.parse('2025-10-22T09:14:01Z'));
+      expect(c2.updated_at).toBe(Date.parse('2025-10-24T10:24:05Z'));
+      expect(c2.closed_at).toBe(null);
+    }
+  });
+
+  test('issue-detail for a non-epic does not fetch children', async () => {
+    /** @type {import('vitest').Mock} */ (runBdJson).mockResolvedValue({
+      code: 0,
+      stdoutJson: {
+        id: 'T-1',
+        issue_type: 'task',
+        created_at: '2025-10-19T09:00:00Z',
+        updated_at: '2025-10-26T09:00:00Z',
+        closed_at: null,
+        dependents: [{ id: 'T-2', title: 'Dep', status: 'open' }]
+      }
+    });
+
+    const res = await fetchListForSubscription({
+      type: 'issue-detail',
+      params: { id: 'T-1' }
+    });
+
+    expect(res.ok).toBe(true);
+    // Only the primary `show --include-dependents` call, no `--children` call.
+    const mock = /** @type {import('vitest').Mock} */ (runBdJson);
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(mock.mock.calls[0][0]).not.toContain('--children');
+  });
+
   test('fetchListForSubscription surfaces bd error', async () => {
     /** @type {import('vitest').Mock} */ (runBdJson).mockResolvedValue({
       code: 2,

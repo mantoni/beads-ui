@@ -1,6 +1,7 @@
 // Issue Detail view implementation (lit-html based)
 import { html, render } from 'lit-html';
 import { parseView } from '../router.js';
+import { formatDateValue } from '../utils/date-format.js';
 import { issueHashFor } from '../utils/issue-url.js';
 import { debug } from '../utils/logging.js';
 import { renderMarkdown } from '../utils/markdown.js';
@@ -13,6 +14,9 @@ import {
 } from '../utils/status.js';
 import { showToast } from '../utils/toast.js';
 import { createTypeBadge } from '../utils/type-badge.js';
+
+// Re-exported so existing importers (and tests) can keep resolving it here.
+export { formatDateValue };
 
 /**
  * Format a date string for display.
@@ -33,35 +37,6 @@ function formatCommentDate(dateStr) {
     });
   } catch {
     return dateStr;
-  }
-}
-
-/**
- * Format a date value for display in the Dates card.
- *
- * The detail object reaches the client via `bd show --json` →
- * `normalizeIssueList`, which overwrites `created_at`/`updated_at`/`closed_at`
- * into numeric epoch-millisecond timestamps (via `parseTimestamp`, which uses
- * `Date.parse`) while leaving `started_at`/`defer_until` as raw ISO strings.
- * `new Date(value)` handles both a number(ms) and an ISO string identically.
- *
- * @param {number | string | null | undefined} value
- * @returns {string} Formatted local datetime, or '' when value is missing.
- */
-export function formatDateValue(value) {
-  if (value === null || value === undefined || value === '') return '';
-  try {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '';
-    return date.toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  } catch {
-    return '';
   }
 }
 

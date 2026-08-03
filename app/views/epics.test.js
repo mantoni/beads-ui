@@ -224,6 +224,138 @@ describe('views/epics', () => {
     expect(ids).toEqual(['UI-12', 'UI-11', 'UI-13']);
   });
 
+  test('renders Created/Updated headers and sorts children when clicked', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+    const data = {
+      updateIssue: vi.fn(),
+      getIssue: vi.fn(async (id) => ({ id }))
+    };
+    const storesS = new Map();
+    const listenersS = new Set();
+    /** @param {string} id */
+    const getStoreS = (id) => {
+      let s = storesS.get(id);
+      if (!s) {
+        s = createSubscriptionIssueStore(id);
+        storesS.set(id, s);
+        s.subscribe(() => {
+          for (const fn of Array.from(listenersS)) {
+            try {
+              fn();
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      }
+      return s;
+    };
+    const issueStoresS = {
+      getStore: getStoreS,
+      /** @param {string} id */
+      snapshotFor(id) {
+        return getStoreS(id).snapshot().slice();
+      },
+      /** @param {() => void} fn */
+      subscribe(fn) {
+        listenersS.add(fn);
+        return () => listenersS.delete(fn);
+      }
+    };
+    const subscriptions = createSubscriptionStore(async () => {});
+    issueStoresS.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-50',
+          title: 'Epic Sortable',
+          issue_type: 'epic',
+          dependents: [{ id: 'UI-51' }, { id: 'UI-52' }, { id: 'UI-53' }]
+        }
+      ]
+    });
+    const view = createEpicsView(
+      mount,
+      /** @type {any} */ (data),
+      () => {},
+      subscriptions,
+      /** @type {any} */ (issueStoresS)
+    );
+    await view.load();
+    issueStoresS.getStore('detail:UI-50');
+    issueStoresS.getStore('detail:UI-50').applyPush({
+      type: 'snapshot',
+      id: 'detail:UI-50',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-50',
+          title: 'Epic Sortable',
+          issue_type: 'epic',
+          dependents: [
+            {
+              id: 'UI-51',
+              title: 'A',
+              status: 'open',
+              priority: 0,
+              issue_type: 'task',
+              created_at: 300,
+              updated_at: 200
+            },
+            {
+              id: 'UI-52',
+              title: 'B',
+              status: 'open',
+              priority: 1,
+              issue_type: 'task',
+              created_at: 100,
+              updated_at: 300
+            },
+            {
+              id: 'UI-53',
+              title: 'C',
+              status: 'open',
+              priority: 2,
+              issue_type: 'task',
+              created_at: 200,
+              updated_at: 100
+            }
+          ]
+        }
+      ]
+    });
+    await view.load();
+
+    const headers = Array.from(mount.querySelectorAll('thead th')).map((th) =>
+      (th.textContent || '').trim()
+    );
+    expect(headers).toContain('Created');
+    expect(headers).toContain('Updated');
+
+    /** @returns {string[]} */
+    const ids = () =>
+      Array.from(mount.querySelectorAll('tr.epic-row')).map((r) =>
+        /** @type {HTMLElement} */ (
+          r.querySelector('td.mono')
+        )?.textContent?.trim()
+      );
+
+    // Default order follows priority ascending.
+    expect(ids()).toEqual(['UI-51', 'UI-52', 'UI-53']);
+
+    const updatedBtn = /** @type {HTMLButtonElement} */ (
+      mount.querySelector('button.th-sort[data-sort-key="updated_at"]')
+    );
+    updatedBtn.click();
+    expect(ids()).toEqual(['UI-53', 'UI-51', 'UI-52']);
+
+    updatedBtn.click();
+    expect(ids()).toEqual(['UI-52', 'UI-51', 'UI-53']);
+  });
+
   test('clicking inputs/selects inside a row does not navigate', async () => {
     document.body.innerHTML = '<div id="m"></div>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));

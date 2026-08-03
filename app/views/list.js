@@ -4,10 +4,11 @@
  */
 import { html, render } from 'lit-html';
 import { createListSelectors } from '../data/list-selectors.js';
-import { cmpClosedDesc } from '../data/sort.js';
+import { cmpClosedDesc, compareByKey } from '../data/sort.js';
 import { ISSUE_TYPES, typeLabel } from '../utils/issue-type.js';
 import { issueHashFor } from '../utils/issue-url.js';
 import { debug } from '../utils/logging.js';
+import { sortableHeaderCell } from '../utils/sortable-header.js';
 import {
   FILTERABLE_STATUSES,
   normalizeStatusFilters,
@@ -15,6 +16,10 @@ import {
   statusLabel
 } from '../utils/status.js';
 import { createIssueRowRenderer } from './issue-row.js';
+
+/**
+ * @import { SortKey } from '../data/sort.js'
+ */
 
 // List view implementation; requires a transport send function.
 
@@ -69,6 +74,25 @@ export function createListView(
   let unsubscribe = null;
   let status_dropdown_open = false;
   let type_dropdown_open = false;
+  /** @type {{ key: SortKey | null, dir: 'asc' | 'desc' }} */
+  let sort_state = { key: null, dir: 'asc' };
+
+  /**
+   * Toggle sorting for a column: first click sorts ascending, clicking the
+   * active column flips direction.
+   *
+   * @param {string} key
+   */
+  const onSort = (key) => {
+    const k = /** @type {SortKey} */ (key);
+    if (sort_state.key === k) {
+      sort_state = { key: k, dir: sort_state.dir === 'asc' ? 'desc' : 'asc' };
+    } else {
+      sort_state = { key: k, dir: 'asc' };
+    }
+    log('sort %s %s', sort_state.key, sort_state.dir);
+    doRender();
+  };
 
   /**
    * Normalize legacy string filter to array format.
@@ -256,8 +280,14 @@ export function createListView(
         type_filters.includes(String(it.issue_type || ''))
       );
     }
-    // Sorting: closed list is a special case → sort by closed_at desc only
-    if (
+    // Sorting: an explicit column sort wins; otherwise the closed list is a
+    // special case → sort by closed_at desc only. With no sort selected the
+    // list keeps the selector's default order (priority asc → created asc).
+    if (sort_state.key) {
+      filtered = filtered
+        .slice()
+        .sort(compareByKey(sort_state.key, sort_state.dir));
+    } else if (
       stored_status_filters.length === 1 &&
       stored_status_filters[0] === 'closed'
     ) {
@@ -365,7 +395,7 @@ export function createListView(
                 class="table"
                 role="grid"
                 aria-rowcount=${String(filtered.length)}
-                aria-colcount="6"
+                aria-colcount="9"
               >
                 <colgroup>
                   <col style="width: 100px" />
@@ -374,16 +404,38 @@ export function createListView(
                   <col style="width: 120px" />
                   <col style="width: 160px" />
                   <col style="width: 130px" />
+                  <col style="width: 130px" />
+                  <col style="width: 130px" />
                   <col style="width: 80px" />
                 </colgroup>
                 <thead>
                   <tr role="row">
-                    <th role="columnheader">ID</th>
+                    ${sortableHeaderCell({
+                      label: 'ID',
+                      sort_key: 'id',
+                      sort_state,
+                      on_sort: onSort,
+                      columnheader: true
+                    })}
                     <th role="columnheader">Type</th>
                     <th role="columnheader">Title</th>
                     <th role="columnheader">Status</th>
                     <th role="columnheader">Assignee</th>
                     <th role="columnheader">Priority</th>
+                    ${sortableHeaderCell({
+                      label: 'Created',
+                      sort_key: 'created_at',
+                      sort_state,
+                      on_sort: onSort,
+                      columnheader: true
+                    })}
+                    ${sortableHeaderCell({
+                      label: 'Updated',
+                      sort_key: 'updated_at',
+                      sort_state,
+                      on_sort: onSort,
+                      columnheader: true
+                    })}
                     <th role="columnheader">Deps</th>
                   </tr>
                 </thead>
