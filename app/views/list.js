@@ -4,7 +4,7 @@
  */
 import { html, render } from 'lit-html';
 import { createListSelectors } from '../data/list-selectors.js';
-import { cmpClosedDesc, compareByKey } from '../data/sort.js';
+import { cmpClosedDesc, compareByKey, nextSortState } from '../data/sort.js';
 import { ISSUE_TYPES, typeLabel } from '../utils/issue-type.js';
 import { issueHashFor } from '../utils/issue-url.js';
 import { debug } from '../utils/logging.js';
@@ -18,7 +18,7 @@ import {
 import { createIssueRowRenderer } from './issue-row.js';
 
 /**
- * @import { SortKey } from '../data/sort.js'
+ * @import { SortState } from '../data/sort.js'
  */
 
 // List view implementation; requires a transport send function.
@@ -74,23 +74,17 @@ export function createListView(
   let unsubscribe = null;
   let status_dropdown_open = false;
   let type_dropdown_open = false;
-  /** @type {{ key: SortKey | null, dir: 'asc' | 'desc' }} */
+  /** @type {SortState} */
   let sort_state = { key: null, dir: 'asc' };
 
   /**
-   * Toggle sorting for a column: first click sorts ascending, clicking the
-   * active column flips direction.
+   * Cycle a column header through ascending → descending → cleared.
    *
    * @param {string} key
    */
   const onSort = (key) => {
-    const k = /** @type {SortKey} */ (key);
-    if (sort_state.key === k) {
-      sort_state = { key: k, dir: sort_state.dir === 'asc' ? 'desc' : 'asc' };
-    } else {
-      sort_state = { key: k, dir: 'asc' };
-    }
-    log('sort %s %s', sort_state.key, sort_state.dir);
+    sort_state = nextSortState(sort_state, /** @type {any} */ (key));
+    log('sort %s %s', sort_state.key || '(none)', sort_state.dir);
     doRender();
   };
 

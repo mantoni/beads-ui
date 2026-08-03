@@ -15,7 +15,7 @@ import {
 import { showToast } from '../utils/toast.js';
 import { createTypeBadge } from '../utils/type-badge.js';
 
-// Re-exported so existing importers (and tests) can keep resolving it here.
+// Re-exported so detail.dates.test.js can keep resolving it from ./detail.js.
 export { formatDateValue };
 
 /**

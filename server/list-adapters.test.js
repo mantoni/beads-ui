@@ -249,6 +249,111 @@ describe('list adapters for subscription types', () => {
     }
   });
 
+  test('issue-detail keeps dependents unchanged when the children call fails', async () => {
+    // A failed cosmetic --children call must not break the whole epic fetch.
+    /** @type {import('vitest').Mock} */ (runBdJson).mockImplementation(
+      async (/** @type {string[]} */ args) => {
+        if (args.includes('--children')) {
+          return { code: 2, stderr: 'boom' };
+        }
+        return {
+          code: 0,
+          stdoutJson: {
+            id: 'E-1',
+            issue_type: 'epic',
+            created_at: '2025-10-19T09:00:00Z',
+            updated_at: '2025-10-26T09:00:00Z',
+            closed_at: null,
+            dependents: [
+              {
+                id: 'C-1',
+                title: 'One',
+                status: 'open',
+                created_at: '0001-01-01T00:00:00Z',
+                updated_at: '0001-01-01T00:00:00Z'
+              }
+            ]
+          }
+        };
+      }
+    );
+
+    const res = await fetchListForSubscription({
+      type: 'issue-detail',
+      params: { id: 'E-1' }
+    });
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      const dependents = /** @type {any[]} */ (res.items[0].dependents);
+      // Left as the zero-time sentinel; the client renders it as blank.
+      expect(dependents[0].created_at).toBe('0001-01-01T00:00:00Z');
+    }
+  });
+
+  test('issue-detail leaves a dependent untouched when absent from the children map', async () => {
+    /** @type {import('vitest').Mock} */ (runBdJson).mockImplementation(
+      async (/** @type {string[]} */ args) => {
+        if (args.includes('--children')) {
+          return {
+            code: 0,
+            stdoutJson: {
+              'E-1': [
+                {
+                  id: 'C-1',
+                  created_at: '2025-10-20T09:00:00Z',
+                  updated_at: '2025-10-21T09:00:00Z',
+                  closed_at: null
+                }
+              ]
+            }
+          };
+        }
+        return {
+          code: 0,
+          stdoutJson: {
+            id: 'E-1',
+            issue_type: 'epic',
+            created_at: '2025-10-19T09:00:00Z',
+            updated_at: '2025-10-26T09:00:00Z',
+            closed_at: null,
+            dependents: [
+              {
+                id: 'C-1',
+                title: 'One',
+                status: 'open',
+                created_at: '0001-01-01T00:00:00Z',
+                updated_at: '0001-01-01T00:00:00Z'
+              },
+              {
+                id: 'C-2',
+                title: 'Two',
+                status: 'open',
+                created_at: '0001-01-01T00:00:00Z',
+                updated_at: '0001-01-01T00:00:00Z'
+              }
+            ]
+          }
+        };
+      }
+    );
+
+    const res = await fetchListForSubscription({
+      type: 'issue-detail',
+      params: { id: 'E-1' }
+    });
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      const dependents = /** @type {any[]} */ (res.items[0].dependents);
+      const c1 = dependents.find((d) => d.id === 'C-1');
+      const c2 = dependents.find((d) => d.id === 'C-2');
+      expect(c1.created_at).toBe(Date.parse('2025-10-20T09:00:00Z'));
+      // Not in the children map → left as the sentinel, not overwritten.
+      expect(c2.created_at).toBe('0001-01-01T00:00:00Z');
+    }
+  });
+
   test('issue-detail for a non-epic does not fetch children', async () => {
     /** @type {import('vitest').Mock} */ (runBdJson).mockResolvedValue({
       code: 0,

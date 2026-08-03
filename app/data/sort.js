@@ -51,21 +51,39 @@ export function cmpClosedDesc(a, b) {
 }
 
 /**
- * Coerce a timestamp (epoch-ms number or ISO string) to epoch-ms.
- * Missing or unparseable values normalize to 0 so ties stay stable.
+ * Whether an epoch-ms instant is the `bd` zero-time sentinel (Go's
+ * `0001-01-01`). `bd show --include-dependents` returns dependent timestamps
+ * this way; treat it as "no value" so it never sorts as a real instant.
+ *
+ * @param {number} ms
+ * @returns {boolean}
+ */
+export function isZeroTime(ms) {
+  return Number.isFinite(ms) && new Date(ms).getUTCFullYear() <= 1;
+}
+
+/**
+ * Coerce a timestamp (epoch-ms number or ISO string) to epoch-ms. Missing,
+ * unparseable, and zero-time sentinel values normalize to 0 so they sort as
+ * "oldest/missing" and ties stay stable.
  *
  * @param {number | string | null | undefined} value
  * @returns {number}
  */
 function toMs(value) {
+  /** @type {number} */
+  let ms;
   if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : 0;
+    ms = value;
+  } else if (typeof value === 'string') {
+    ms = Date.parse(value);
+  } else {
+    return 0;
   }
-  if (typeof value === 'string') {
-    const ms = Date.parse(value);
-    return Number.isFinite(ms) ? ms : 0;
+  if (!Number.isFinite(ms) || isZeroTime(ms)) {
+    return 0;
   }
-  return 0;
+  return ms;
 }
 
 /**
@@ -104,6 +122,32 @@ export function compareIdsNatural(a, b) {
 /**
  * @typedef {'id' | 'created_at' | 'updated_at'} SortKey
  */
+
+/**
+ * A view's sort selection. `key === null` means no column sort is active, so
+ * the view keeps its own default order.
+ *
+ * @typedef {{ key: SortKey | null, dir: 'asc' | 'desc' }} SortState
+ */
+
+/**
+ * Advance the sort selection when a column header is clicked. Cycles a column
+ * through ascending → descending → cleared, so the view's default order stays
+ * reachable without a reload.
+ *
+ * @param {SortState} current
+ * @param {SortKey} key
+ * @returns {SortState}
+ */
+export function nextSortState(current, key) {
+  if (current.key !== key) {
+    return { key, dir: 'asc' };
+  }
+  if (current.dir === 'asc') {
+    return { key, dir: 'desc' };
+  }
+  return { key: null, dir: 'asc' };
+}
 
 /**
  * Build a comparator for a user-selected sortable column.

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { compareByKey } from './sort.js';
+import { compareByKey, compareIdsNatural, nextSortState } from './sort.js';
 
 /**
  * Sort a copy of items by a column key/direction and return their ids.
@@ -105,5 +105,64 @@ describe('data/sort compareByKey', () => {
     const ids = sortedIds(items, 'created_at', 'asc');
 
     expect(ids).toEqual(['UI-2', 'UI-3', 'UI-1']);
+  });
+
+  test('treats the bd zero-time sentinel as missing, not a real instant', () => {
+    // `bd show --include-dependents` returns unenriched children this way.
+    const items = [
+      { id: 'UI-1', created_at: 500 },
+      { id: 'UI-2', created_at: '0001-01-01T00:00:00Z' },
+      { id: 'UI-3', created_at: 100 }
+    ];
+
+    const ids = sortedIds(items, 'created_at', 'asc');
+
+    expect(ids).toEqual(['UI-2', 'UI-3', 'UI-1']);
+  });
+});
+
+describe('data/sort compareIdsNatural', () => {
+  test('orders by text prefix before the numeric chunk', () => {
+    expect(compareIdsNatural('B-1', 'A-2')).toBe(1);
+    expect(compareIdsNatural('A-2', 'B-1')).toBe(-1);
+  });
+
+  test('a shorter id sorts before its longer prefix-sharing sibling', () => {
+    expect(compareIdsNatural('UI-2', 'UI-2a')).toBe(-1);
+    expect(compareIdsNatural('UI-2a', 'UI-2')).toBe(1);
+  });
+
+  test('returns 0 for identical ids', () => {
+    expect(compareIdsNatural('UI-7', 'UI-7')).toBe(0);
+  });
+});
+
+describe('data/sort nextSortState', () => {
+  test('starts a fresh column ascending', () => {
+    expect(nextSortState({ key: null, dir: 'asc' }, 'id')).toEqual({
+      key: 'id',
+      dir: 'asc'
+    });
+  });
+
+  test('flips ascending to descending on the active column', () => {
+    expect(nextSortState({ key: 'id', dir: 'asc' }, 'id')).toEqual({
+      key: 'id',
+      dir: 'desc'
+    });
+  });
+
+  test('clears the sort on the third click, restoring default order', () => {
+    expect(nextSortState({ key: 'id', dir: 'desc' }, 'id')).toEqual({
+      key: null,
+      dir: 'asc'
+    });
+  });
+
+  test('switching to a different column resets to ascending', () => {
+    expect(nextSortState({ key: 'id', dir: 'desc' }, 'created_at')).toEqual({
+      key: 'created_at',
+      dir: 'asc'
+    });
   });
 });

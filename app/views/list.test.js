@@ -246,6 +246,142 @@ describe('views/list', () => {
     expect(rowIds(mount)).toEqual(['UI-1', 'UI-3', 'UI-2']);
   });
 
+  test('a third click clears the sort and restores the default order', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const issues = [
+      { id: 'UI-1', title: 'A', status: 'open', priority: 0, created_at: 300 },
+      { id: 'UI-2', title: 'B', status: 'open', priority: 1, created_at: 100 },
+      { id: 'UI-3', title: 'C', status: 'open', priority: 2, created_at: 200 }
+    ];
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+
+    clickSort(mount, 'created_at'); // asc
+    clickSort(mount, 'created_at'); // desc
+    clickSort(mount, 'created_at'); // cleared → default (priority asc)
+
+    expect(rowIds(mount)).toEqual(['UI-1', 'UI-2', 'UI-3']);
+    const created_th = mount
+      .querySelector('button.th-sort[data-sort-key="created_at"]')
+      ?.closest('th');
+    expect(created_th?.getAttribute('aria-sort')).toBe('none');
+  });
+
+  test('reflects the active sort via aria-sort and a direction indicator', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const issues = [
+      { id: 'UI-1', title: 'A', status: 'open', priority: 1, created_at: 100 },
+      { id: 'UI-2', title: 'B', status: 'open', priority: 2, created_at: 200 }
+    ];
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+
+    const createdTh = () =>
+      mount
+        .querySelector('button.th-sort[data-sort-key="created_at"]')
+        ?.closest('th');
+    const idTh = () =>
+      mount.querySelector('button.th-sort[data-sort-key="id"]')?.closest('th');
+
+    // Inactive columns report aria-sort="none".
+    expect(createdTh()?.getAttribute('aria-sort')).toBe('none');
+
+    clickSort(mount, 'created_at');
+    expect(createdTh()?.getAttribute('aria-sort')).toBe('ascending');
+    expect(createdTh()?.textContent).toContain('▲');
+    expect(idTh()?.getAttribute('aria-sort')).toBe('none');
+
+    clickSort(mount, 'created_at');
+    expect(createdTh()?.getAttribute('aria-sort')).toBe('descending');
+    expect(createdTh()?.textContent).toContain('▼');
+  });
+
+  test('an explicit column sort overrides the closed-list default order', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const issues = [
+      {
+        id: 'UI-1',
+        title: 'A',
+        status: 'closed',
+        priority: 1,
+        closed_at: 300,
+        created_at: 100
+      },
+      {
+        id: 'UI-2',
+        title: 'B',
+        status: 'closed',
+        priority: 1,
+        closed_at: 200,
+        created_at: 300
+      },
+      {
+        id: 'UI-3',
+        title: 'C',
+        status: 'closed',
+        priority: 1,
+        closed_at: 100,
+        created_at: 200
+      }
+    ];
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+
+    // Closed-only scope defaults to closed_at descending.
+    toggleFilter(mount, 0, 'Closed');
+    await Promise.resolve();
+    expect(rowIds(mount)).toEqual(['UI-1', 'UI-2', 'UI-3']);
+
+    // Sorting by Created must win over the closed-desc default.
+    clickSort(mount, 'created_at');
+    expect(rowIds(mount)).toEqual(['UI-1', 'UI-3', 'UI-2']);
+  });
+
   test('renders issues from push stores and navigates on row click', async () => {
     document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));

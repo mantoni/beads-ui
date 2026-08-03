@@ -1,7 +1,7 @@
 import { html, nothing } from 'lit-html';
 
 /**
- * @typedef {{ key: string | null, dir: 'asc' | 'desc' }} SortState
+ * @import { SortState } from '../data/sort.js'
  */
 
 /**

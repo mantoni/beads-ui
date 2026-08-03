@@ -1,12 +1,12 @@
 import { html, render } from 'lit-html';
 import { createListSelectors } from '../data/list-selectors.js';
-import { compareByKey } from '../data/sort.js';
+import { compareByKey, nextSortState } from '../data/sort.js';
 import { createIssueIdRenderer } from '../utils/issue-id-renderer.js';
 import { sortableHeaderCell } from '../utils/sortable-header.js';
 import { createIssueRowRenderer } from './issue-row.js';
 
 /**
- * @import { SortKey } from '../data/sort.js'
+ * @import { SortState } from '../data/sort.js'
  */
 
 /**
@@ -44,24 +44,18 @@ export function createEpicsView(
   const epic_unsubs = new Map();
   // Sort selection is shared across every expanded group, so a header click
   // sorts all groups' children the same way (and the arrow shows in each).
-  /** @type {{ key: SortKey | null, dir: 'asc' | 'desc' }} */
+  /** @type {SortState} */
   let sort_state = { key: null, dir: 'asc' };
   // Centralized selection helpers
   const selectors = issue_stores ? createListSelectors(issue_stores) : null;
 
   /**
-   * Toggle sorting for a column: first click sorts ascending, clicking the
-   * active column flips direction.
+   * Cycle a column header through ascending → descending → cleared.
    *
    * @param {string} key
    */
   const onSort = (key) => {
-    const k = /** @type {SortKey} */ (key);
-    if (sort_state.key === k) {
-      sort_state = { key: k, dir: sort_state.dir === 'asc' ? 'desc' : 'asc' };
-    } else {
-      sort_state = { key: k, dir: 'asc' };
-    }
+    sort_state = nextSortState(sort_state, /** @type {any} */ (key));
     doRender();
   };
   // Live re-render on pushes: recompute groups when stores change

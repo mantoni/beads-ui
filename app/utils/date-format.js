@@ -19,7 +19,7 @@ export function formatDateValue(value) {
   }
   try {
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
+    if (Number.isNaN(date.getTime()) || date.getUTCFullYear() <= 1) {
       return '';
     }
     return date.toLocaleDateString(undefined, {
@@ -47,7 +47,7 @@ export function formatDateShort(value) {
   }
   try {
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
+    if (Number.isNaN(date.getTime()) || date.getUTCFullYear() <= 1) {
       return '';
     }
     return date.toLocaleDateString(undefined, {
