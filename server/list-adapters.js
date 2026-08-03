@@ -222,6 +222,23 @@ export async function fetchListForSubscription(spec, options = {}) {
       });
     }
 
+    // Epic children reach the client via `--include-dependents`, which zeroes
+    // each child's created_at/updated_at. Merge the real timestamps from a
+    // second `bd show <id> --children` call so the epics table can show and
+    // sort by them. Gated to epics so regular issue-detail fetches stay single.
+    if (String(spec.type) === 'issue-detail' && raw.length > 0) {
+      const first = /** @type {any} */ (raw[0]);
+      if (
+        first &&
+        first.issue_type === 'epic' &&
+        Array.isArray(first.dependents) &&
+        first.dependents.length > 0
+      ) {
+        const id = String((spec.params && spec.params.id) || first.id || '');
+        raw[0] = await enrichEpicDependents(first, id, { cwd: options.cwd });
+      }
+    }
+
     const items = normalizeIssueList(raw);
     return { ok: true, items };
   } catch (err) {
@@ -264,6 +281,76 @@ function toErrorObject(err) {
     return { code, message };
   }
   return { code: 'bad_request', message: 'Request error' };
+}
+
+/**
+ * Merge real child timestamps into an epic's `dependents`.
+ *
+ * `bd show <id> --json --include-dependents` returns dependents whose
+ * created_at/updated_at are Go's zero time (`0001-01-01`). The real values are
+ * available from `bd show <id> --children --json`, whose output is shaped as
+ * `{ "<id>": [ {full child record}, ... ] }`. This patches each dependent's
+ * created_at/updated_at/closed_at (as epoch-ms) from that map, matching the
+ * numeric convention `normalizeIssueList` uses for top-level items. Best-effort:
+ * any failure returns the epic unchanged so the table still renders.
+ *
+ * @param {Record<string, unknown>} epic
+ * @param {string} id
+ * @param {{ cwd?: string }} [options]
+ * @returns {Promise<Record<string, unknown>>}
+ */
+async function enrichEpicDependents(epic, id, options = {}) {
+  const dependents = Array.isArray(epic.dependents) ? epic.dependents : [];
+  if (id.length === 0 || dependents.length === 0) {
+    return epic;
+  }
+  /** @type {{ code: number, stdoutJson?: unknown }} */
+  let res;
+  try {
+    res = await runBdJson(['show', id, '--children', '--json'], {
+      cwd: options.cwd
+    });
+  } catch (err) {
+    log('enrichEpicDependents failed for %s: %o', id, err);
+    return epic;
+  }
+  if (!res || res.code !== 0 || !('stdoutJson' in res)) {
+    return epic;
+  }
+  const json = /** @type {any} */ (res.stdoutJson);
+  const children =
+    json && typeof json === 'object' && Array.isArray(json[id]) ? json[id] : [];
+  /** @type {Map<string, any>} */
+  const by_id = new Map();
+  for (const child of children) {
+    const cid = String((child && child.id) ?? '');
+    if (cid.length > 0) {
+      by_id.set(cid, child);
+    }
+  }
+  if (by_id.size === 0) {
+    return epic;
+  }
+  const patched = dependents.map((d) => {
+    const child = by_id.get(String((d && /** @type {any} */ (d).id) ?? ''));
+    if (!child) {
+      return d;
+    }
+    const closed_raw = child.closed_at;
+    /** @type {number | null} */
+    let closed_at = null;
+    if (closed_raw !== undefined && closed_raw !== null) {
+      const n = parseTimestamp(closed_raw);
+      closed_at = Number.isFinite(n) ? n : null;
+    }
+    return {
+      .../** @type {any} */ (d),
+      created_at: parseTimestamp(child.created_at),
+      updated_at: parseTimestamp(child.updated_at),
+      closed_at
+    };
+  });
+  return { ...epic, dependents: patched };
 }
 
 /**

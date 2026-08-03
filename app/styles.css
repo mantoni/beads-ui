@@ -1344,6 +1344,42 @@ input.inline-edit:focus {
     color: var(--muted);
     font-weight: 600;
   }
+  /* Compact, muted date cells that never wrap mid-value */
+  td.date-col {
+    color: var(--muted);
+    white-space: nowrap;
+    font-size: 12px;
+  }
+}
+/* Sortable column headers: the label is a button so it is keyboard-focusable */
+.table th.th-sortable {
+  padding: 0;
+}
+.table th .th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: var(--space-6) var(--space-8);
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.table th .th-sort:hover {
+  color: var(--fg);
+}
+.table th.is-sorted .th-sort {
+  color: var(--fg);
+}
+.table th .th-sort__arrow {
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0.85;
 }
 .epic-row:hover {
   background: color-mix(in srgb, var(--control-bg) 55%, transparent);
