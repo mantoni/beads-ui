@@ -43,6 +43,34 @@ function createTestIssueStores() {
 }
 
 describe('views/board', () => {
+  test('renders columns in canonical lane order for horizontal navigation', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+
+    const issueStores = createTestIssueStores();
+    const view = createBoardView(
+      mount,
+      null,
+      () => {},
+      undefined,
+      undefined,
+      issueStores
+    );
+
+    await view.load();
+
+    const column_ids = Array.from(
+      mount.querySelectorAll('.board-root > .board-column')
+    ).map((el) => el.id);
+
+    expect(column_ids).toEqual([
+      'blocked-col',
+      'ready-col',
+      'in-progress-col',
+      'closed-col'
+    ]);
+  });
+
   test('renders four columns (Blocked, Ready, In Progress, Closed) with sorted cards and navigates on click', async () => {
     document.body.innerHTML = '<div id="m"></div>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
