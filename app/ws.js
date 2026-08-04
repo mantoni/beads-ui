@@ -47,9 +47,16 @@ export function createWsClient(options = {}) {
       return options.url;
     }
     if (typeof location !== 'undefined') {
+      // Derive the WS path from the current document's directory so the
+      // client works whether mounted at `/` or behind a reverse-proxy
+      // subpath like `/backlog/`. `pathname` will be `/` or `/subpath/`
+      // (the server always serves the SPA shell at a directory URL), so
+      // stripping the trailing filename (if any) yields the mount dir.
+      const base_path = location.pathname.replace(/\/[^/]*$/, '');
       return (
         (location.protocol === 'https:' ? 'wss://' : 'ws://') +
         location.host +
+        base_path +
         '/ws'
       );
     }
