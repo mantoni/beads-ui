@@ -63,7 +63,7 @@ describe('subscription issue store', () => {
     });
     const after = store.getById('X');
     expect(after?.title).toBe('X!');
-    expect(after).toBe(before); // identity preserved
+    expect(after).toBe(before);
   });
 
   test('preserves comments when upsert omits comments', () => {
@@ -158,7 +158,6 @@ describe('subscription issue store', () => {
         }
       ]
     });
-    // stale revision
     store.applyPush({
       type: 'upsert',
       id: 's1',
@@ -172,7 +171,6 @@ describe('subscription issue store', () => {
       }
     });
     expect(store.getById('X')?.title).toBe('x');
-    // equal revision is ignored
     store.applyPush({
       type: 'upsert',
       id: 's1',
@@ -186,7 +184,6 @@ describe('subscription issue store', () => {
       }
     });
     expect(store.getById('X')?.title).toBe('x');
-    // higher revision but stale timestamp is ignored
     store.applyPush({
       type: 'upsert',
       id: 's1',
@@ -266,5 +263,23 @@ describe('subscription issue store', () => {
     });
     expect(hit).toBe(0);
     expect(store.size()).toBe(0);
+  });
+
+  test('hydrates from cached items without blocking later live snapshots', () => {
+    const store = createSubscriptionIssueStore('tab:issues');
+
+    const hydrated = store.hydrate([{ id: 'UI-1', title: 'cached' }]);
+
+    expect(hydrated).toBe(true);
+    expect(store.snapshot().map((it) => it.id)).toEqual(['UI-1']);
+
+    store.applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues: [{ id: 'UI-2', title: 'live' }]
+    });
+
+    expect(store.snapshot().map((it) => it.id)).toEqual(['UI-2']);
   });
 });
