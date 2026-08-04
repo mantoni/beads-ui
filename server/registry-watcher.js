@@ -7,7 +7,7 @@ const log = debug('registry-watcher');
 
 /**
  * In-memory registry of workspaces registered dynamically via the API.
- * These supplement the file-based registry at ~/.beads/registry.json.
+ * These supplement the file-based registry (see {@link getRegistryPath}).
  *
  * @type {Map<string, { path: string, database: string, pid: number, version: string }>}
  */
@@ -50,12 +50,39 @@ export function getInMemoryWorkspaces() {
  */
 
 /**
- * Get the path to the global beads registry file.
+ * Resolve the path to the global beads registry file, honoring the XDG Base
+ * Directory specification while staying backward compatible with the legacy
+ * `~/.beads` location, according to precedence:
  *
+ * 1) `$BEADS_REGISTRY_DIR/registry.json` (explicit override)
+ * 2) `~/.beads/registry.json` when that legacy file already exists
+ * 3) `$XDG_DATA_HOME/beads/registry.json` when `XDG_DATA_HOME` is absolute
+ * 4) `~/.local/share/beads/registry.json` (XDG default)
+ *
+ * Existing setups are never silently migrated: the legacy `~/.beads` path keeps
+ * winning whenever it is already present. Per the XDG Base Directory spec, a
+ * relative (or empty) `XDG_DATA_HOME` is ignored and the default is used.
+ *
+ * @param {{ env?: Record<string, string | undefined> }} [options]
  * @returns {string}
  */
-export function getRegistryPath() {
-  return path.join(os.homedir(), '.beads', 'registry.json');
+export function getRegistryPath({ env = process.env } = {}) {
+  const override = env.BEADS_REGISTRY_DIR;
+  if (override && override.length > 0) {
+    return path.join(path.resolve(override), 'registry.json');
+  }
+
+  const legacy = path.join(os.homedir(), '.beads', 'registry.json');
+  if (fs.existsSync(legacy)) {
+    return legacy;
+  }
+
+  const xdg_data_home = env.XDG_DATA_HOME;
+  const data_home =
+    xdg_data_home && path.isAbsolute(xdg_data_home)
+      ? xdg_data_home
+      : path.join(os.homedir(), '.local', 'share');
+  return path.join(data_home, 'beads', 'registry.json');
 }
 
 /**
