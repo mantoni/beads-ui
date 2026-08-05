@@ -322,6 +322,55 @@ export function createListView(
   }
 
   /**
+   * Placeholder row for an expanded epic that produced no child rows.
+   *
+   * Rendering nothing here is a silent failure: `partitionForTree` hides an
+   * epic's children from the top-level list, so a detail fetch that never
+   * delivers makes those issues vanish from the UI entirely with no signal
+   * (observed in production as "my issue list is truncated").
+   *
+   * @param {string} epic_id
+   * @param {string} state - `loading` | `failed` | `filtered` | `empty`.
+   * @param {string} message
+   */
+  function epicEmptyRow(epic_id, state, message) {
+    return html`
+      <tr
+        class="epic-child-row epic-child-empty"
+        data-epic-empty-for=${epic_id}
+        data-empty-state=${state}
+      >
+        <td colspan="7" class="muted">${message}</td>
+      </tr>
+    `;
+  }
+
+  /**
+   * Classify why an expanded epic rendered no child rows.
+   *
+   * The three outcomes must stay distinct: a filter the user applied is not a
+   * failure, and an epic that genuinely has no children is not one either.
+   * `total` comes from the same `tab:epics` counters the progress bar uses.
+   *
+   * @param {string} epic_id
+   * @param {number} delivered - Children the detail subscription delivered.
+   * @returns {{ state: string, message: string }}
+   */
+  function classifyEmptyEpic(epic_id, delivered) {
+    if (loading.has(epic_id)) {
+      return { state: 'loading', message: 'Loading…' };
+    }
+    if (delivered > 0) {
+      return { state: 'filtered', message: 'No children match the filters' };
+    }
+    const { total } = getEpicCounters(epic_id);
+    if (total > 0) {
+      return { state: 'failed', message: `Couldn't load children` };
+    }
+    return { state: 'empty', message: 'No children' };
+  }
+
+  /**
    * Partition the (filtered ∪ expanded-epics) list into:
    *  - epic_rows: items with issue_type === 'epic' (rendered with header + optional children)
    *  - top_level_rows: non-epic items WHOSE PARENT IS NOT IN epic_ids
@@ -475,6 +524,13 @@ export function createListView(
           const filtered_children = applyFiltersToIssues(
             /** @type {Issue[]} */ (children)
           );
+          if (filtered_children.length === 0) {
+            const { state, message } = classifyEmptyEpic(
+              String(it.id),
+              children.length
+            );
+            rows_array.push(epicEmptyRow(String(it.id), state, message));
+          }
           for (const child of filtered_children) {
             rows_array.push(child_row_renderer(child));
           }

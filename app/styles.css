@@ -1386,6 +1386,12 @@ input.inline-edit:focus {
   margin-right: 4px;
   font-family: monospace;
 }
+
+/* Placeholder shown when an expanded epic produced no child rows. Reads as
+   a note rather than a row so it is not mistaken for an issue. */
+.epic-child-empty td {
+  font-style: italic;
+}
 .table {
   width: 100%;
   border-collapse: collapse;
