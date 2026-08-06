@@ -89,7 +89,7 @@ function runBdUnlocked(args, options = {}) {
   const spawn_opts = {
     cwd: options.cwd || process.cwd(),
     env: env_with_db,
-    shell: false,
+    shell: process.platform === 'win32',
     windowsHide: true
   };
 
