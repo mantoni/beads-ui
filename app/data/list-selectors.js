@@ -1,7 +1,7 @@
 /**
  * List selectors utility: compose subscription membership with issues entities
  * and apply view-specific sorting. Provides a lightweight `subscribe` that
- * triggers once per issues envelope to let views re-render.
+ * triggers after coalesced subscription-store updates to let views re-render.
  */
 /**
  * @import { Status } from '../protocol.js'
@@ -32,10 +32,7 @@ export function createListSelectors(issue_stores = undefined) {
     if (!issue_stores || typeof issue_stores.snapshotFor !== 'function') {
       return [];
     }
-    return issue_stores
-      .snapshotFor(client_id)
-      .slice()
-      .sort(cmpPriorityThenCreated);
+    return issue_stores.snapshotFor(client_id);
   }
 
   /**
@@ -48,15 +45,10 @@ export function createListSelectors(issue_stores = undefined) {
   function selectBoardColumn(client_id, mode) {
     const arr =
       issue_stores && issue_stores.snapshotFor
-        ? issue_stores.snapshotFor(client_id).slice()
+        ? issue_stores.snapshotFor(client_id)
         : [];
-    if (mode === 'in_progress') {
-      arr.sort(cmpPriorityThenCreated);
-    } else if (mode === 'closed') {
-      arr.sort(cmpClosedDesc);
-    } else {
-      // ready/blocked share the same sort
-      arr.sort(cmpPriorityThenCreated);
+    if (mode === 'closed') {
+      return arr.slice().sort(cmpClosedDesc);
     }
     return arr;
   }
@@ -124,7 +116,7 @@ export function createListSelectors(issue_stores = undefined) {
   }
 
   /**
-   * Subscribe for re-render; triggers once per issues envelope.
+   * Subscribe for re-render after coalesced subscription-store updates.
    *
    * @param {() => void} fn
    * @returns {() => void}

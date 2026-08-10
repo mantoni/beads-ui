@@ -10,3 +10,12 @@ console.warn = /** @type {function(...*): void} */ (
     }
   }
 );
+
+// Keep frame-scheduled rendering deterministic without waiting for JSDOM's
+// timer-backed animation frames in every view test.
+globalThis.requestAnimationFrame = (
+  /** @type {FrameRequestCallback} */ callback
+) => {
+  globalThis.queueMicrotask(() => callback(globalThis.performance.now()));
+  return 0;
+};

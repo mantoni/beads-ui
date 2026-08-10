@@ -2,6 +2,18 @@ import { describe, expect, test, vi } from 'vitest';
 import { bootstrap } from './main.js';
 import { createWsClient } from './ws.js';
 
+/** Wait for subscription stores to notify their view listeners. */
+async function flushStoreNotifications() {
+  if (typeof globalThis.requestAnimationFrame === 'function') {
+    await new Promise((resolve) =>
+      globalThis.requestAnimationFrame(() => resolve(undefined))
+    );
+    return;
+  }
+  await Promise.resolve();
+  await Promise.resolve();
+}
+
 // Mock WS client to drive push envelopes and connection state
 vi.mock('./ws.js', () => {
   /** @type {Record<string, (p: any) => void>} */
@@ -78,7 +90,7 @@ describe('push stores integration (board view)', () => {
 
     bootstrap(root);
     // Allow router + subscriptions to wire
-    await Promise.resolve();
+    await flushStoreNotifications();
 
     // Initial board: no cards
     expect(document.querySelectorAll('#ready-col .board-card').length).toBe(0);
@@ -102,7 +114,7 @@ describe('push stores integration (board view)', () => {
       revision: 1,
       issues: [{ id: 'P-1', title: 'prog 1', updated_at: 20_000 }]
     });
-    await Promise.resolve();
+    await flushStoreNotifications();
 
     // Verify columns reflect only their subscription data
     expect(document.querySelectorAll('#ready-col .board-card').length).toBe(2);
@@ -117,7 +129,7 @@ describe('push stores integration (board view)', () => {
       revision: 2,
       issue: { id: 'R-3', title: 'ready 3', priority: 1, updated_at: 12_000 }
     });
-    await Promise.resolve();
+    await flushStoreNotifications();
 
     expect(document.querySelectorAll('#ready-col .board-card').length).toBe(3);
     // In-progress unaffected
@@ -132,7 +144,7 @@ describe('push stores integration (board view)', () => {
       revision: 2,
       issue_id: 'P-1'
     });
-    await Promise.resolve();
+    await flushStoreNotifications();
 
     expect(
       document.querySelectorAll('#in-progress-col .board-card').length
@@ -148,7 +160,7 @@ describe('push stores integration (board view)', () => {
     const root = /** @type {HTMLElement} */ (document.getElementById('app'));
 
     bootstrap(root);
-    await Promise.resolve();
+    await flushStoreNotifications();
 
     // Initial snapshot
     client._trigger('snapshot', {
@@ -160,7 +172,7 @@ describe('push stores integration (board view)', () => {
         { id: 'R-2', title: 'r2', priority: 2, updated_at: 10_100 }
       ]
     });
-    await Promise.resolve();
+    await flushStoreNotifications();
     expect(document.querySelectorAll('#ready-col .board-card').length).toBe(2);
 
     // Simulate reconnect cycle and server replaying the same snapshot
@@ -175,7 +187,7 @@ describe('push stores integration (board view)', () => {
         { id: 'R-2', title: 'r2', priority: 2, updated_at: 10_100 }
       ]
     });
-    await Promise.resolve();
+    await flushStoreNotifications();
     // Still exactly two cards; no duplicates
     expect(document.querySelectorAll('#ready-col .board-card').length).toBe(2);
 
@@ -186,7 +198,7 @@ describe('push stores integration (board view)', () => {
       revision: 2,
       issue: { id: 'R-2', title: 'r2!', priority: 2, updated_at: 10_200 }
     });
-    await Promise.resolve();
+    await flushStoreNotifications();
     expect(document.querySelectorAll('#ready-col .board-card').length).toBe(2);
   });
 
@@ -198,7 +210,7 @@ describe('push stores integration (board view)', () => {
     const root = /** @type {HTMLElement} */ (document.getElementById('app'));
 
     bootstrap(root);
-    await Promise.resolve();
+    await flushStoreNotifications();
     await Promise.resolve();
 
     const requested = client._sent
@@ -244,7 +256,7 @@ describe('push stores integration (board view)', () => {
         { id: 'X-1', title: 'both', priority: 1, updated_at: 10_100 }
       ]
     });
-    await Promise.resolve();
+    await flushStoreNotifications();
 
     const ids = Array.from(
       document.querySelectorAll('#blocked-col .board-card')

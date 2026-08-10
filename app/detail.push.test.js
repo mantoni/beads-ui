@@ -115,6 +115,7 @@ describe('detail view via subscription push', () => {
       status: 'open',
       priority: 2
     });
+    await tick();
 
     // Expect title to appear in the detail view
     const h2 = mount.querySelector('#detail-root h2');
