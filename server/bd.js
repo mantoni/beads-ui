@@ -3,8 +3,19 @@ import { resolveDbPath } from './db.js';
 import { debug } from './logging.js';
 
 const log = debug('bd');
-/** @type {Promise<void>} */
-let bd_run_queue = Promise.resolve();
+const BD_INTERACTIVE_BURST_LIMIT = 4;
+
+/**
+ * @typedef {'interactive' | 'background'} BdPriority
+ * @typedef {{ operation: () => Promise<any>, resolve: (value: any) => void, reject: (error: unknown) => void }} BdQueueTask
+ */
+
+/** @type {BdQueueTask[]} */
+const bd_queue_interactive = [];
+/** @type {BdQueueTask[]} */
+const bd_queue_background = [];
+let bd_queue_running = false;
+let bd_queue_interactive_burst = 0;
 
 /**
  * Get the git user name from git config.
@@ -57,11 +68,14 @@ export function getBdBin() {
  * Shell is not used to avoid injection; args must be pre-split.
  *
  * @param {string[]} args - Arguments to pass (e.g., ["list", "--json"]).
- * @param {{ cwd?: string, env?: Record<string, string | undefined>, timeout_ms?: number }} [options]
+ * @param {{ cwd?: string, env?: Record<string, string | undefined>, timeout_ms?: number, priority?: BdPriority }} [options]
  * @returns {Promise<{ code: number, stdout: string, stderr: string }>}
  */
 export function runBd(args, options = {}) {
-  return withBdRunQueue(async () => runBdUnlocked(args, options));
+  return withBdRunQueue(
+    async () => runBdUnlocked(args, options),
+    options.priority
+  );
 }
 
 /**
@@ -188,31 +202,73 @@ function buildBdArgs(args) {
  * Dolt embedded mode can crash when multiple `bd` processes run concurrently
  * against the same workspace.
  *
+ * Interactive work is dequeued before watcher-driven list refreshes. A bounded
+ * burst prevents background refreshes from starving under sustained activity.
+ *
  * @template T
  * @param {() => Promise<T>} operation
+ * @param {BdPriority} [priority]
  * @returns {Promise<T>}
  */
-async function withBdRunQueue(operation) {
-  const previous = bd_run_queue;
-  /** @type {() => void} */
-  let release = () => {};
-  bd_run_queue = new Promise((resolve) => {
-    release = resolve;
+function withBdRunQueue(operation, priority = 'interactive') {
+  return new Promise((resolve, reject) => {
+    const queue =
+      priority === 'background' ? bd_queue_background : bd_queue_interactive;
+    queue.push({ operation, resolve, reject });
+    void pumpBdQueue();
   });
+}
 
-  await previous.catch(() => {});
-  try {
-    return await operation();
-  } finally {
-    release();
+/** Drain queued bd operations one at a time. */
+async function pumpBdQueue() {
+  if (bd_queue_running) {
+    return;
   }
+  bd_queue_running = true;
+  try {
+    for (;;) {
+      const task = nextBdQueueTask();
+      if (!task) {
+        break;
+      }
+      try {
+        task.resolve(await task.operation());
+      } catch (err) {
+        task.reject(err);
+      }
+    }
+  } finally {
+    bd_queue_running = false;
+  }
+}
+
+/**
+ * Select the next task while keeping background work bounded.
+ *
+ * @returns {BdQueueTask | undefined}
+ */
+function nextBdQueueTask() {
+  if (bd_queue_interactive.length === 0) {
+    bd_queue_interactive_burst = 0;
+    return bd_queue_background.shift();
+  }
+  if (bd_queue_background.length === 0) {
+    bd_queue_interactive_burst = 0;
+    return bd_queue_interactive.shift();
+  }
+  if (bd_queue_interactive_burst >= BD_INTERACTIVE_BURST_LIMIT) {
+    bd_queue_interactive_burst = 0;
+    return bd_queue_background.shift();
+  }
+  bd_queue_interactive_burst += 1;
+  return bd_queue_interactive.shift();
 }
 
 /**
  * Run `bd` and parse JSON from stdout if exit code is 0.
  *
  * @param {string[]} args - Must include flags that cause JSON to be printed (e.g., `--json`).
- * @param {{ cwd?: string, env?: Record<string, string | undefined>, timeout_ms?: number }} [options]
+ * @param {{ cwd?: string, env?: Record<string, string | undefined>, timeout_ms?: number, priority?: BdPriority }} [options]
  * @returns {Promise<{ code: number, stdoutJson?: unknown, stderr?: string }>}
  */
 export async function runBdJson(args, options = {}) {

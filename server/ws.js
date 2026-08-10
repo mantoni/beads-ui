@@ -343,8 +343,10 @@ function emitSubscriptionDelete(ws, client_id, key, issue_id) {
 async function refreshAndPublish(spec) {
   const key = keyOf(spec);
   await registry.withKeyLock(key, async () => {
+    const is_detail = String(spec.type) === 'issue-detail';
     const res = await fetchListForSubscription(spec, {
-      cwd: CURRENT_WORKSPACE?.root_dir
+      cwd: CURRENT_WORKSPACE?.root_dir,
+      priority: is_detail ? 'interactive' : 'background'
     });
     if (!res.ok) {
       log('refresh failed for %s: %s %o', key, res.error.message, res.error);

@@ -36,6 +36,23 @@ function makeFakeProc(stdoutText, stderrText, code) {
   return cp;
 }
 
+/** Create a child process that closes only when directed by the test. */
+function makeControlledProc() {
+  const cp = /** @type {any} */ (new EventEmitter());
+  const out = new PassThrough();
+  const err = new PassThrough();
+  cp.stdout = out;
+  cp.stderr = err;
+  return {
+    cp,
+    close() {
+      out.end();
+      err.end();
+      cp.emit('close', 0);
+    }
+  };
+}
+
 const mockedSpawn = /** @type {import('vitest').Mock} */ (spawnMock);
 /** @type {string[]} */
 const temp_dirs = [];
@@ -44,6 +61,20 @@ function make_temp_dir() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bdui-bd-'));
   temp_dirs.push(dir);
   return dir;
+}
+
+/**
+ * @param {unknown[]} values
+ * @param {number} length
+ */
+async function waitForLength(values, length) {
+  for (let index = 0; index < 20; index += 1) {
+    if (values.length >= length) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+  throw new Error(`timed out waiting for length ${length}`);
 }
 
 beforeEach(() => {
@@ -189,6 +220,125 @@ describe('runBd', () => {
         debug_mod.default.enable(prev_enabled);
       }
     }
+  });
+
+  test('runs interactive commands before queued background commands', async () => {
+    /** @type {string[]} */
+    const order = [];
+    mockedSpawn.mockImplementation((_bin, args) => {
+      const command = /** @type {string[]} */ (args)
+        .filter((arg) => arg !== '--sandbox')
+        .join(' ');
+      order.push(command);
+      return makeFakeProc('ok', '', 0);
+    });
+
+    const first = runBd(['list', 'background-1'], {
+      priority: 'background'
+    });
+    const second = runBd(['list', 'background-2'], {
+      priority: 'background'
+    });
+    const interactive = runBd(['show', 'interactive']);
+    await Promise.all([first, second, interactive]);
+
+    expect(order).toEqual([
+      'list background-1',
+      'show interactive',
+      'list background-2'
+    ]);
+  });
+
+  test('runs background commands after bounded interactive bursts', async () => {
+    /** @type {string[]} */
+    const order = [];
+    mockedSpawn.mockImplementation((_bin, args) => {
+      const command = /** @type {string[]} */ (args)
+        .filter((arg) => arg !== '--sandbox')
+        .join(' ');
+      order.push(command);
+      return makeFakeProc('ok', '', 0);
+    });
+
+    const first = runBd(['show', 'interactive-0']);
+    const background = runBd(['list', 'background'], {
+      priority: 'background'
+    });
+    const interactive = Array.from({ length: 5 }, (_value, index) =>
+      runBd(['show', `interactive-${index + 1}`])
+    );
+    await Promise.all([first, background, ...interactive]);
+
+    expect(order).toEqual([
+      'show interactive-0',
+      'show interactive-1',
+      'show interactive-2',
+      'show interactive-3',
+      'show interactive-4',
+      'list background',
+      'show interactive-5'
+    ]);
+  });
+
+  test('does not count bursts while no background work is waiting', async () => {
+    /** @type {string[]} */
+    const order = [];
+    /** @type {Array<() => void>} */
+    const close_spawned = [];
+    mockedSpawn.mockImplementation((_bin, args) => {
+      const command = /** @type {string[]} */ (args)
+        .filter((arg) => arg !== '--sandbox')
+        .join(' ');
+      order.push(command);
+      const proc = makeControlledProc();
+      close_spawned.push(proc.close);
+      return proc.cp;
+    });
+
+    const first = runBd(['show', 'interactive-0']);
+    const initial = Array.from({ length: 4 }, (_value, index) =>
+      runBd(['show', `interactive-${index + 1}`])
+    );
+    await waitForLength(order, 1);
+    for (let index = 0; index < 4; index += 1) {
+      close_spawned[index]();
+      await waitForLength(order, index + 2);
+    }
+
+    const background = runBd(['list', 'background'], {
+      priority: 'background'
+    });
+    const late_interactive = runBd(['show', 'interactive-5']);
+    close_spawned[4]();
+    await waitForLength(order, 6);
+    close_spawned[5]();
+    await waitForLength(order, 7);
+    close_spawned[6]();
+    await Promise.all([first, ...initial, background, late_interactive]);
+
+    expect(order).toEqual([
+      'show interactive-0',
+      'show interactive-1',
+      'show interactive-2',
+      'show interactive-3',
+      'show interactive-4',
+      'show interactive-5',
+      'list background'
+    ]);
+  });
+
+  test('continues after a queued operation rejects', async () => {
+    mockedSpawn
+      .mockImplementationOnce(() => {
+        throw new Error('spawn failed');
+      })
+      .mockReturnValueOnce(makeFakeProc('ok', '', 0));
+
+    const failed = runBd(['list', 'first'], { priority: 'background' });
+    const succeeded = runBd(['show', 'second']);
+
+    await expect(failed).rejects.toThrow('spawn failed');
+    await expect(succeeded).resolves.toMatchObject({ code: 0 });
   });
 });
 
