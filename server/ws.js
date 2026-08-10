@@ -23,6 +23,22 @@ import { validateSubscribeListPayload } from './validators.js';
 const log = debug('ws');
 
 /**
+ * @typedef {{ id: string, updated_at: number, closed_at: number | null } & Record<string, unknown>} SubscriptionIssue
+ * @typedef {Awaited<ReturnType<typeof fetchListForSubscription>>} FetchListResult
+ */
+
+/**
+ * Short-lived caches for issue detail snapshots and comments. Entries only
+ * live between database change events.
+ */
+/** @type {Map<string, { items: SubscriptionIssue[] }>} */
+const ISSUE_DETAIL_CACHE = new Map();
+/** @type {Map<string, unknown[]>} */
+const COMMENTS_CACHE = new Map();
+const DETAIL_CACHE_LIMIT = 500;
+let DETAIL_CACHE_GENERATION = 0;
+
+/**
  * Debounced refresh scheduling for active list subscriptions.
  * A trailing window coalesces rapid change bursts into a single refresh run.
  */
@@ -56,6 +72,7 @@ let MUTATION_GATE = null;
  * @param {number} [timeout_ms]
  */
 function triggerMutationRefreshOnce(timeout_ms = 500) {
+  clearDetailCaches();
   if (MUTATION_GATE) {
     return;
   }
@@ -143,6 +160,7 @@ function collectActiveListSpecs() {
  * Run refresh for all active list subscription specs and publish deltas.
  */
 async function refreshAllActiveListSubscriptions() {
+  clearDetailCaches();
   const specs = collectActiveListSpecs();
   // Run refreshes concurrently; locking is handled per key in the registry
   await Promise.all(
@@ -207,6 +225,98 @@ let CURRENT_WORKSPACE = null;
  * @type {{ rebind: (opts?: { root_dir?: string }) => void, path: string } | null}
  */
 let DB_WATCHER = null;
+
+/**
+ * Clear issue-detail and comments caches whenever the database may have
+ * changed. Incrementing the generation prevents stale in-flight reads from
+ * repopulating either cache.
+ */
+function clearDetailCaches() {
+  ISSUE_DETAIL_CACHE.clear();
+  COMMENTS_CACHE.clear();
+  DETAIL_CACHE_GENERATION += 1;
+}
+
+/**
+ * @param {string} issue_id
+ */
+function issueDetailCacheKey(issue_id) {
+  const root_dir = CURRENT_WORKSPACE?.root_dir || '';
+  const db_path = CURRENT_WORKSPACE?.db_path || '';
+  return `${root_dir}\0${db_path}\0${issue_id}`;
+}
+
+/**
+ * @template T
+ * @param {Map<string, T>} cache
+ * @param {number} limit
+ */
+function evictOldestCacheEntry(cache, limit) {
+  if (cache.size <= limit) {
+    return;
+  }
+  const oldest_key = cache.keys().next().value;
+  if (oldest_key !== undefined) {
+    cache.delete(oldest_key);
+  }
+}
+
+/**
+ * @param {{ type: string, params?: Record<string, string|number|boolean> }} spec
+ * @param {SubscriptionIssue[]} items
+ * @param {number} generation
+ */
+function populateIssueDetailCache(spec, items, generation) {
+  if (generation !== DETAIL_CACHE_GENERATION) {
+    return;
+  }
+  const issue_id = String(spec.params?.id || '').trim();
+  if (issue_id.length === 0) {
+    return;
+  }
+  ISSUE_DETAIL_CACHE.set(issueDetailCacheKey(issue_id), {
+    items: items.slice()
+  });
+  evictOldestCacheEntry(ISSUE_DETAIL_CACHE, DETAIL_CACHE_LIMIT);
+}
+
+/**
+ * @param {{ type: string, params?: Record<string, string|number|boolean> }} spec
+ * @returns {Promise<FetchListResult>}
+ */
+async function fetchCachedIssueDetail(spec) {
+  const issue_id = String(spec.params?.id || '').trim();
+  if (issue_id.length === 0) {
+    return fetchListForSubscription(spec, {
+      cwd: CURRENT_WORKSPACE?.root_dir
+    });
+  }
+  const cached = ISSUE_DETAIL_CACHE.get(issueDetailCacheKey(issue_id));
+  if (cached) {
+    return { ok: true, items: cached.items.slice() };
+  }
+  const generation = DETAIL_CACHE_GENERATION;
+  const result = await fetchListForSubscription(spec, {
+    cwd: CURRENT_WORKSPACE?.root_dir
+  });
+  if (result.ok) {
+    populateIssueDetailCache(spec, result.items, generation);
+  }
+  return result;
+}
+
+/**
+ * @param {{ type: string, params?: Record<string, string|number|boolean> }} spec
+ * @returns {Promise<FetchListResult>}
+ */
+function fetchInitialListForSubscription(spec) {
+  if (String(spec.type) === 'issue-detail') {
+    return fetchCachedIssueDetail(spec);
+  }
+  return fetchListForSubscription(spec, {
+    cwd: CURRENT_WORKSPACE?.root_dir
+  });
+}
 
 /**
  * Get or initialize the subscription state for a socket.
@@ -344,6 +454,7 @@ async function refreshAndPublish(spec) {
   const key = keyOf(spec);
   await registry.withKeyLock(key, async () => {
     const is_detail = String(spec.type) === 'issue-detail';
+    const detail_cache_generation = DETAIL_CACHE_GENERATION;
     const res = await fetchListForSubscription(spec, {
       cwd: CURRENT_WORKSPACE?.root_dir,
       priority: is_detail ? 'interactive' : 'background'
@@ -353,6 +464,9 @@ async function refreshAndPublish(spec) {
       return;
     }
     const items = applyClosedIssuesFilter(spec, res.items);
+    if (is_detail) {
+      populateIssueDetailCache(spec, items, detail_cache_generation);
+    }
     const prev_size = registry.get(key)?.itemsById.size || 0;
     const delta = registry.applyItems(key, items);
     const entry = registry.get(key);
@@ -440,6 +554,7 @@ export function attachWsServer(http_server, options = {}) {
     root_dir: initial_root,
     db_path: initial_db.path
   };
+  clearDetailCaches();
 
   if (options.watcher) {
     DB_WATCHER = options.watcher;
@@ -549,6 +664,7 @@ export function attachWsServer(http_server, options = {}) {
 
       // Clear existing registry entries and refresh all subscriptions
       registry.clear();
+      clearDetailCaches();
 
       // Broadcast workspace-changed event to all clients
       broadcast('workspace-changed', CURRENT_WORKSPACE);
@@ -646,12 +762,10 @@ export async function handleMessage(ws, data) {
       ws.send(JSON.stringify(makeError(req, code, message, details)));
     };
 
-    /** @type {Awaited<ReturnType<typeof fetchListForSubscription>> | null} */
+    /** @type {FetchListResult | null} */
     let initial = null;
     try {
-      initial = await fetchListForSubscription(spec, {
-        cwd: CURRENT_WORKSPACE?.root_dir
-      });
+      initial = await fetchInitialListForSubscription(spec);
     } catch (err) {
       log('subscribe-list snapshot error for %s: %o', key, err);
       const message =
@@ -763,6 +877,7 @@ export async function handleMessage(ws, data) {
       return;
     }
     // Pass empty string to clear assignee when requested
+    clearDetailCaches();
     const res = await runBd(['update', id, '--assignee', assignee], bd_options);
     if (res.code !== 0) {
       ws.send(
@@ -810,6 +925,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
+    clearDetailCaches();
     const res = await runBd(['update', id, '--status', status], bd_options);
     if (res.code !== 0) {
       ws.send(
@@ -856,6 +972,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
+    clearDetailCaches();
     const res = await runBd(
       ['update', id, '--priority', String(priority)],
       bd_options
@@ -911,6 +1028,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
+    clearDetailCaches();
     const res = await runBd(['update', id, '--type', type], bd_options);
     if (res.code !== 0) {
       ws.send(
@@ -975,6 +1093,7 @@ export async function handleMessage(ws, data) {
             : field === 'notes'
               ? '--notes'
               : '--design';
+    clearDetailCaches();
     const res = await runBd(['update', id, flag, value], bd_options);
     if (res.code !== 0) {
       ws.send(
@@ -1033,6 +1152,7 @@ export async function handleMessage(ws, data) {
     if (typeof description === 'string' && description.length > 0) {
       args.push('-d', description);
     }
+    clearDetailCaches();
     const res = await runBd(args, bd_options);
     if (res.code !== 0) {
       ws.send(
@@ -1071,6 +1191,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
+    clearDetailCaches();
     const res = await runBd(['dep', 'add', a, b], bd_options);
     if (res.code !== 0) {
       ws.send(
@@ -1115,6 +1236,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
+    clearDetailCaches();
     const res = await runBd(['dep', 'remove', a, b], bd_options);
     if (res.code !== 0) {
       ws.send(
@@ -1159,6 +1281,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
+    clearDetailCaches();
     const res = await runBd(['label', 'add', id, label.trim()], bd_options);
     if (res.code !== 0) {
       ws.send(
@@ -1202,6 +1325,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
+    clearDetailCaches();
     const res = await runBd(['label', 'remove', id, label.trim()], bd_options);
     if (res.code !== 0) {
       ws.send(
@@ -1236,6 +1360,13 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
+    const cache_key = issueDetailCacheKey(id);
+    const cached = COMMENTS_CACHE.get(cache_key);
+    if (cached !== undefined) {
+      ws.send(JSON.stringify(makeOk(req, cached)));
+      return;
+    }
+    const generation = DETAIL_CACHE_GENERATION;
     const res = await runBdJson(['comments', id, '--json'], bd_options);
     if (res.code !== 0) {
       ws.send(
@@ -1243,7 +1374,12 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    ws.send(JSON.stringify(makeOk(req, res.stdoutJson || [])));
+    const comments = Array.isArray(res.stdoutJson) ? res.stdoutJson : [];
+    if (generation === DETAIL_CACHE_GENERATION) {
+      COMMENTS_CACHE.set(cache_key, comments.slice());
+      evictOldestCacheEntry(COMMENTS_CACHE, DETAIL_CACHE_LIMIT);
+    }
+    ws.send(JSON.stringify(makeOk(req, comments)));
     return;
   }
 
@@ -1268,8 +1404,10 @@ export async function handleMessage(ws, data) {
       return;
     }
 
+    clearDetailCaches();
+
     // Get git user name for author attribution
-    const author = await getGitUserName();
+    const author = await getGitUserName(bd_options);
     const args = ['comments', 'add', id, text.trim()];
     if (author) {
       args.push('--author', author);
@@ -1282,8 +1420,10 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
+    clearDetailCaches();
 
     // Return updated comments list
+    const generation = DETAIL_CACHE_GENERATION;
     const comments = await runBdJson(['comments', id, '--json'], bd_options);
     if (comments.code !== 0) {
       ws.send(
@@ -1293,7 +1433,14 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
-    ws.send(JSON.stringify(makeOk(req, comments.stdoutJson || [])));
+    const comment_list = Array.isArray(comments.stdoutJson)
+      ? comments.stdoutJson
+      : [];
+    if (generation === DETAIL_CACHE_GENERATION) {
+      COMMENTS_CACHE.set(issueDetailCacheKey(id), comment_list.slice());
+      evictOldestCacheEntry(COMMENTS_CACHE, DETAIL_CACHE_LIMIT);
+    }
+    ws.send(JSON.stringify(makeOk(req, comment_list)));
     return;
   }
 
@@ -1308,6 +1455,7 @@ export async function handleMessage(ws, data) {
       );
       return;
     }
+    clearDetailCaches();
     const res = await runBd(['delete', id, '--force'], bd_options);
     if (res.code !== 0) {
       ws.send(
@@ -1393,6 +1541,7 @@ export async function handleMessage(ws, data) {
 
       // Clear existing registry entries
       registry.clear();
+      clearDetailCaches();
 
       // Schedule refresh of all active list subscriptions
       scheduleListRefresh();

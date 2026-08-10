@@ -156,6 +156,8 @@ export function createDetailView(
   const comments_loading = new Set();
   /** @type {Map<string, number>} */
   const comments_loaded_counts = new Map();
+  /** @type {Map<string, string>} */
+  const comments_load_errors = new Map();
 
   /** @type {HTMLDialogElement | null} */
   let delete_dialog = null;
@@ -308,6 +310,9 @@ export function createDetailView(
   function hasCurrentComments(issue) {
     const comments = /** @type {any} */ (issue).comments;
     if (!Array.isArray(comments)) {
+      if (issueCommentCount(issue) === 0) {
+        return true;
+      }
       return false;
     }
     const count = issueCommentCount(issue);
@@ -349,7 +354,8 @@ export function createDetailView(
       !current ||
       String(current.id) !== issue_id ||
       hasCurrentComments(current) ||
-      comments_loading.has(issue_id)
+      comments_loading.has(issue_id) ||
+      comments_load_errors.has(issue_id)
     ) {
       return;
     }
@@ -375,13 +381,45 @@ export function createDetailView(
         }
         /** @type {any} */ (current).comments = comments;
         markCommentsLoaded(current, comments, true);
+        comments_load_errors.delete(issue_id);
         doRender();
       }
     } catch (err) {
       log('fetch comments failed %s %o', issue_id, err);
+      comments_load_errors.set(issue_id, errorMessage(err));
     } finally {
       comments_loading.delete(issue_id);
+      if (
+        current &&
+        current_id === issue_id &&
+        String(current.id) === issue_id
+      ) {
+        doRender();
+      }
     }
+  }
+
+  /**
+   * @param {unknown} err
+   */
+  function errorMessage(err) {
+    if (err && typeof err === 'object') {
+      const maybe_message = /** @type {{ message?: unknown }} */ (err).message;
+      if (typeof maybe_message === 'string' && maybe_message.length > 0) {
+        return maybe_message;
+      }
+    }
+    return 'Unable to load comments';
+  }
+
+  /** Retry loading comments for the active issue. */
+  function onCommentsRetry() {
+    if (!current_id) {
+      return;
+    }
+    comments_load_errors.delete(current_id);
+    doRender();
+    void ensureCommentsLoaded(current_id);
   }
 
   // Live updates: re-render when issue stores change
@@ -973,6 +1011,7 @@ export function createDetailView(
         // Update comments in current issue
         /** @type {any} */ (current).comments = result;
         markCommentsLoaded(current, result, false);
+        comments_load_errors.delete(String(current.id));
         comment_text = '';
         doRender();
       }
@@ -1349,23 +1388,33 @@ export function createDetailView(
     const comments = Array.isArray(/** @type {any} */ (issue).comments)
       ? /** @type {Comment[]} */ (/** @type {any} */ (issue).comments)
       : [];
+    const comments_error = comments_load_errors.get(String(issue.id)) || '';
+    const comments_pending =
+      comments.length === 0 && !comments_error && !hasCurrentComments(issue);
     const comments_block = html`<div class="comments">
       <div class="props-card__title">Comments</div>
-      ${comments.length === 0
-        ? html`<div class="muted">No comments yet</div>`
-        : comments.map(
-            (c) => html`
-              <div class="comment-item">
-                <div class="comment-header">
-                  <span class="comment-author">${c.author || 'Unknown'}</span>
-                  <span class="comment-date"
-                    >${formatCommentDate(c.created_at)}</span
-                  >
+      ${comments_error
+        ? html`<div class="muted" role="alert">
+            ${comments_error}
+            <button type="button" @click=${onCommentsRetry}>Retry</button>
+          </div>`
+        : comments.length === 0
+          ? html`<div class="muted">
+              ${comments_pending ? 'Loading comments…' : 'No comments yet'}
+            </div>`
+          : comments.map(
+              (c) => html`
+                <div class="comment-item">
+                  <div class="comment-header">
+                    <span class="comment-author">${c.author || 'Unknown'}</span>
+                    <span class="comment-date"
+                      >${formatCommentDate(c.created_at)}</span
+                    >
+                  </div>
+                  <div class="comment-text">${c.text}</div>
                 </div>
-                <div class="comment-text">${c.text}</div>
-              </div>
-            `
-          )}
+              `
+            )}
       <div class="comment-input">
         <textarea
           placeholder="Add a comment... (Ctrl+Enter to submit)"
@@ -1679,11 +1728,15 @@ export function createDetailView(
       pending = false;
       comment_text = '';
       comment_pending = false;
+      comments_load_errors.delete(current_id);
       doRender();
 
-      await ensureCommentsLoaded(current_id);
+      void ensureCommentsLoaded(current_id);
     },
     clear() {
+      current_id = null;
+      current = null;
+      comments_load_errors.clear();
       renderPlaceholder('Select an issue to view details');
     },
     destroy() {
