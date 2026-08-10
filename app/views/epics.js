@@ -1,4 +1,5 @@
 import { html, render } from 'lit-html';
+import { repeat } from 'lit-html/directives/repeat.js';
 import { createListSelectors } from '../data/list-selectors.js';
 import { createIssueIdRenderer } from '../utils/issue-id-renderer.js';
 import { createIssueRowRenderer } from './issue-row.js';
@@ -19,7 +20,7 @@ import { createIssueRowRenderer } from './issue-row.js';
  * @param {{ updateIssue: (input: any) => Promise<any> }} data
  * @param {(id: string) => void} goto_issue - Navigate to issue detail.
  * @param {{ subscribeList: (client_id: string, spec: { type: string, params?: Record<string, string|number|boolean> }) => Promise<() => Promise<void>>, selectors: { getIds: (client_id: string) => string[], count?: (client_id: string) => number } }} [subscriptions]
- * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void }} [issue_stores]
+ * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: (client_id?: string) => void) => () => void }} [issue_stores]
  */
 export function createEpicsView(
   mount_element,
@@ -38,9 +39,26 @@ export function createEpicsView(
   const epic_unsubs = new Map();
   // Centralized selection helpers
   const selectors = issue_stores ? createListSelectors(issue_stores) : null;
+
+  /**
+   * @param {string | undefined} client_id
+   */
+  function shouldRefreshForClient(client_id) {
+    if (!client_id || client_id === 'tab:epics') {
+      return true;
+    }
+    if (!client_id.startsWith('detail:')) {
+      return false;
+    }
+    return expanded.has(client_id.slice('detail:'.length));
+  }
+
   // Live re-render on pushes: recompute groups when stores change
   if (selectors) {
-    selectors.subscribe(() => {
+    selectors.subscribe((client_id) => {
+      if (!shouldRefreshForClient(client_id)) {
+        return;
+      }
       const had_none = groups.length === 0;
       groups = buildGroupsFromSnapshot();
       doRender();
@@ -71,7 +89,11 @@ export function createEpicsView(
     if (!groups.length) {
       return html`<div class="panel__header muted">No epics found.</div>`;
     }
-    return html`${groups.map((g) => groupTemplate(g))}`;
+    return html`${repeat(
+      groups,
+      (group) => String(group.epic?.id || ''),
+      groupTemplate
+    )}`;
   }
 
   /**
@@ -136,7 +158,7 @@ export function createEpicsView(
                         </tr>
                       </thead>
                       <tbody>
-                        ${list.map((it) => renderRow(it))}
+                        ${repeat(list, (it) => it.id, renderRow)}
                       </tbody>
                     </table>`}
             </div>`

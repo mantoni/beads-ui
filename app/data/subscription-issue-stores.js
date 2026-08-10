@@ -17,19 +17,49 @@ export function createSubscriptionIssueStores() {
   const stores_by_id = new Map();
   /** @type {Map<string, string>} */
   const key_by_id = new Map();
-  /** @type {Set<() => void>} */
+  /** @type {Set<(client_id: string) => void>} */
   const listeners = new Set();
   /** @type {Map<string, () => void>} */
   const store_unsubs = new Map();
 
-  function emit() {
+  /**
+   * @param {string} client_id
+   */
+  function emit(client_id) {
     for (const fn of Array.from(listeners)) {
       try {
-        fn();
+        fn(client_id);
       } catch {
         // ignore
       }
     }
+  }
+
+  /**
+   * @param {(client_id: string) => void} fn
+   */
+  function subscribe(fn) {
+    listeners.add(fn);
+    return () => listeners.delete(fn);
+  }
+
+  /**
+   * @param {string | string[]} client_ids
+   * @param {(client_id: string) => void} fn
+   */
+  function subscribeFor(client_ids, fn) {
+    const raw_ids = Array.isArray(client_ids) ? client_ids : [client_ids];
+    const wanted_ids = new Set(
+      raw_ids.map((value) => String(value || '')).filter(Boolean)
+    );
+    if (wanted_ids.size === 0) {
+      return () => {};
+    }
+    return subscribe((changed_client_id) => {
+      if (wanted_ids.has(changed_client_id)) {
+        fn(changed_client_id);
+      }
+    });
   }
 
   /**
@@ -68,13 +98,13 @@ export function createSubscriptionIssueStores() {
       }
       const new_store = createSubscriptionIssueStore(client_id, options);
       stores_by_id.set(client_id, new_store);
-      const off_new = new_store.subscribe(() => emit());
+      const off_new = new_store.subscribe(() => emit(client_id));
       store_unsubs.set(client_id, off_new);
     } else if (!has_store) {
       const store = createSubscriptionIssueStore(client_id, options);
       stores_by_id.set(client_id, store);
       // Fan out per-store events to global subscribers
-      const off = store.subscribe(() => emit());
+      const off = store.subscribe(() => emit(client_id));
       store_unsubs.set(client_id, off);
     }
     key_by_id.set(client_id, next_key);
@@ -121,12 +151,14 @@ export function createSubscriptionIssueStores() {
       return s ? /** @type {IssueLite[]} */ (s.snapshot().slice()) : [];
     },
     /**
-     * @param {() => void} fn
+     * @param {(client_id: string) => void} fn
      */
-    subscribe(fn) {
-      listeners.add(fn);
-      return () => listeners.delete(fn);
-    }
+    subscribe,
+    /**
+     * @param {string | string[]} client_ids
+     * @param {(client_id: string) => void} fn
+     */
+    subscribeFor
     // No recompute helpers in vNext; stores are updated directly via push
   };
 }

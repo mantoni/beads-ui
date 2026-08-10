@@ -17,7 +17,7 @@ import { cmpClosedDesc, cmpPriorityThenCreated } from './sort.js';
  * Source of truth is per-subscription stores providing snapshots for a given
  * client id. Central issues store fallback has been removed.
  *
- * @param {{ snapshotFor?: (client_id: string) => IssueLite[], subscribe?: (fn: () => void) => () => void }} [issue_stores]
+ * @param {{ snapshotFor?: (client_id: string) => IssueLite[], subscribe?: (fn: (client_id?: string) => void) => () => void, subscribeFor?: (client_ids: string | string[], fn: (client_id: string) => void) => () => void }} [issue_stores]
  */
 export function createListSelectors(issue_stores = undefined) {
   // Sorting comparators are centralized in app/data/sort.js
@@ -118,10 +118,18 @@ export function createListSelectors(issue_stores = undefined) {
   /**
    * Subscribe for re-render after coalesced subscription-store updates.
    *
-   * @param {() => void} fn
+   * @param {(client_id?: string) => void} fn
+   * @param {string | string[]} [client_ids]
    * @returns {() => void}
    */
-  function subscribe(fn) {
+  function subscribe(fn, client_ids = undefined) {
+    if (
+      client_ids &&
+      issue_stores &&
+      typeof issue_stores.subscribeFor === 'function'
+    ) {
+      return issue_stores.subscribeFor(client_ids, fn);
+    }
     if (issue_stores && typeof issue_stores.subscribe === 'function') {
       return issue_stores.subscribe(fn);
     }

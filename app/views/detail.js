@@ -118,7 +118,7 @@ function defaultNavigateFn(hash) {
  * @param {HTMLElement} mount_element - Element to render into.
  * @param {(type: string, payload?: unknown) => Promise<unknown>} sendFn - RPC transport.
  * @param {(hash: string) => void} [navigateFn] - Navigation function; defaults to setting location.hash.
- * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void }} [issue_stores] - Optional issue stores for live updates.
+ * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: (client_id?: string) => void) => () => void }} [issue_stores] - Optional issue stores for live updates.
  * @returns {{ load: (id: string) => Promise<void>, clear: () => void, destroy: () => void }} View API.
  */
 export function createDetailView(
@@ -385,9 +385,18 @@ export function createDetailView(
   }
 
   // Live updates: re-render when issue stores change
+  /** @type {(() => void) | null} */
+  let unsubscribe_issue_stores = null;
   if (issue_stores && typeof issue_stores.subscribe === 'function') {
-    issue_stores.subscribe(() => {
+    unsubscribe_issue_stores = issue_stores.subscribe((client_id) => {
       try {
+        if (!current_id) {
+          return;
+        }
+        const active_client_id = `detail:${current_id}`;
+        if (client_id && client_id !== active_client_id) {
+          return;
+        }
         refreshFromStore();
         doRender();
         void ensureCommentsLoaded(current_id);
@@ -1688,6 +1697,10 @@ export function createDetailView(
     },
     destroy() {
       mount_element.replaceChildren();
+      if (unsubscribe_issue_stores) {
+        unsubscribe_issue_stores();
+        unsubscribe_issue_stores = null;
+      }
       if (delete_dialog && delete_dialog.parentNode) {
         delete_dialog.parentNode.removeChild(delete_dialog);
         delete_dialog = null;

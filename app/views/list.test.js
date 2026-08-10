@@ -835,4 +835,42 @@ describe('views/list', () => {
     expect(rows.length).toBe(1);
     expect(rows[0].getAttribute('data-issue-id')).toBe('UI-2');
   });
+
+  test('preserves row identity when an earlier issue is inserted', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const issueStores = createTestIssueStores();
+    const issue_store = issueStores.getStore('tab:issues');
+    issue_store.applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues: [
+        { id: 'UI-2', title: 'Two', priority: 1, updated_at: 1 },
+        { id: 'UI-3', title: 'Three', priority: 2, updated_at: 1 }
+      ]
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+    const existing_row = mount.querySelector('[data-issue-id="UI-2"]');
+
+    issue_store.applyPush({
+      type: 'upsert',
+      id: 'tab:issues',
+      revision: 2,
+      issue: { id: 'UI-1', title: 'One', priority: 0, updated_at: 2 }
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(mount.querySelector('[data-issue-id="UI-2"]')).toBe(existing_row);
+    view.destroy();
+  });
 });

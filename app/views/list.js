@@ -3,6 +3,7 @@
  * @import { StatusFilter } from '../utils/status.js'
  */
 import { html, render } from 'lit-html';
+import { repeat } from 'lit-html/directives/repeat.js';
 import { createListSelectors } from '../data/list-selectors.js';
 import { cmpClosedDesc } from '../data/sort.js';
 import { ISSUE_TYPES, typeLabel } from '../utils/issue-type.js';
@@ -30,7 +31,7 @@ import { createIssueRowRenderer } from './issue-row.js';
  * @param {(hash: string) => void} [navigate_fn] - Navigation function (defaults to setting location.hash).
  * @param {{ getState: () => any, setState: (patch: any) => void, subscribe: (fn: (s:any)=>void)=>()=>void }} [store] - Optional state store.
  * @param {{ selectors: { getIds: (client_id: string) => string[] } }} [_subscriptions]
- * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void }} [issueStores]
+ * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: (client_id?: string) => void) => () => void, subscribeFor?: (client_ids: string | string[], fn: (client_id: string) => void) => () => void }} [issueStores]
  * @returns {{ load: () => Promise<void>, destroy: () => void }} View API.
  */
 /**
@@ -41,7 +42,7 @@ import { createIssueRowRenderer } from './issue-row.js';
  * @param {(hash: string) => void} [navigateFn]
  * @param {{ getState: () => any, setState: (patch: any) => void, subscribe: (fn: (s:any)=>void)=>()=>void }} [store]
  * @param {{ selectors: { getIds: (client_id: string) => string[] } }} [_subscriptions]
- * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: () => void) => () => void }} [issue_stores]
+ * @param {{ snapshotFor?: (client_id: string) => any[], subscribe?: (fn: (client_id?: string) => void) => () => void, subscribeFor?: (client_ids: string | string[], fn: (client_id: string) => void) => () => void }} [issue_stores]
  * @returns {{ load: () => Promise<void>, destroy: () => void }}
  */
 export function createListView(
@@ -388,7 +389,7 @@ export function createListView(
                   </tr>
                 </thead>
                 <tbody role="rowgroup">
-                  ${filtered.map((it) => row_renderer(it))}
+                  ${repeat(filtered, (it) => it.id, row_renderer)}
                 </tbody>
               </table>
             </div>`}
@@ -634,8 +635,10 @@ export function createListView(
   }
 
   // Live updates: recompose and re-render when issue stores change
+  /** @type {(() => void) | null} */
+  let unsubscribe_selectors = null;
   if (selectors) {
-    selectors.subscribe(() => {
+    unsubscribe_selectors = selectors.subscribe(() => {
       try {
         issues_cache = /** @type {Issue[]} */ (
           selectors.selectIssuesFor('tab:issues')
@@ -644,7 +647,7 @@ export function createListView(
       } catch {
         // ignore
       }
-    });
+    }, 'tab:issues');
   }
 
   return {
@@ -655,6 +658,10 @@ export function createListView(
       if (unsubscribe) {
         unsubscribe();
         unsubscribe = null;
+      }
+      if (unsubscribe_selectors) {
+        unsubscribe_selectors();
+        unsubscribe_selectors = null;
       }
     }
   };

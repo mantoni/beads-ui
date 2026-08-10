@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { createListSelectors } from './list-selectors.js';
 import { createSubscriptionIssueStore } from './subscription-issue-store.js';
 
@@ -322,5 +322,17 @@ describe('list-selectors', () => {
 
     expect(calls).toBe(1);
     off();
+  });
+
+  test('scopes subscriptions when the registry supports it', () => {
+    const unsubscribe = vi.fn();
+    const subscribeFor = vi.fn(() => unsubscribe);
+    const selectors = createListSelectors({ subscribeFor });
+    const listener = vi.fn();
+
+    const result = selectors.subscribe(listener, ['list:a', 'list:b']);
+
+    expect(subscribeFor).toHaveBeenCalledWith(['list:a', 'list:b'], listener);
+    expect(result).toBe(unsubscribe);
   });
 });
