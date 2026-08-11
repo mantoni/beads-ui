@@ -126,6 +126,23 @@ describe('list adapters for subscription types', () => {
     }
   });
 
+  test('forwards bd scheduling priority', async () => {
+    /** @type {import('vitest').Mock} */ (runBdJson).mockResolvedValue({
+      code: 0,
+      stdoutJson: []
+    });
+
+    await fetchListForSubscription(
+      { type: 'all-issues' },
+      { cwd: '/workspace', priority: 'background' }
+    );
+
+    expect(runBdJson).toHaveBeenCalledWith(
+      ['list', '--json', '--tree=false', '--limit', '0'],
+      { cwd: '/workspace', priority: 'background' }
+    );
+  });
+
   test('filters tombstoned epics', async () => {
     /** @type {import('vitest').Mock} */ (runBdJson).mockResolvedValue({
       code: 0,

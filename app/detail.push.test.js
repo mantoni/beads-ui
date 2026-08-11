@@ -147,6 +147,89 @@ describe('detail view via subscription push', () => {
     expect(mount.textContent).toContain('Fetched comment');
   });
 
+  test('renders details while comments load in the background', async () => {
+    document.body.innerHTML = '<section id="mount"></section>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const issueStores = createSubscriptionIssueStores();
+    issueStores.register('detail:UI-2B', {
+      type: 'issue-detail',
+      params: { id: 'UI-2B' }
+    });
+    const store = issueStores.getStore('detail:UI-2B');
+    expect(store).not.toBeNull();
+    pushSnapshot(/** @type {NonNullable<typeof store>} */ (store), 'UI-2B', {
+      title: 'Available immediately'
+    });
+    const slow_comments = deferred();
+    const view = createDetailView(
+      mount,
+      async (type) => {
+        if (type === 'get-comments') {
+          return slow_comments.promise;
+        }
+        return {};
+      },
+      (hash) => (window.location.hash = hash),
+      issueStores
+    );
+
+    await view.load('UI-2B');
+
+    expect(mount.textContent).toContain('Available immediately');
+    expect(mount.textContent).toContain('Loading comments');
+
+    slow_comments.resolve([comment(1, 'Loaded later')]);
+    await tick();
+
+    expect(mount.textContent).toContain('Loaded later');
+  });
+
+  test('skips comment requests when the count is zero', async () => {
+    /** @type {Array<{type: string, payload: unknown}>} */
+    const calls = [];
+
+    const { mount, store } = await setupDetail(
+      'UI-2Z',
+      async (type, payload) => {
+        calls.push({ type, payload });
+        return {};
+      }
+    );
+
+    pushSnapshot(store, 'UI-2Z', {
+      title: 'No comments',
+      comment_count: 0
+    });
+    await tick();
+
+    expect(calls).toEqual([]);
+    expect(mount.textContent).toContain('No comments yet');
+  });
+
+  test('loads comments when the count increases from zero', async () => {
+    let fetch_count = 0;
+    const { mount, store } = await setupDetail('UI-2ZI', async (type) => {
+      if (type === 'get-comments') {
+        fetch_count += 1;
+        return [comment(1, 'Newly added comment')];
+      }
+      return {};
+    });
+
+    pushSnapshot(store, 'UI-2ZI', { comment_count: 0 });
+    await tick();
+    expect(fetch_count).toBe(0);
+
+    pushUpsert(store, 'UI-2ZI', 2, {
+      title: 'Comment added',
+      comment_count: 1
+    });
+    await tick();
+
+    expect(fetch_count).toBe(1);
+    expect(mount.textContent).toContain('Newly added comment');
+  });
+
   test('keeps comments after later detail update omits comments', async () => {
     let fetch_count = 0;
 
@@ -244,7 +327,7 @@ describe('detail view via subscription push', () => {
     expect(mount.textContent).toContain('Complete replacement');
   });
 
-  test('retries comments after failed fetch clears in-flight state', async () => {
+  test('shows comment errors and retries on request', async () => {
     let fetch_count = 0;
 
     const { mount, store } = await setupDetail('UI-5', async (type) => {
@@ -261,9 +344,19 @@ describe('detail view via subscription push', () => {
     pushSnapshot(store, 'UI-5');
     await tick();
 
+    expect(fetch_count).toBe(1);
+    expect(mount.textContent).toContain('temporary failure');
+
     pushUpsert(store, 'UI-5', 2, {
       title: 'Retry'
     });
+    await tick();
+    expect(fetch_count).toBe(1);
+
+    const retry = /** @type {HTMLButtonElement | null} */ (
+      mount.querySelector('.comments button')
+    );
+    retry?.click();
     await tick();
 
     expect(fetch_count).toBe(2);

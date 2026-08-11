@@ -91,5 +91,53 @@ describe('ws list refresh coalescing', () => {
     // After debounce window, one refresh per active spec
     await vi.advanceTimersByTimeAsync(1);
     expect(mock.mock.calls.length).toBe(2);
+    expect(
+      mock.mock.calls.every((call) => call[1]?.priority === 'background')
+    ).toBe(true);
+  });
+
+  test('keeps visible detail refreshes interactive', async () => {
+    const server = createServer();
+    const { wss } = attachWsServer(server, {
+      path: '/ws',
+      heartbeat_ms: 10000,
+      refresh_debounce_ms: 50
+    });
+    const sock = {
+      sent: /** @type {string[]} */ ([]),
+      readyState: 1,
+      OPEN: 1,
+      /** @param {string} message */
+      send(message) {
+        this.sent.push(String(message));
+      }
+    };
+    wss.clients.add(/** @type {any} */ (sock));
+    await handleMessage(
+      /** @type {any} */ (sock),
+      Buffer.from(
+        JSON.stringify({
+          id: 'detail-sub',
+          type: /** @type {any} */ ('subscribe-list'),
+          payload: {
+            id: 'detail:UI-1',
+            type: 'issue-detail',
+            params: { id: 'UI-1' }
+          }
+        })
+      )
+    );
+    const mock = /** @type {import('vitest').Mock} */ (
+      fetchListForSubscription
+    );
+    mock.mockClear();
+
+    scheduleListRefresh();
+    await vi.advanceTimersByTimeAsync(50);
+
+    expect(mock).toHaveBeenCalledWith(
+      { type: 'issue-detail', params: { id: 'UI-1' } },
+      expect.objectContaining({ priority: 'interactive' })
+    );
   });
 });

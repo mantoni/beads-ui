@@ -548,12 +548,26 @@ export function bootstrap(root_element) {
       }
     });
 
+    /**
+     * Load comments outside the global activity indicator so a slow comments
+     * request does not keep the entire application in a loading state.
+     *
+     * @param {string} type
+     * @param {unknown} payload
+     */
+    const detail_transport = async (type, payload) => {
+      if (type === 'get-comments') {
+        return client.send(/** @type {MessageType} */ (type), payload);
+      }
+      return transport(type, payload);
+    };
+
     /** @type {ReturnType<typeof createDetailView> | null} */
     let detail = null;
     // Mount details into the dialog body only
     detail = createDetailView(
       dialog.getMount(),
-      transport,
+      detail_transport,
       (hash) => {
         const id = parseHash(hash);
         if (id) {
