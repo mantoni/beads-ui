@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { createListSelectors } from './list-selectors.js';
 import { createSubscriptionIssueStore } from './subscription-issue-store.js';
 
@@ -60,7 +60,36 @@ function setup() {
   return { issueStores, selectors };
 }
 
+/** Wait for the store's configured notification boundary. */
+async function flushStoreNotifications() {
+  if (typeof globalThis.requestAnimationFrame === 'function') {
+    await new Promise((resolve) =>
+      globalThis.requestAnimationFrame(() => resolve(undefined))
+    );
+    return;
+  }
+  await Promise.resolve();
+  await Promise.resolve();
+}
+
 describe('list-selectors', () => {
+  test('returns preordered store snapshots without another copy or sort', () => {
+    const issues = [
+      { id: 'A', priority: 1, created_at: 1 },
+      { id: 'B', priority: 2, created_at: 2 }
+    ];
+    const selectors = createListSelectors({
+      snapshotFor() {
+        return issues;
+      }
+    });
+
+    expect(selectors.selectIssuesFor('tab:issues')).toBe(issues);
+    expect(selectors.selectBoardColumn('tab:board:ready', 'ready')).toBe(
+      issues
+    );
+  });
+
   test('returns empty arrays for empty stores', async () => {
     const { selectors } = setup();
     expect(selectors.selectIssuesFor('tab:issues')).toEqual([]);
@@ -274,7 +303,7 @@ describe('list-selectors', () => {
     ).toEqual([]);
   });
 
-  test('subscribe triggers once per issues envelope', async () => {
+  test('subscribe triggers once per synchronous issues burst', async () => {
     const { issueStores, selectors } = setup();
     let calls = 0;
     const off = selectors.subscribe(() => {
@@ -287,7 +316,23 @@ describe('list-selectors', () => {
       revision: 1,
       issues: []
     });
+    expect(calls).toBe(0);
+
+    await flushStoreNotifications();
+
     expect(calls).toBe(1);
     off();
+  });
+
+  test('scopes subscriptions when the registry supports it', () => {
+    const unsubscribe = vi.fn();
+    const subscribeFor = vi.fn(() => unsubscribe);
+    const selectors = createListSelectors({ subscribeFor });
+    const listener = vi.fn();
+
+    const result = selectors.subscribe(listener, ['list:a', 'list:b']);
+
+    expect(subscribeFor).toHaveBeenCalledWith(['list:a', 'list:b'], listener);
+    expect(result).toBe(unsubscribe);
   });
 });

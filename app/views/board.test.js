@@ -610,6 +610,43 @@ describe('views/board Blocked lane union', () => {
       ['update-status', { id: 'S-1', status: 'closed' }]
     ]);
   });
+
+  test('preserves card identity when an earlier issue is inserted', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+    const issueStores = createTestIssueStores();
+    const issue_store = issueStores.getStore('tab:board:ready');
+    issue_store.applyPush({
+      type: 'snapshot',
+      id: 'tab:board:ready',
+      revision: 1,
+      issues: [
+        { id: 'UI-2', title: 'Two', priority: 1, updated_at: 1 },
+        { id: 'UI-3', title: 'Three', priority: 2, updated_at: 1 }
+      ]
+    });
+    const view = createBoardView(
+      mount,
+      null,
+      () => {},
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+    const existing_card = mount.querySelector('[data-issue-id="UI-2"]');
+
+    issue_store.applyPush({
+      type: 'upsert',
+      id: 'tab:board:ready',
+      revision: 2,
+      issue: { id: 'UI-1', title: 'One', priority: 0, updated_at: 2 }
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(mount.querySelector('[data-issue-id="UI-2"]')).toBe(existing_card);
+  });
 });
 
 /**

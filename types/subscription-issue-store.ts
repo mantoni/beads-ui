@@ -23,9 +23,9 @@ export interface SubscriptionIssueStore {
   readonly id: string;
 
   /**
-   * Subscribe to store changes. Listener is invoked after each applied message
-   * exactly once, regardless of how many items changed. Returns an unsubscribe
-   * function.
+   * Subscribe to store changes. Applied changes are coalesced until the next
+   * render frame when available, so one listener notification may represent
+   * multiple push messages. Returns an unsubscribe function.
    */
   subscribe(listener: () => void): () => void;
 
