@@ -1,5 +1,24 @@
 # Changes
 
+## 0.12.6
+
+- [`45babcf`](https://github.com/mantoni/beads-ui/commit/45babcfcf61b9a26f6ccdc8236a56015a148caa3)
+  chore(deps): refresh lockfile security updates (gprocunier)
+- [`2c25d95`](https://github.com/mantoni/beads-ui/commit/2c25d9538dc8244d27dfd668fa93c8b0acc212e9)
+  perf(server): prioritize interactive detail reads (#111) (turbra)
+    >
+    > Prioritize interactive detail requests while preserving bounded background progress, cache issue detail and comments per workspace, invalidate stale data on mutations and refreshes, and load comments asynchronously. Includes scheduler, cache, invalidation, and detail-loading regression coverage.
+- [`88c698c`](https://github.com/mantoni/beads-ui/commit/88c698c0bb28a26833b102e3a69e2ab096d18cf0)
+  perf(app): coalesce subscription renders (#110) (turbra)
+    >
+    > Coalesce subscription updates into one render per frame, scope view subscriptions to the issue IDs they consume, preserve keyed DOM identity, and avoid unchanged preference writes. Includes unit, integration, and performance regression coverage.
+- [`37dde24`](https://github.com/mantoni/beads-ui/commit/37dde2415b27c4240d955963178cb6eb103342fb)
+  fix(detail): render delete prompt safely (#109) (turbra)
+    >
+    > Render issue titles as inert dialog content, preserve the original delete target, bind cancellation once, and improve dialog accessibility. Includes regression coverage for hostile titles, repeated cancellation, and selection changes.
+
+_Released by gprocunier on 2026-08-11._
+
 ## 0.12.5
 
 - [`7edc3d6`](https://github.com/mantoni/beads-ui/commit/7edc3d66cf095c4eae097a19abaaee5d764d02ec)
