@@ -159,59 +159,91 @@ export function createDetailView(
 
   /** @type {HTMLDialogElement | null} */
   let delete_dialog = null;
+  /** @type {string | null} */
+  let delete_target_id = null;
+
+  function closeDeleteDialog() {
+    if (!delete_dialog) {
+      return;
+    }
+    if (typeof delete_dialog.close === 'function') {
+      delete_dialog.close();
+    }
+    delete_dialog.removeAttribute('open');
+  }
+
+  /**
+   * @param {Event} ev
+   */
+  function onDeleteDialogCancel(ev) {
+    ev.preventDefault();
+    closeDeleteDialog();
+  }
+
+  async function onDeleteConfirm() {
+    const id = delete_target_id;
+    closeDeleteDialog();
+    if (id) {
+      await performDelete(id);
+    }
+  }
 
   function ensureDeleteDialog() {
-    if (delete_dialog) return delete_dialog;
+    if (delete_dialog) {
+      return delete_dialog;
+    }
     delete_dialog = document.createElement('dialog');
     delete_dialog.id = 'delete-confirm-dialog';
     delete_dialog.setAttribute('role', 'alertdialog');
     delete_dialog.setAttribute('aria-modal', 'true');
+    delete_dialog.setAttribute('aria-labelledby', 'delete-confirm-title');
+    delete_dialog.setAttribute('aria-describedby', 'delete-confirm-message');
+    delete_dialog.addEventListener('cancel', onDeleteDialogCancel);
     document.body.appendChild(delete_dialog);
     return delete_dialog;
   }
 
   function openDeleteDialog() {
-    if (!current) return;
+    if (!current) {
+      return;
+    }
     const dialog = ensureDeleteDialog();
-    const issueId = current.id;
-    const issueTitle = current.title || '(no title)';
-    dialog.innerHTML = `
-      <div class="delete-confirm">
-        <h2 class="delete-confirm__title">Delete Issue</h2>
-        <p class="delete-confirm__message">
-          Are you sure you want to delete issue <strong>${issueId}</strong> — <strong>${issueTitle}</strong>? This action cannot be undone.
-        </p>
-        <div class="delete-confirm__actions">
-          <button type="button" class="btn" id="delete-cancel-btn">Cancel</button>
-          <button type="button" class="btn danger" id="delete-confirm-btn">Delete</button>
+    const issue_id = current.id;
+    const issue_title = current.title || '(no title)';
+    delete_target_id = issue_id;
+    render(
+      html`
+        <div class="delete-confirm">
+          <h2 class="delete-confirm__title" id="delete-confirm-title">
+            Delete Issue
+          </h2>
+          <p class="delete-confirm__message" id="delete-confirm-message">
+            Are you sure you want to delete issue
+            <strong>${issue_id}</strong> — <strong>${issue_title}</strong>? This
+            action cannot be undone.
+          </p>
+          <div class="delete-confirm__actions">
+            <button
+              type="button"
+              class="btn"
+              id="delete-cancel-btn"
+              @click=${closeDeleteDialog}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn danger"
+              id="delete-confirm-btn"
+              @click=${onDeleteConfirm}
+            >
+              Delete
+            </button>
+          </div>
         </div>
-      </div>
-    `;
-    const cancelBtn = dialog.querySelector('#delete-cancel-btn');
-    const confirmBtn = dialog.querySelector('#delete-confirm-btn');
-
-    cancelBtn?.addEventListener('click', () => {
-      if (typeof dialog.close === 'function') {
-        dialog.close();
-      }
-      dialog.removeAttribute('open');
-    });
-
-    confirmBtn?.addEventListener('click', async () => {
-      if (typeof dialog.close === 'function') {
-        dialog.close();
-      }
-      dialog.removeAttribute('open');
-      await performDelete();
-    });
-
-    dialog.addEventListener('cancel', (ev) => {
-      ev.preventDefault();
-      if (typeof dialog.close === 'function') {
-        dialog.close();
-      }
-      dialog.removeAttribute('open');
-    });
+      `,
+      dialog
+    );
 
     if (typeof dialog.showModal === 'function') {
       try {
@@ -223,19 +255,26 @@ export function createDetailView(
     } else {
       dialog.setAttribute('open', '');
     }
+    const cancel_button = /** @type {HTMLButtonElement | null} */ (
+      dialog.querySelector('#delete-cancel-btn')
+    );
+    cancel_button?.focus();
   }
 
-  async function performDelete() {
-    if (!current) return;
-    const id = current.id;
+  /**
+   * @param {string} id
+   */
+  async function performDelete(id) {
     try {
       await sendFn('delete-issue', { id });
-      current = null;
-      current_id = null;
-      doRender();
-      // Navigate back to close the dialog
-      const view = parseView(window.location.hash || '');
-      navigateFn(`#/${view}`);
+      if (current?.id === id) {
+        current = null;
+        current_id = null;
+        doRender();
+        // Navigate back to close the dialog
+        const view = parseView(window.location.hash || '');
+        navigateFn(`#/${view}`);
+      }
     } catch (err) {
       log('delete failed: %o', err);
       showToast('Failed to delete issue', 'error');
@@ -1689,8 +1728,10 @@ export function createDetailView(
     destroy() {
       mount_element.replaceChildren();
       if (delete_dialog && delete_dialog.parentNode) {
+        delete_dialog.removeEventListener('cancel', onDeleteDialogCancel);
         delete_dialog.parentNode.removeChild(delete_dialog);
         delete_dialog = null;
+        delete_target_id = null;
       }
     }
   };
