@@ -50,12 +50,16 @@ export function resolveDbPath(options = {}) {
 /**
  * Resolve the workspace database location used by the UI/server.
  *
- * For non-SQLite backends (for example Dolt), this returns the nearest
- * workspace `.beads` directory when metadata exists. This avoids collapsing
- * all such workspaces onto the `~/.beads/default.db` fallback.
+ * For embedded-Dolt workspaces, this resolves the nearest
+ * `.beads/embeddeddolt/` directory so downstream watchers can target the
+ * actual database path instead of the noisy `.beads/` parent directory.
+ *
+ * For other non-SQLite backends, this returns the nearest workspace `.beads`
+ * directory when metadata exists. This avoids collapsing all such workspaces
+ * onto the `~/.beads/default.db` fallback.
  *
  * @param {{ cwd?: string, env?: Record<string, string | undefined>, explicit_db?: string }} [options]
- * @returns {{ path: string, source: 'flag'|'env'|'nearest'|'metadata'|'home-default', exists: boolean }}
+ * @returns {{ path: string, source: 'flag'|'env'|'nearest'|'embedded-dolt'|'metadata'|'home-default', exists: boolean }}
  */
 export function resolveWorkspaceDatabase(options = {}) {
   const sqlite_db = resolveDbPath(options);
@@ -64,6 +68,15 @@ export function resolveWorkspaceDatabase(options = {}) {
   }
 
   const cwd = options.cwd ? path.resolve(options.cwd) : process.cwd();
+  const embedded_dolt_path = findNearestEmbeddedDolt(cwd);
+  if (embedded_dolt_path) {
+    return {
+      path: embedded_dolt_path,
+      source: 'embedded-dolt',
+      exists: true
+    };
+  }
+
   const metadata_path = findNearestBeadsMetadata(cwd);
   if (metadata_path) {
     return {
@@ -74,6 +87,28 @@ export function resolveWorkspaceDatabase(options = {}) {
   }
 
   return sqlite_db;
+}
+
+/**
+ * Find nearest `.beads/embeddeddolt` directory by walking up from start.
+ *
+ * @param {string} start
+ * @returns {string | null}
+ */
+export function findNearestEmbeddedDolt(start) {
+  let dir = path.resolve(start);
+  for (let i = 0; i < 100; i++) {
+    const embedded_dolt_path = path.join(dir, '.beads', 'embeddeddolt');
+    if (directoryExists(embedded_dolt_path)) {
+      return embedded_dolt_path;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      break;
+    }
+    dir = parent;
+  }
+  return null;
 }
 
 /**
@@ -148,6 +183,17 @@ function fileExists(p) {
   try {
     fs.accessSync(p, fs.constants.F_OK);
     return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * @param {string} p
+ */
+function directoryExists(p) {
+  try {
+    return fs.statSync(p).isDirectory();
   } catch {
     return false;
   }

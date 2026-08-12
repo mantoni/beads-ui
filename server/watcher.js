@@ -3,6 +3,15 @@ import path from 'node:path';
 import { resolveWorkspaceDatabase } from './db.js';
 import { debug } from './logging.js';
 
+const NOISY_DIRECTORY_ENTRIES = new Set([
+  '.lock',
+  'backup',
+  'export-state.json',
+  'interactions.jsonl',
+  'last-touched',
+  'push-state.json'
+]);
+
 /**
  * Watch the resolved workspace database target and invoke a callback after a
  * debounce window.
@@ -73,6 +82,12 @@ export function watchDb(root_dir, onChange, options = {}) {
         current_dir,
         { persistent: true },
         (event_type, filename) => {
+          if (filename && !current_file) {
+            const entry_name = String(filename);
+            if (NOISY_DIRECTORY_ENTRIES.has(entry_name)) {
+              return;
+            }
+          }
           if (current_file && filename && String(filename) !== current_file) {
             return;
           }
