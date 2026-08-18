@@ -13,6 +13,12 @@ import {
 } from '../utils/status.js';
 import { showToast } from '../utils/toast.js';
 import { createTypeBadge } from '../utils/type-badge.js';
+import {
+  createLeaseBadge,
+  createPhaseBadge,
+  hasLiveLease,
+  workgraphMeta
+} from '../utils/workgraph-badge.js';
 
 /**
  * Format a date string for display.
@@ -1392,6 +1398,61 @@ export function createDetailView(
         : ''}
     </div>`;
 
+    // Agent section block — rendered below Dates when the issue carries
+    // workgraph lifecycle or lease metadata (reserved keys, read-only here).
+    const wg = workgraphMeta(/** @type {any} */ (issue));
+    const wg_lease_live = hasLiveLease(/** @type {any} */ (issue));
+    const workgraph_block =
+      wg.phase || wg.lease_holder
+        ? html`<div class="props-card workgraph">
+            <div class="props-card__header">
+              <div class="props-card__title">Agent</div>
+            </div>
+            ${wg.phase
+              ? html`<div class="prop">
+                  <div class="label">Phase</div>
+                  <div class="value">
+                    ${createPhaseBadge(/** @type {any} */ (issue))}
+                  </div>
+                </div>`
+              : ''}
+            ${wg.workflow_class
+              ? html`<div class="prop">
+                  <div class="label">Workflow</div>
+                  <div class="value">${wg.workflow_class}</div>
+                </div>`
+              : ''}
+            ${wg.risk_tier
+              ? html`<div class="prop">
+                  <div class="label">Risk</div>
+                  <div class="value">${wg.risk_tier}</div>
+                </div>`
+              : ''}
+            ${wg.lease_holder
+              ? html`<div class="prop">
+                    <div class="label">Lease</div>
+                    <div class="value">
+                      ${wg_lease_live
+                        ? createLeaseBadge(/** @type {any} */ (issue))
+                        : html`<span class="muted">expired</span>`}
+                    </div>
+                  </div>
+                  <div class="prop">
+                    <div class="label">Holder</div>
+                    <div class="value mono">${wg.lease_holder}</div>
+                  </div>`
+              : ''}
+            ${wg.lease_expires_at_ms
+              ? html`<div class="prop">
+                  <div class="label">Expires</div>
+                  <div class="value">
+                    ${formatDateValue(wg.lease_expires_at_ms)}
+                  </div>
+                </div>`
+              : ''}
+          </div>`
+        : '';
+
     // Design section block
     const design_text = String(issue.design || '');
     const design_block = edit_design
@@ -1585,6 +1646,7 @@ export function createDetailView(
                 </div>
               </div>
               ${dates_block}
+              ${workgraph_block}
               ${labels_block}
               ${depsSection('Dependencies', issue.dependencies || [])}
               ${depsSection('Dependents', issue.dependents || [])}

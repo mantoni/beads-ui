@@ -11,9 +11,13 @@ import {
   statusLabel,
   statusOptions
 } from '../utils/status.js';
+import {
+  createLeaseBadge,
+  createPhaseBadge
+} from '../utils/workgraph-badge.js';
 
 /**
- * @typedef {{ id: string, title?: string, status?: string, priority?: number, issue_type?: string, assignee?: string, dependency_count?: number, dependent_count?: number }} IssueRowData
+ * @typedef {{ id: string, title?: string, status?: string, priority?: number, issue_type?: string, assignee?: string, dependency_count?: number, dependent_count?: number, metadata?: Record<string, unknown> | null }} IssueRowData
  */
 
 /**
@@ -170,7 +174,10 @@ export function createIssueRowRenderer(options) {
           )}
         </select>
       </td>
-      <td role="gridcell">${editableText(it.id, 'title', it.title || '')}</td>
+      <td role="gridcell">
+        ${editableText(it.id, 'title', it.title || '')} ${createPhaseBadge(it)}
+        ${createLeaseBadge(it)}
+      </td>
       <td role="gridcell">
         <select
           class="badge-select badge--status is-${cur_status}"
