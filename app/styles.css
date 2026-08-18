@@ -2264,3 +2264,51 @@ html[data-theme='dark'] {
 .dependent-count:hover {
   color: var(--fg);
 }
+
+/* Workgraph / agent-lease badges (reserved metadata, rendered read-only) */
+.wg-badge {
+  display: inline-block;
+  padding: 0 6px;
+  line-height: 18px;
+  height: 18px;
+  border-radius: var(--badge-radius);
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+  user-select: none;
+  white-space: nowrap;
+  cursor: default;
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  background: color-mix(in srgb, var(--wg-base, #6b7280) 14%, transparent);
+  color: color-mix(in srgb, var(--wg-base, #6b7280) 72%, var(--fg));
+}
+.wg-badge--phase.is-draft {
+  --wg-base: #6b7280;
+}
+.wg-badge--phase.is-ready {
+  --wg-base: #51cb4e;
+}
+.wg-badge--phase.is-planning {
+  --wg-base: #0d9488;
+}
+.wg-badge--phase.is-implementing {
+  --wg-base: #2563eb;
+}
+.wg-badge--phase.is-judging {
+  --wg-base: #7c3aed;
+}
+.wg-badge--phase.is-revising {
+  --wg-base: #ea580c;
+}
+.wg-badge--phase.is-verifying {
+  --wg-base: #0891b2;
+}
+.wg-badge--phase.is-accepted {
+  --wg-base: #059669;
+}
+.wg-badge--phase.is-escalated {
+  --wg-base: #c0392b;
+}
+.wg-badge--lease {
+  --wg-base: #f59e0b;
+}
