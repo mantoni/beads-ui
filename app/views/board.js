@@ -10,6 +10,12 @@ import { debug } from '../utils/logging.js';
 import { createPriorityBadge } from '../utils/priority-badge.js';
 import { showToast } from '../utils/toast.js';
 import { createTypeBadge } from '../utils/type-badge.js';
+import {
+  createLeaseBadge,
+  createPhaseBadge,
+  hasLiveLease,
+  workgraphMeta
+} from '../utils/workgraph-badge.js';
 
 /**
  * @typedef {{
@@ -20,7 +26,8 @@ import { createTypeBadge } from '../utils/type-badge.js';
  *   issue_type?: string,
  *   created_at?: number,
  *   updated_at?: number,
- *   closed_at?: number
+ *   closed_at?: number,
+ *   metadata?: Record<string, unknown> | null
  * }} IssueLite
  */
 
@@ -204,10 +211,29 @@ export function createBoardView(
         <div class="board-card__title text-truncate">${title}</div>
         <div class="board-card__meta">
           ${createTypeBadge(it.issue_type)} ${createPriorityBadge(it.priority)}
+          ${createPhaseBadge(it)} ${createLeaseBadge(it)}
           ${createIssueIdRenderer(it.id, { class_name: 'mono' })}
         </div>
       </article>
     `;
+  }
+
+  /**
+   * Find an issue across the four board lists by id.
+   *
+   * @param {string} id
+   * @returns {IssueLite | null}
+   */
+  function findIssueById(id) {
+    const lists = [list_ready, list_blocked, list_in_progress, list_closed_raw];
+    for (const list of lists) {
+      for (const it of list) {
+        if (it.id === id) {
+          return it;
+        }
+      }
+    }
+    return null;
   }
 
   /** @type {string|null} */
@@ -461,6 +487,16 @@ export function createBoardView(
     const issue_id = ev.dataTransfer?.getData('text/plain');
     if (!issue_id) {
       log('drop without issue id');
+      return;
+    }
+
+    // An issue under a live agent lease is being worked on right now — a
+    // status write would move it out from under the lease holder.
+    const dropped = findIssueById(issue_id);
+    if (dropped && hasLiveLease(dropped)) {
+      const holder = workgraphMeta(dropped).lease_holder;
+      log('drop %s blocked: live lease held by %s', issue_id, holder);
+      showToast(`Held by agent ${holder} — status change blocked`, 'error');
       return;
     }
 
