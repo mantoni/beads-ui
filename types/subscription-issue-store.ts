@@ -35,6 +35,13 @@ export interface SubscriptionIssueStore {
    */
   applyPush(msg: SnapshotMsg | UpsertMsg | DeleteMsg): void;
 
+  /**
+   * Seed the store with a cached snapshot for first paint. Hydration must not
+   * advance server revision state; a later live snapshot should still replace
+   * the cached data deterministically.
+   */
+  hydrate(issues: Issue[]): boolean;
+
   /** Stable, read-only snapshot of issues for rendering. */
   snapshot(): readonly Issue[];
 
