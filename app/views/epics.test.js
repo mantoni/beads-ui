@@ -1,12 +1,18 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, test, vi } from 'vitest';
 import { createSubscriptionIssueStore } from '../data/subscription-issue-store.js';
 import { createSubscriptionStore } from '../data/subscriptions-store.js';
 import { createEpicsView } from './epics.js';
 
+const list_styles = readFileSync('app/styles.css', 'utf8');
+
 describe('views/epics', () => {
   test('loads groups from store and expands to show non-closed children, navigates on click', async () => {
-    document.body.innerHTML = '<div id="m"></div>';
-    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+    document.body.innerHTML = '<div id="epics-root"></div>';
+    document.head.innerHTML = `<style>${list_styles}</style>`;
+    const mount = /** @type {HTMLElement} */ (
+      document.getElementById('epics-root')
+    );
     const data = {
       updateIssue: vi.fn(),
       getIssue: vi.fn(async (id) => ({ id }))
@@ -52,10 +58,10 @@ describe('views/epics', () => {
       revision: 1,
       issues: [
         {
-          id: 'UI-1',
+          id: 'audestra-epic.1',
           title: 'Epic One',
           issue_type: 'epic',
-          dependents: [{ id: 'UI-2' }, { id: 'UI-3' }]
+          dependents: [{ id: 'audestra-epic.123456789' }, { id: 'UI-3' }]
         }
       ]
     });
@@ -70,19 +76,19 @@ describe('views/epics', () => {
     );
     await view.load();
     // Register epic detail and push snapshot with dependents
-    issueStores.getStore('detail:UI-1');
-    issueStores.getStore('detail:UI-1').applyPush({
+    issueStores.getStore('detail:audestra-epic.1');
+    issueStores.getStore('detail:audestra-epic.1').applyPush({
       type: 'snapshot',
-      id: 'detail:UI-1',
+      id: 'detail:audestra-epic.1',
       revision: 1,
       issues: [
         {
-          id: 'UI-1',
+          id: 'audestra-epic.1',
           title: 'Epic One',
           issue_type: 'epic',
           dependents: [
             {
-              id: 'UI-2',
+              id: 'audestra-epic.123456789',
               title: 'Alpha',
               status: 'open',
               priority: 1,
@@ -105,8 +111,20 @@ describe('views/epics', () => {
     // After expansion, only non-closed child should be present
     const rows = mount.querySelectorAll('tr.epic-row');
     expect(rows.length).toBe(2);
+    const id_col = mount.querySelector('table colgroup col:first-child');
+    const id_cell = rows[0]?.querySelector('td:first-child');
+    expect(
+      Number.parseInt(id_col?.style.width || '0', 10)
+    ).toBeGreaterThanOrEqual(200);
+    expect(getComputedStyle(id_cell ?? document.body).overflow).toBe('hidden');
+    expect(getComputedStyle(id_cell ?? document.body).textOverflow).toBe(
+      'ellipsis'
+    );
+    expect(getComputedStyle(id_cell ?? document.body).whiteSpace).toBe(
+      'nowrap'
+    );
     rows[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    expect(navCalls[0]).toBe('UI-2');
+    expect(navCalls[0]).toBe('audestra-epic.123456789');
   });
 
   test('sorts children by priority then created_at asc', async () => {

@@ -1345,6 +1345,25 @@ input.inline-edit:focus {
     font-weight: 600;
   }
 }
+
+/* Keep long Beads IDs inside their own column instead of painting beneath Type. */
+#list-panel .table th:first-child,
+#list-panel .table td:first-child,
+#epics-root .table th:first-child,
+#epics-root .table td:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#list-panel .table td:first-child .id-copy,
+#epics-root .table td:first-child .id-copy {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .epic-row:hover {
   background: color-mix(in srgb, var(--control-bg) 55%, transparent);
 }

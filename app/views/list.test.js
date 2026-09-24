@@ -1,6 +1,9 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 import { createSubscriptionIssueStore } from '../data/subscription-issue-store.js';
 import { createListView } from './list.js';
+
+const list_styles = readFileSync('app/styles.css', 'utf8');
 
 /**
  * Helper to toggle a filter option in a dropdown.
@@ -159,6 +162,67 @@ describe('views/list', () => {
     const first = /** @type {HTMLElement} */ (rows[0]);
     first.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(window.location.hash).toBe('#/issues?issue=UI-1');
+  });
+
+  test('keeps long issue IDs separate from the editable type control', async () => {
+    document.body.innerHTML = '<aside id="list-panel" class="panel"></aside>';
+    document.head.innerHTML = `<style>${list_styles}</style>`;
+    const mount = /** @type {HTMLElement} */ (
+      document.getElementById('list-panel')
+    );
+    const long_id = 'audestra-store.123456789';
+    const issueStores = createTestIssueStores();
+    issueStores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues: [
+        {
+          id: long_id,
+          title: 'Long ID issue',
+          status: 'open',
+          priority: 1,
+          issue_type: 'task'
+        }
+      ]
+    });
+
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      undefined,
+      issueStores
+    );
+    await view.load();
+
+    const row = mount.querySelector('tr.issue-row');
+    const id_cell = row?.querySelector('td:first-child');
+    const type_cell = row?.querySelector('td:nth-child(2)');
+    const id_button = id_cell?.querySelector('button.id-copy');
+    const id_col = mount.querySelector('colgroup col:first-child');
+
+    expect(id_cell).not.toBeNull();
+    expect(type_cell).not.toBeNull();
+    expect(
+      Number.parseInt(id_col?.style.width || '0', 10)
+    ).toBeGreaterThanOrEqual(200);
+    expect(getComputedStyle(id_cell ?? document.body).overflow).toBe('hidden');
+    expect(getComputedStyle(id_cell ?? document.body).textOverflow).toBe(
+      'ellipsis'
+    );
+    expect(getComputedStyle(id_cell ?? document.body).whiteSpace).toBe(
+      'nowrap'
+    );
+    expect(id_button?.textContent).toBe(long_id);
+    expect(id_button?.getAttribute('aria-label')).toBe(
+      `Copy issue ID ${long_id}`
+    );
+    expect(type_cell?.querySelector('select.badge--type')).not.toBeNull();
+    expect(id_cell?.contains(type_cell ?? document.createElement('td'))).toBe(
+      false
+    );
   });
 
   test('filters by status and search', async () => {
