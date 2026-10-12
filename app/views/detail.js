@@ -6,6 +6,7 @@ import { debug } from '../utils/logging.js';
 import { renderMarkdown } from '../utils/markdown.js';
 import { emojiForPriority } from '../utils/priority-badge.js';
 import { priority_levels } from '../utils/priority.js';
+import { createStatusBadge } from '../utils/status-badge.js';
 import {
   isSettableStatus,
   statusLabel,
@@ -1083,6 +1084,28 @@ export function createDetailView(
   };
 
   /**
+   * Create a navigation handler that preserves native modified-click behavior.
+   *
+   * @param {string} href
+   * @returns {(ev: MouseEvent) => void}
+   */
+  function makeDepNavigateClick(href) {
+    return (ev) => {
+      if (
+        ev.button !== 0 ||
+        ev.metaKey ||
+        ev.ctrlKey ||
+        ev.shiftKey ||
+        ev.altKey
+      ) {
+        return;
+      }
+      ev.preventDefault();
+      navigateFn(href);
+    };
+  }
+
+  /**
    * @param {'Dependencies'|'Dependents'} title
    * @param {Dependency[]} items
    */
@@ -1090,23 +1113,36 @@ export function createDetailView(
     const test_id =
       title === 'Dependencies' ? 'add-dependency' : 'add-dependent';
     return html`
-      <div class="props-card">
+      <div class="props-card dependency-card">
         <div>
           <div class="props-card__title">${title}</div>
         </div>
-        <ul>
+        <ul class="dependency-list">
           ${!items || items.length === 0
             ? null
             : items.map((dep) => {
                 const did = dep.id;
                 const href = issueHref(did);
+                const dependency_status = dep.status || 'unknown';
                 return html`<li
+                  class="dependency-item"
                   data-href=${href}
-                  @click=${() => navigateFn(href)}
+                  @click=${makeDepNavigateClick(href)}
                 >
-                  ${createTypeBadge(dep.issue_type || '')}
-                  <span class="text-truncate">${dep.title || ''}</span>
+                  <a
+                    class="dependency-item__link"
+                    href=${href}
+                    aria-label=${`${did}: ${dep.title || 'Untitled issue'}, ${statusLabel(dependency_status)}`}
+                  >
+                    ${createTypeBadge(dep.issue_type || '')}
+                    <span class="dependency-item__id mono">${did}</span>
+                    <span class="dependency-item__summary text-truncate"
+                      >${dep.title || 'Untitled issue'}</span
+                    >
+                    ${createStatusBadge(dependency_status)}
+                  </a>
                   <button
+                    class="dependency-item__remove"
                     aria-label=${`Remove dependency ${did}`}
                     @click=${makeDepRemoveClick(did, title)}
                   >
@@ -1486,7 +1522,12 @@ export function createDetailView(
         <div class="detail-layout">
           <div class="detail-main">
             ${title_zone} ${desc_block} ${design_block} ${notes_block}
-            ${accept_block} ${comments_block}
+            ${accept_block}
+            <section class="related-issues" aria-label="Linked issues">
+              ${depsSection('Dependencies', issue.dependencies || [])}
+              ${depsSection('Dependents', issue.dependents || [])}
+            </section>
+            ${comments_block}
           </div>
           <div class="detail-side">
             <div class="props-card">
@@ -1586,8 +1627,6 @@ export function createDetailView(
               </div>
               ${dates_block}
               ${labels_block}
-              ${depsSection('Dependencies', issue.dependencies || [])}
-              ${depsSection('Dependents', issue.dependents || [])}
             </div>
           </div>
         </div>

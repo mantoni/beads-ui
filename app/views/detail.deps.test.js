@@ -8,6 +8,79 @@ function setupDom() {
 }
 
 describe('views/detail dependencies', () => {
+  test('renders linked issue identities and statuses', async () => {
+    const mount = setupDom();
+    const issue = {
+      id: 'UI-40',
+      dependencies: [
+        {
+          id: 'UI-25',
+          title: 'Build the API',
+          status: 'closed',
+          issue_type: 'task'
+        },
+        {
+          id: 'UI-27',
+          title: 'Wire the client',
+          status: 'in_progress',
+          issue_type: 'feature'
+        }
+      ],
+      dependents: [{ id: 'UI-34', title: 'Release the feature' }]
+    };
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-40' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const view = createDetailView(mount, async () => ({}), undefined, stores);
+
+    await view.load('UI-40');
+
+    const linked_items = Array.from(
+      mount.querySelectorAll('.dependency-item')
+    ).map((item) => ({
+      id: item.querySelector('.dependency-item__id')?.textContent,
+      summary: item.querySelector('.dependency-item__summary')?.textContent,
+      status: item.querySelector('.status-badge')?.textContent
+    }));
+    expect(linked_items).toEqual([
+      { id: 'UI-25', summary: 'Build the API', status: 'Closed' },
+      { id: 'UI-27', summary: 'Wire the client', status: 'In progress' },
+      { id: 'UI-34', summary: 'Release the feature', status: 'Unknown' }
+    ]);
+  });
+
+  test('uses native anchors for linked issue navigation', async () => {
+    const mount = setupDom();
+    const issue = {
+      id: 'UI-41',
+      dependencies: [{ id: 'UI-25' }],
+      dependents: [{ id: 'UI-34' }]
+    };
+    const stores = {
+      /** @param {string} id */
+      snapshotFor(id) {
+        return id === 'detail:UI-41' ? [issue] : [];
+      },
+      subscribe() {
+        return () => {};
+      }
+    };
+    const view = createDetailView(mount, async () => ({}), undefined, stores);
+
+    await view.load('UI-41');
+
+    const hrefs = Array.from(
+      mount.querySelectorAll('.dependency-item__link')
+    ).map((link) => link.getAttribute('href'));
+    expect(hrefs).toEqual(['#/issues?issue=UI-25', '#/issues?issue=UI-34']);
+  });
+
   test('adds Dependencies link and re-renders', async () => {
     const mount = setupDom();
     let current = { id: 'UI-10', title: 'X', dependencies: [], dependents: [] };

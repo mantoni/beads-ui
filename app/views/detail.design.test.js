@@ -8,7 +8,7 @@ function mountDiv() {
 }
 
 describe('detail view design section', () => {
-  test('orders sections: Description → Design → Notes → Acceptance Criteria', async () => {
+  test('orders content through linked issues and comments', async () => {
     const mount = mountDiv();
     /** @type {any} */
     const issue = {
@@ -48,6 +48,9 @@ describe('detail view design section', () => {
       if (el.classList.contains('acceptance')) {
         return 'acceptance';
       }
+      if (el.classList.contains('related-issues')) {
+        return 'related-issues';
+      }
       if (el.classList.contains('comments')) {
         return 'comments';
       }
@@ -58,6 +61,7 @@ describe('detail view design section', () => {
       'design',
       'notes',
       'acceptance',
+      'related-issues',
       'comments'
     ]);
     // Heading text for acceptance should be updated
