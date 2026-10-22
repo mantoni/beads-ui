@@ -10,6 +10,7 @@ import { createSubscriptionStore } from './data/subscriptions-store.js';
 import { createHashRouter, parseHash, parseView } from './router.js';
 import { createStore } from './state.js';
 import { createActivityIndicator } from './utils/activity-indicator.js';
+import { ISSUE_TYPES } from './utils/issue-type.js';
 import { debug } from './utils/logging.js';
 import { normalizeStatusFilters } from './utils/status.js';
 import { showToast } from './utils/toast.js';
@@ -359,7 +360,7 @@ export function bootstrap(root_element) {
       if (raw) {
         const obj = JSON.parse(raw);
         if (obj && typeof obj === 'object') {
-          const ALLOWED = ['bug', 'feature', 'task', 'epic', 'chore'];
+          const ALLOWED = ISSUE_TYPES;
           let parsed_type = '';
           if (typeof obj.type === 'string' && ALLOWED.includes(obj.type)) {
             parsed_type = obj.type;

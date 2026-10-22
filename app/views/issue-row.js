@@ -162,6 +162,11 @@ export function createIssueRowRenderer(options) {
           .value=${cur_type}
           @change=${makeSelectChange(it.id, 'issue_type')}
         >
+          ${cur_type && !ISSUE_TYPES.includes(cur_type)
+            ? html`<option value=${cur_type} selected>
+                ${typeLabel(cur_type)}
+              </option>`
+            : ''}
           ${ISSUE_TYPES.map(
             (t) =>
               html`<option value=${t} ?selected=${cur_type === t}>

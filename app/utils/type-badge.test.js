@@ -9,7 +9,10 @@ describe('utils/type-badge', () => {
       ['task', 'Task'],
       ['epic', 'Epic'],
       ['chore', 'Chore'],
-      ['decision', 'Decision']
+      ['decision', 'Decision'],
+      ['spike', 'Spike'],
+      ['story', 'Story'],
+      ['milestone', 'Milestone']
     ];
     for (const [t, label] of types) {
       const el = createTypeBadge(t);
@@ -26,6 +29,14 @@ describe('utils/type-badge', () => {
   test('falls back to neutral for unknown types', () => {
     const el = createTypeBadge('unknown');
     expect(el.classList.contains('type-badge--neutral')).toBe(true);
-    expect(el.textContent).toBe('—');
+    expect(el.textContent).toBe('unknown');
+    expect(el.title).toBe('Type: unknown');
+  });
+
+  test('renders custom types as text rather than HTML', () => {
+    const el = createTypeBadge('<img src=x onerror=alert(1)>');
+
+    expect(el.textContent).toBe('<img src=x onerror=alert(1)>');
+    expect(el.querySelector('img')).toBeNull();
   });
 });

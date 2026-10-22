@@ -12,6 +12,7 @@ import {
   makeError,
   makeOk
 } from '../app/protocol.js';
+import { ISSUE_TYPES } from '../app/utils/issue-type.js';
 import { getGitUserName, runBd, runBdJson } from './bd.js';
 import { resolveWorkspaceDatabase } from './db.js';
 import { fetchListForSubscription } from './list-adapters.js';
@@ -1003,14 +1004,7 @@ export async function handleMessage(ws, data) {
   if (req.type === 'update-type') {
     log('update-type');
     const { id, type } = /** @type {any} */ (req.payload);
-    const allowed = new Set([
-      'bug',
-      'feature',
-      'task',
-      'epic',
-      'chore',
-      'decision'
-    ]);
+    const allowed = new Set(ISSUE_TYPES);
     if (
       typeof id !== 'string' ||
       id.length === 0 ||
@@ -1022,7 +1016,7 @@ export async function handleMessage(ws, data) {
           makeError(
             req,
             'bad_request',
-            "payload requires { id: string, type: 'bug'|'feature'|'task'|'epic'|'chore'|'decision' }"
+            `payload requires { id: string, type: ${ISSUE_TYPES.join('|')} }`
           )
         )
       );
@@ -1137,13 +1131,21 @@ export async function handleMessage(ws, data) {
     }
     const args = ['create', title];
     if (
-      typeof type === 'string' &&
-      (type === 'bug' ||
-        type === 'feature' ||
-        type === 'task' ||
-        type === 'epic' ||
-        type === 'chore')
+      type !== undefined &&
+      (typeof type !== 'string' || !ISSUE_TYPES.includes(type))
     ) {
+      ws.send(
+        JSON.stringify(
+          makeError(
+            req,
+            'bad_request',
+            `Unsupported issue type; expected ${ISSUE_TYPES.join('|')}`
+          )
+        )
+      );
+      return;
+    }
+    if (typeof type === 'string') {
       args.push('-t', type);
     }
     if (typeof priority === 'number' && priority >= 0 && priority <= 4) {

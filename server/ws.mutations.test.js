@@ -198,29 +198,92 @@ describe('ws mutation handlers', () => {
     expect(obj.payload.issue_type).toBe('feature');
   });
 
-  test('update-type accepts decision type', async () => {
+  test.each(['decision', 'spike', 'story', 'milestone'])(
+    'update-type accepts %s type',
+    async (type) => {
+      const mRun = /** @type {import('vitest').Mock} */ (runBd);
+      const mJson = /** @type {import('vitest').Mock} */ (runBdJson);
+      mRun.mockResolvedValueOnce({ code: 0, stdout: '', stderr: '' });
+      mJson.mockResolvedValueOnce({
+        code: 0,
+        stdoutJson: { id: 'UI-9', issue_type: type }
+      });
+      const ws = makeStubSocket();
+      const req = {
+        id: 'rut2',
+        type: /** @type {any} */ ('update-type'),
+        payload: { id: 'UI-9', type }
+      };
+      await handleMessage(
+        /** @type {any} */ (ws),
+        Buffer.from(JSON.stringify(req))
+      );
+      const call = mRun.mock.calls[mRun.mock.calls.length - 1];
+      expect(call[0]).toEqual(['update', 'UI-9', '--type', type]);
+      const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
+      expect(obj.ok).toBe(true);
+      expect(obj.payload.issue_type).toBe(type);
+    }
+  );
+
+  test.each([
+    'bug',
+    'feature',
+    'task',
+    'epic',
+    'chore',
+    'decision',
+    'spike',
+    'story',
+    'milestone'
+  ])(
+    'creates the requested %s type without silently defaulting',
+    async (type) => {
+      const mRun = /** @type {import('vitest').Mock} */ (runBd);
+      mRun.mockResolvedValueOnce({ code: 0, stdout: 'UI-99', stderr: '' });
+      const ws = makeStubSocket();
+
+      await handleMessage(
+        /** @type {any} */ (ws),
+        Buffer.from(
+          JSON.stringify({
+            id: 'create-type',
+            type: 'create-issue',
+            payload: { title: 'Typed issue', type }
+          })
+        )
+      );
+
+      expect(mRun.mock.calls[0][0]).toEqual([
+        'create',
+        'Typed issue',
+        '-t',
+        type
+      ]);
+      expect(JSON.parse(ws.sent[ws.sent.length - 1]).ok).toBe(true);
+    }
+  );
+
+  test('rejects an explicit unsupported create type instead of creating a task', async () => {
     const mRun = /** @type {import('vitest').Mock} */ (runBd);
-    const mJson = /** @type {import('vitest').Mock} */ (runBdJson);
-    mRun.mockResolvedValueOnce({ code: 0, stdout: '', stderr: '' });
-    mJson.mockResolvedValueOnce({
-      code: 0,
-      stdoutJson: { id: 'UI-9', issue_type: 'decision' }
-    });
+    mRun.mockResolvedValueOnce({ code: 0, stdout: 'UI-99', stderr: '' });
     const ws = makeStubSocket();
-    const req = {
-      id: 'rut2',
-      type: /** @type {any} */ ('update-type'),
-      payload: { id: 'UI-9', type: 'decision' }
-    };
+
     await handleMessage(
       /** @type {any} */ (ws),
-      Buffer.from(JSON.stringify(req))
+      Buffer.from(
+        JSON.stringify({
+          id: 'bad-create-type',
+          type: 'create-issue',
+          payload: { title: 'Invalid type', type: 'typo' }
+        })
+      )
     );
-    const call = mRun.mock.calls[mRun.mock.calls.length - 1];
-    expect(call[0]).toEqual(['update', 'UI-9', '--type', 'decision']);
-    const obj = JSON.parse(ws.sent[ws.sent.length - 1]);
-    expect(obj.ok).toBe(true);
-    expect(obj.payload.issue_type).toBe('decision');
+
+    expect(JSON.parse(ws.sent[ws.sent.length - 1]).error?.code).toBe(
+      'bad_request'
+    );
+    expect(mRun).not.toHaveBeenCalled();
   });
 
   test('update-type invalid payload yields bad_request', async () => {

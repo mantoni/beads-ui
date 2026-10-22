@@ -597,6 +597,21 @@ button:disabled {
   background: var(--badge-bg-decision);
   color: var(--badge-fg-decision);
 }
+.type-badge--story,
+.filter-chip--story {
+  background: var(--badge-bg-feature);
+  color: var(--badge-fg-feature);
+}
+.type-badge--spike,
+.filter-chip--spike {
+  background: var(--badge-bg-decision);
+  color: var(--badge-fg-decision);
+}
+.type-badge--milestone,
+.filter-chip--milestone {
+  background: var(--badge-bg-epic);
+  color: var(--badge-fg-epic);
+}
 
 /* Generic badge base (shared look) */
 .badge,

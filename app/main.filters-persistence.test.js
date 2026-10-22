@@ -201,6 +201,44 @@ describe('issues view — status filter persistence', () => {
     window.localStorage.clear();
   });
 
+  test.each(['decision', 'spike', 'story', 'milestone'])(
+    'restores and applies the %s type filter after a reload',
+    async (type) => {
+      window.localStorage.setItem(
+        'beads-ui.filters',
+        JSON.stringify({ status: [], search: '', type })
+      );
+
+      const client = await reload();
+      client._trigger('snapshot', {
+        type: 'snapshot',
+        id: 'tab:issues',
+        revision: 2,
+        issues: [
+          {
+            id: 'T-1',
+            title: 'Matching type',
+            status: 'open',
+            issue_type: type
+          },
+          { id: 'T-2', title: 'Other type', status: 'open', issue_type: 'bug' }
+        ]
+      });
+      await settle();
+
+      expect(rowIds()).toEqual(['T-1']);
+      const dropdown = document.querySelectorAll('.filter-dropdown')[1];
+      const checked = Array.from(dropdown.querySelectorAll('input:checked'));
+      expect(
+        checked.map((el) => el.parentElement?.textContent?.trim().toLowerCase())
+      ).toEqual([type]);
+      const select = /** @type {HTMLSelectElement} */ (
+        document.querySelector('tr.issue-row select')
+      );
+      expect(select.value).toBe(type);
+    }
+  );
+
   test('persists a multi-status selection as an array', async () => {
     await reload();
 

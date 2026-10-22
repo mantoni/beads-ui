@@ -1,7 +1,7 @@
 /**
  * Known issue types in canonical order for dropdowns.
  *
- * @type {Array<'bug'|'feature'|'task'|'epic'|'chore'|'decision'>}
+ * @type {string[]}
  */
 export const ISSUE_TYPES = [
   'bug',
@@ -9,7 +9,10 @@ export const ISSUE_TYPES = [
   'task',
   'epic',
   'chore',
-  'decision'
+  'decision',
+  'spike',
+  'story',
+  'milestone'
 ];
 
 /**
@@ -32,7 +35,13 @@ export function typeLabel(type) {
       return 'Chore';
     case 'decision':
       return 'Decision';
+    case 'spike':
+      return 'Spike';
+    case 'story':
+      return 'Story';
+    case 'milestone':
+      return 'Milestone';
     default:
-      return '';
+      return type || '';
   }
 }

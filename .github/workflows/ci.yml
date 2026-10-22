@@ -36,3 +36,9 @@ jobs:
         run: npm run prettier:check
       - name: Test
         run: npm test
+      - name: Install pinned Beads CLI
+        if: matrix.node-version == '24.x'
+        run: npm install --global @beads/bd@1.3.1
+      - name: Real Beads compatibility
+        if: matrix.node-version == '24.x'
+        run: npm run test:beads

@@ -161,6 +161,43 @@ describe('views/list', () => {
     expect(window.location.hash).toBe('#/issues?issue=UI-1');
   });
 
+  test('keeps a custom issue type visible without selecting a different built-in', async () => {
+    document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));
+    const issue_stores = createTestIssueStores();
+    issue_stores.getStore('tab:issues').applyPush({
+      type: 'snapshot',
+      id: 'tab:issues',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-custom',
+          title: 'Custom issue',
+          status: 'open',
+          issue_type: '<custom>'
+        }
+      ]
+    });
+    const view = createListView(
+      mount,
+      async () => [],
+      undefined,
+      undefined,
+      undefined,
+      issue_stores
+    );
+
+    await view.load();
+
+    const select = /** @type {HTMLSelectElement} */ (
+      mount.querySelector('select.badge--type')
+    );
+    expect(select.value).toBe('<custom>');
+    expect(select.selectedOptions[0].textContent?.trim()).toBe('<custom>');
+    expect(select.querySelector('custom')).toBeNull();
+    view.destroy();
+  });
+
   test('filters by status and search', async () => {
     document.body.innerHTML = '<aside id="mount" class="panel"></aside>';
     const mount = /** @type {HTMLElement} */ (document.getElementById('mount'));

@@ -35,6 +35,10 @@ bdui start --open
 
 See `bdui --help` for options.
 
+Tested with Beads **1.3.1**, including `story`, `spike` and `milestone` issue
+types. See [Beads compatibility](docs/beads-compatibility.md) for the supported
+workflows, limitations and disposable real-CLI integration tests.
+
 ## Screenshots
 
 **Issues**
