@@ -49,6 +49,28 @@ See `bdui --help` for options.
 
 ![Board view](https://github.com/mantoni/beads-ui/raw/main/media/bdui-board.png)
 
+**Mobile**
+
+| Issues                                                 | Epics                                                | Board                                                |
+| ------------------------------------------------------ | ---------------------------------------------------- | ---------------------------------------------------- |
+| ![Issues view on mobile](media/bdui-mobile-issues.png) | ![Epics view on mobile](media/bdui-mobile-epics.png) | ![Board view on mobile](media/bdui-mobile-board.png) |
+
+## Mobile Web Support
+
+Beads UI works in mobile web browsers. On narrow screens the header wraps into
+multiple rows, panels stack vertically, dialogs size themselves to the viewport,
+and wide data tables (Issues, Epics) scroll horizontally inside their containers
+instead of overflowing the page.
+
+Tested viewport widths: 320px, 375px, 390px and 430px (mobile Chromium
+emulation). Wider screens keep the existing desktop layout.
+
+Known limitations on mobile:
+
+- Board drag-and-drop relies on HTML5 drag events and does not work on touch
+  screens; change an issue's status from its detail view instead.
+- Keyboard shortcuts (e.g. `Ctrl`/`Cmd`+`N`) require a hardware keyboard.
+
 ## Environment variables
 
 - `BD_BIN`: path to the `bd` binary.
