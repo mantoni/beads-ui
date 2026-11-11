@@ -1228,6 +1228,41 @@ input.inline-edit:focus {
     border-left: none;
     border-top: 1px solid var(--border);
   }
+  /* Fixed-width tables are wider than phone screens; scroll them
+     horizontally inside their container instead of clipping columns. */
+  .issues-block,
+  .epic-children {
+    overflow-x: auto;
+  }
+}
+
+/* Mobile: let the header wrap so navigation and actions stay reachable */
+@media (max-width: 640px) {
+  .app-header {
+    flex-wrap: wrap;
+    padding-right: var(--space-6);
+    padding-left: var(--space-6);
+    row-gap: var(--space-3);
+  }
+  .header-left {
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
+  }
+  .header-actions {
+    margin-left: auto;
+  }
+  .workspace-picker__select,
+  .workspace-picker__label {
+    max-width: 140px;
+  }
+  /* Keep the filter bar usable: dropdowns wrap, search takes a full row */
+  #list-panel .panel__header {
+    flex-wrap: wrap;
+  }
+  #list-panel .panel__header input[type='search'] {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
 }
 
 /* Detail content paddings */
@@ -1477,6 +1512,11 @@ input.inline-edit:focus {
 @media (max-width: 1100px) {
   .board-root {
     grid-template-columns: 1fr;
+  }
+  /* Columns are stacked full-width here; don't force a 380px minimum
+     that overflows small phone screens. */
+  .board-column {
+    min-width: 0;
   }
 }
 
